@@ -181,7 +181,7 @@ export function isErrorEvent(event: StreamEvent): event is ErrorEvent {
 export function extractTextFromMessage(message: AssistantMessage): string {
   return message.content
     .filter((block): block is TextContent => block.type === 'text')
-    .map(block => block.text)
+    .map((block) => block.text)
     .join('\n');
 }
 

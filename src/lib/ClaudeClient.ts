@@ -2,8 +2,8 @@
  * ClaudeClient - Manages Claude CLI execution with stream-json I/O
  */
 
-import { spawn, ChildProcess } from 'child_process';
-import { StreamParser, StreamCallback, ErrorCallback } from './StreamParser';
+import { type ChildProcess, spawn } from 'node:child_process';
+import { type ErrorCallback, type StreamCallback, StreamParser } from './StreamParser';
 import type { StreamEvent } from './types';
 import { isSystemInitEvent } from './types';
 
@@ -36,10 +36,7 @@ export class ClaudeClient {
     this.options = options;
     this.currentSessionId = options.sessionId || null;
 
-    this.parser = new StreamParser(
-      (event) => this.handleStreamEvent(event),
-      options.onError
-    );
+    this.parser = new StreamParser((event) => this.handleStreamEvent(event), options.onError);
   }
 
   /**
@@ -52,7 +49,7 @@ export class ClaudeClient {
 
     console.log('[ClaudeClient] Executing query:', {
       cwd: this.options.cwd,
-      query: query.substring(0, 50) + '...',
+      query: `${query.substring(0, 50)}...`,
       sessionId: this.currentSessionId,
     });
 
@@ -60,7 +57,8 @@ export class ClaudeClient {
     const args = [
       '-p',
       query,
-      '--output-format', 'stream-json',
+      '--output-format',
+      'stream-json',
       '--verbose',
       '--dangerously-skip-permissions',
     ];
@@ -126,7 +124,6 @@ export class ClaudeClient {
       this.cleanup();
     });
   }
-
 
   /**
    * Handle parsed stream events

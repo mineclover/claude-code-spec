@@ -1,10 +1,10 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import started from 'electron-squirrel-startup';
 import { ClaudeClient } from './lib/ClaudeClient';
 import { SessionManager } from './lib/SessionManager';
-import { StreamEvent } from './lib/StreamParser';
-import { isSystemInitEvent, isResultEvent } from './lib/types';
+import type { StreamEvent } from './lib/StreamParser';
+import { isResultEvent, isSystemInitEvent } from './lib/types';
 
 if (started) {
   app.quit();
@@ -29,9 +29,7 @@ const createWindow = () => {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-    );
+    mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
 
   mainWindow.webContents.openDevTools();
@@ -60,74 +58,77 @@ ipcMain.handle('dialog:selectDirectory', async () => {
 });
 
 // IPC handler for executing Claude CLI with stream-json
-ipcMain.handle('claude:execute', async (event, projectPath: string, query: string, sessionId?: string) => {
-  console.log('[Main] Execute request:', { projectPath, query, sessionId });
+ipcMain.handle(
+  'claude:execute',
+  async (event, projectPath: string, query: string, sessionId?: string) => {
+    console.log('[Main] Execute request:', { projectPath, query, sessionId });
 
-  try {
-    // Create Claude client
-    const client = new ClaudeClient({
-      cwd: projectPath,
-      sessionId: sessionId || undefined,
-      onStream: (streamEvent: StreamEvent) => {
-        // Forward stream event to renderer
-        event.sender.send('claude:stream', {
-          pid: client.isRunning() ? process.pid : null,
-          data: streamEvent,
-        });
-
-        // Extract and save session info from system init event
-        if (isSystemInitEvent(streamEvent)) {
-          sessionManager.saveSession(streamEvent.session_id, {
-            cwd: projectPath,
-            query,
-            timestamp: Date.now(),
+    try {
+      // Create Claude client
+      const client = new ClaudeClient({
+        cwd: projectPath,
+        sessionId: sessionId || undefined,
+        onStream: (streamEvent: StreamEvent) => {
+          // Forward stream event to renderer
+          event.sender.send('claude:stream', {
+            pid: client.isRunning() ? process.pid : null,
+            data: streamEvent,
           });
-        }
 
-        // Save result from result event
-        if (isResultEvent(streamEvent)) {
-          const currentSessionId = client.getSessionId();
-          if (currentSessionId) {
-            sessionManager.updateSessionResult(currentSessionId, streamEvent.result);
+          // Extract and save session info from system init event
+          if (isSystemInitEvent(streamEvent)) {
+            sessionManager.saveSession(streamEvent.session_id, {
+              cwd: projectPath,
+              query,
+              timestamp: Date.now(),
+            });
           }
-        }
-      },
-      onError: (error: string) => {
-        event.sender.send('claude:error', {
-          pid: client.isRunning() ? process.pid : null,
-          error,
-        });
-      },
-      onClose: (code: number) => {
-        const pid = process.pid;
-        console.log('[Main] Client closed:', code);
-        event.sender.send('claude:complete', { pid, code });
-        activeClients.delete(pid);
-      },
-    });
 
-    // Execute query
-    const childProcess = client.execute(query);
-    const pid = childProcess.pid;
+          // Save result from result event
+          if (isResultEvent(streamEvent)) {
+            const currentSessionId = client.getSessionId();
+            if (currentSessionId) {
+              sessionManager.updateSessionResult(currentSessionId, streamEvent.result);
+            }
+          }
+        },
+        onError: (error: string) => {
+          event.sender.send('claude:error', {
+            pid: client.isRunning() ? process.pid : null,
+            error,
+          });
+        },
+        onClose: (code: number) => {
+          const pid = process.pid;
+          console.log('[Main] Client closed:', code);
+          event.sender.send('claude:complete', { pid, code });
+          activeClients.delete(pid);
+        },
+      });
 
-    if (!pid) {
-      throw new Error('Failed to get process PID');
+      // Execute query
+      const childProcess = client.execute(query);
+      const pid = childProcess.pid;
+
+      if (!pid) {
+        throw new Error('Failed to get process PID');
+      }
+
+      // Store active client
+      activeClients.set(pid, client);
+
+      // Notify renderer
+      event.sender.send('claude:started', { pid });
+
+      return { success: true, pid };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[Main] Execution error:', error);
+      event.sender.send('claude:error', { error: errorMessage });
+      return { success: false, error: errorMessage };
     }
-
-    // Store active client
-    activeClients.set(pid, client);
-
-    // Notify renderer
-    event.sender.send('claude:started', { pid });
-
-    return { success: true, pid };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('[Main] Execution error:', error);
-    event.sender.send('claude:error', { error: errorMessage });
-    return { success: false, error: errorMessage };
-  }
-});
+  },
+);
 
 // IPC handler for getting session list
 ipcMain.handle('claude:get-sessions', async () => {
@@ -144,12 +145,15 @@ ipcMain.handle('claude:get-current-session', async () => {
 });
 
 // IPC handler for resuming a session
-ipcMain.handle('claude:resume-session', async (event, sessionId: string, projectPath: string, query: string) => {
-  console.log('[Main] Resume session:', sessionId);
+ipcMain.handle(
+  'claude:resume-session',
+  async (event, sessionId: string, projectPath: string, query: string) => {
+    console.log('[Main] Resume session:', sessionId);
 
-  // Execute with session ID
-  return ipcMain.emit('claude:execute', event, projectPath, query, sessionId);
-});
+    // Execute with session ID
+    return ipcMain.emit('claude:execute', event, projectPath, query, sessionId);
+  },
+);
 
 // IPC handler for clearing sessions
 ipcMain.handle('claude:clear-sessions', async () => {

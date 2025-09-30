@@ -40,9 +40,7 @@ export class SessionManager {
    * Get all sessions sorted by timestamp (most recent first)
    */
   getAllSessions(): SessionInfo[] {
-    return Array.from(this.sessions.values()).sort(
-      (a, b) => b.timestamp - a.timestamp
-    );
+    return Array.from(this.sessions.values()).sort((a, b) => b.timestamp - a.timestamp);
   }
 
   /**

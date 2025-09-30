@@ -30,7 +30,11 @@ export interface ClaudeStartedData {
 
 export interface ClaudeAPI {
   // Execute claude command
-  executeClaudeCommand: (projectPath: string, query: string, sessionId?: string) => Promise<{ success: boolean; pid?: number; error?: string }>;
+  executeClaudeCommand: (
+    projectPath: string,
+    query: string,
+    sessionId?: string,
+  ) => Promise<{ success: boolean; pid?: number; error?: string }>;
 
   // Directory selection
   selectDirectory: () => Promise<string | null>;
@@ -38,7 +42,11 @@ export interface ClaudeAPI {
   // Session management
   getSessions: () => Promise<SessionInfo[]>;
   getCurrentSession: () => Promise<string | null>;
-  resumeSession: (sessionId: string, projectPath: string, query: string) => Promise<{ success: boolean; pid?: number; error?: string }>;
+  resumeSession: (
+    sessionId: string,
+    projectPath: string,
+    query: string,
+  ) => Promise<{ success: boolean; pid?: number; error?: string }>;
   clearSessions: () => Promise<{ success: boolean }>;
 
   // Event listeners
@@ -52,20 +60,16 @@ contextBridge.exposeInMainWorld('claudeAPI', {
   executeClaudeCommand: (projectPath: string, query: string, sessionId?: string) =>
     ipcRenderer.invoke('claude:execute', projectPath, query, sessionId),
 
-  selectDirectory: () =>
-    ipcRenderer.invoke('dialog:selectDirectory'),
+  selectDirectory: () => ipcRenderer.invoke('dialog:selectDirectory'),
 
-  getSessions: () =>
-    ipcRenderer.invoke('claude:get-sessions'),
+  getSessions: () => ipcRenderer.invoke('claude:get-sessions'),
 
-  getCurrentSession: () =>
-    ipcRenderer.invoke('claude:get-current-session'),
+  getCurrentSession: () => ipcRenderer.invoke('claude:get-current-session'),
 
   resumeSession: (sessionId: string, projectPath: string, query: string) =>
     ipcRenderer.invoke('claude:resume-session', sessionId, projectPath, query),
 
-  clearSessions: () =>
-    ipcRenderer.invoke('claude:clear-sessions'),
+  clearSessions: () => ipcRenderer.invoke('claude:clear-sessions'),
 
   onClaudeStarted: (callback: (data: { pid: number }) => void) => {
     ipcRenderer.on('claude:started', (_event, data) => callback(data));
