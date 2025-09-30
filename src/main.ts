@@ -704,31 +704,11 @@ ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number,
     ];
 
     log(`📋 Claude CLI args:`, claudeArgs);
+    log(`📂 Working directory (cwd):`, projectPath);
 
-    // Build minimal clean environment
-    const cleanEnv: Record<string, string> = {
-      PATH: getComprehensivePath(),
-      HOME: process.env.HOME || process.env.USERPROFILE || '',
-      USER: process.env.USER || process.env.USERNAME || '',
-      SHELL: process.env.SHELL || '/bin/bash',
-      LANG: 'en_US.UTF-8',
-      FORCE_COLOR: '0',
-      NO_COLOR: '1',
-    };
-
-    // Add Windows-specific vars
-    if (platform === 'win32') {
-      cleanEnv.USERPROFILE = process.env.USERPROFILE || '';
-      cleanEnv.APPDATA = process.env.APPDATA || '';
-      cleanEnv.LOCALAPPDATA = process.env.LOCALAPPDATA || '';
-      cleanEnv.SystemRoot = process.env.SystemRoot || 'C:\\Windows';
-    }
-
-    log(`🔧 Using clean environment, PATH length: ${cleanEnv.PATH.length}`);
-
+    // Spawn claude without custom env - let it inherit from system
     const claudeProcess = spawn('claude', claudeArgs, {
       cwd: projectPath,
-      env: cleanEnv,
       stdio: ['pipe', 'pipe', 'pipe'],
       shell: false, // Direct spawn without shell wrapper
     });
