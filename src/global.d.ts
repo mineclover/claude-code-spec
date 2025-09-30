@@ -1,4 +1,5 @@
-import { ClaudeAPI, SessionInfo, ClaudeStatus, RunningProcess, PersistentProcess } from './preload';
+import type { ClaudeAPI, SessionInfo } from './preload';
+import type { StreamEvent } from './lib/types';
 
 declare global {
   interface Window {
@@ -6,4 +7,4 @@ declare global {
   }
 }
 
-export type { SessionInfo, ClaudeStatus, RunningProcess, PersistentProcess };
+export type { StreamEvent, SessionInfo };

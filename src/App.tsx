@@ -1,926 +1,458 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { SessionInfo, RunningProcess, PersistentProcess } from './global';
-
-// Debug logging
-const DEBUG = true; // Enable by default for development
-const log = (...args: unknown[]) => {
-  if (DEBUG) {
-    console.log('[Renderer]', ...args);
-  }
-};
-
-interface ProcessOutput {
-  responses: string[];
-  errors: string[];
-}
+import type { StreamEvent } from './lib/types';
+import {
+  isSystemInitEvent,
+  isAssistantEvent,
+  isResultEvent,
+  isErrorEvent,
+  extractTextFromMessage,
+  extractToolUsesFromMessage,
+} from './lib/types';
 
 function App() {
   const [projectPath, setProjectPath] = useState<string>('');
   const [query, setQuery] = useState<string>('');
-  const [processes, setProcesses] = useState<Map<number, ProcessOutput>>(new Map());
-  const [runningProcesses, setRunningProcesses] = useState<RunningProcess[]>([]);
-  const [persistentProcesses, setPersistentProcesses] = useState<PersistentProcess[]>([]);
-  const [selectedPersistentPid, setSelectedPersistentPid] = useState<number | null>(null);
-  const [selectedPid, setSelectedPid] = useState<number | null>(null);
-  const [sessions, setSessions] = useState<SessionInfo[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [showSessions, setShowSessions] = useState(false);
-  const [claudeStatus, setClaudeStatus] = useState<{ available: boolean; authenticated: boolean; error?: string } | null>(null);
-  const [dirValidation, setDirValidation] = useState<{ valid: boolean; error?: string; realPath?: string } | null>(null);
-  const responsesEndRef = useRef<HTMLDivElement>(null);
-
-  // Developer debug room
-  const [showDebugRoom, setShowDebugRoom] = useState(false);
-  const [testCommand, setTestCommand] = useState<string>('echo "Hello from PID $$"');
-  const [debugOutput, setDebugOutput] = useState<string[]>([]);
-  const debugEndRef = useRef<HTMLDivElement>(null);
+  const [isExecuting, setIsExecuting] = useState<boolean>(false);
+  const [currentPid, setCurrentPid] = useState<number | null>(null);
+  const [streamEvents, setStreamEvents] = useState<StreamEvent[]>([]);
+  const [errors, setErrors] = useState<string[]>([]);
+  const outputEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    log('🔧 Setting up IPC listeners');
-
-    // Check Claude CLI status on mount
-    checkClaudeStatus();
-
     // Setup IPC listeners
-    window.claudeAPI.onClaudeResponse((pid: number, data: string) => {
-      log('📥 Received response for PID', pid, ':', data.substring(0, 100) + (data.length > 100 ? '...' : ''));
-      setProcesses((prev) => {
-        const newMap = new Map(prev);
-        const processOutput = newMap.get(pid) || { responses: [], errors: [] };
-        processOutput.responses.push(data);
-        newMap.set(pid, processOutput);
-        return newMap;
-      });
+    window.claudeAPI.onClaudeStarted((data) => {
+      console.log('[Renderer] Process started:', data.pid);
+      setCurrentPid(data.pid);
+      setIsExecuting(true);
+      setStreamEvents([]);
+      setErrors([]);
     });
 
-    window.claudeAPI.onClaudeError((pid: number, error: string) => {
-      log('⚠️ Received error for PID', pid, ':', error.substring(0, 100) + (error.length > 100 ? '...' : ''));
-      setProcesses((prev) => {
-        const newMap = new Map(prev);
-        const processOutput = newMap.get(pid) || { responses: [], errors: [] };
-        processOutput.errors.push(error);
-        newMap.set(pid, processOutput);
-        return newMap;
-      });
+    window.claudeAPI.onClaudeStream((data) => {
+      console.log('[Renderer] Stream event:', data.data);
+      setStreamEvents((prev) => [...prev, data.data]);
     });
 
-    window.claudeAPI.onClaudeComplete((pid: number) => {
-      log('✅ Execution complete for PID', pid);
-      loadProcesses(); // Reload process list
-      loadSessions(); // Reload sessions after completion
+    window.claudeAPI.onClaudeError((data) => {
+      console.error('[Renderer] Error:', data.error);
+      setErrors((prev) => [...prev, data.error]);
     });
 
-    window.claudeAPI.onProcessStarted((process: { pid: number; projectPath: string; query: string }) => {
-      log('🚀 Process started:', process);
-      setSelectedPid(process.pid);
-      setProcesses((prev) => {
-        const newMap = new Map(prev);
-        newMap.set(process.pid, { responses: [], errors: [] });
-        return newMap;
-      });
-      loadProcesses();
+    window.claudeAPI.onClaudeComplete((data) => {
+      console.log('[Renderer] Process complete:', data);
+      setIsExecuting(false);
     });
-
-    window.claudeAPI.onSessionUpdate((sessionId: string) => {
-      log('💾 Session updated:', sessionId);
-      setCurrentSessionId(sessionId);
-      loadSessions();
-    });
-
-    window.claudeAPI.onPwdUpdate((update: { pid: number; currentPath: string }) => {
-      log('📍 PWD updated for PID', update.pid, ':', update.currentPath);
-      setPersistentProcesses((prev) => {
-        return prev.map((proc) => {
-          if (proc.pid === update.pid) {
-            return { ...proc, currentPath: update.currentPath };
-          }
-          return proc;
-        });
-      });
-
-      // If this is the selected process, update the project path input
-      if (update.pid === selectedPersistentPid) {
-        setProjectPath(update.currentPath);
-      }
-    });
-
-    window.claudeAPI.onDebugOutput((data: { pid: number; output: string }) => {
-      log('🐛 Debug output from PID', data.pid, ':', data.output);
-      setDebugOutput((prev) => [...prev, `[PID ${data.pid}] ${data.output}`]);
-    });
-
-    // Load initial data
-    loadSessions();
-    loadProcesses();
-    loadPersistentProcesses();
   }, []);
 
   useEffect(() => {
-    // Auto-scroll to bottom when selected process changes
-    responsesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [selectedPid, processes]);
-
-  const checkClaudeStatus = async () => {
-    try {
-      const status = await window.claudeAPI.checkStatus();
-      setClaudeStatus(status);
-      log('📊 Claude status:', status);
-    } catch (error) {
-      log('❌ Failed to check Claude status:', error);
-      setClaudeStatus({ available: false, authenticated: false, error: 'Check failed' });
-    }
-  };
-
-  const loadSessions = async () => {
-    try {
-      const sessionList = await window.claudeAPI.getSessions();
-      setSessions(sessionList);
-      log('📋 Loaded sessions:', sessionList.length);
-    } catch (error) {
-      log('❌ Failed to load sessions:', error);
-    }
-  };
-
-  const loadProcesses = async () => {
-    try {
-      const processList = await window.claudeAPI.getProcesses();
-      setRunningProcesses(processList);
-      log('📋 Loaded processes:', processList.length);
-    } catch (error) {
-      log('❌ Failed to load processes:', error);
-    }
-  };
-
-  const loadPersistentProcesses = async () => {
-    try {
-      const processList = await window.claudeAPI.getPersistentProcesses();
-      setPersistentProcesses(processList);
-      log('📋 Loaded persistent processes:', processList.length);
-      // Auto-select first persistent process if none selected
-      if (processList.length > 0 && !selectedPersistentPid) {
-        const firstProc = processList[0];
-        setSelectedPersistentPid(firstProc.pid);
-        setProjectPath(firstProc.currentPath);
-      }
-    } catch (error) {
-      log('❌ Failed to load persistent processes:', error);
-    }
-  };
-
-  // Update project path when persistent PID changes
-  useEffect(() => {
-    if (selectedPersistentPid) {
-      const proc = persistentProcesses.find(p => p.pid === selectedPersistentPid);
-      if (proc) {
-        setProjectPath(proc.currentPath);
-        log('📍 Updated project path from PID', selectedPersistentPid, ':', proc.currentPath);
-      }
-    }
-  }, [selectedPersistentPid, persistentProcesses]);
-
-  const handleCreatePersistentProcess = async () => {
-    const pid = await window.claudeAPI.createPersistentProcess(projectPath || undefined);
-    if (pid) {
-      log('✅ Created persistent process:', pid);
-      loadPersistentProcesses();
-    }
-  };
-
-  const handleKillProcess = async (pid: number) => {
-    try {
-      const success = await window.claudeAPI.killProcess(pid);
-      if (success) {
-        log('✅ Process killed:', pid);
-        loadProcesses();
-        if (selectedPid === pid) {
-          setSelectedPid(null);
-        }
-      }
-    } catch (error) {
-      log('❌ Failed to kill process:', error);
-    }
-  };
-
-  const validatePath = async (path: string) => {
-    if (!path) {
-      setDirValidation(null);
-      return;
-    }
-
-    try {
-      const validation = await window.claudeAPI.validateDirectory(path);
-      setDirValidation(validation);
-      log('📁 Directory validation:', validation);
-    } catch (error) {
-      log('❌ Validation error:', error);
-      setDirValidation({ valid: false, error: 'Validation failed' });
-    }
-  };
+    // Auto-scroll to bottom
+    outputEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [streamEvents, errors]);
 
   const handleSelectDirectory = async () => {
-    log('🗂️ Opening directory selector');
     const path = await window.claudeAPI.selectDirectory();
     if (path) {
-      log('✅ Directory selected:', path);
       setProjectPath(path);
-      await validatePath(path);
-    } else {
-      log('❌ Directory selection canceled');
     }
-  };
-
-  const handleTestCommand = async () => {
-    if (!selectedPersistentPid) {
-      alert('Please select a persistent process first');
-      return;
-    }
-
-    log('🧪 Executing test command:', testCommand);
-    setDebugOutput((prev) => [...prev, `>>> ${testCommand}`]);
-
-    try {
-      await window.claudeAPI.executeTestCommand(selectedPersistentPid, testCommand);
-    } catch (error) {
-      log('❌ Test command failed:', error);
-      setDebugOutput((prev) => [...prev, `❌ Error: ${error.message}`]);
-    }
-  };
-
-  const clearDebugOutput = () => {
-    setDebugOutput([]);
-  };
-
-  const handlePathChange = async (path: string) => {
-    setProjectPath(path);
-    await validatePath(path);
   };
 
   const handleExecute = async () => {
     if (!projectPath || !query) {
-      log('⚠️ Missing project path or query');
       alert('Please select a project directory and enter a query');
       return;
     }
 
-    if (!selectedPersistentPid) {
-      log('⚠️ No persistent process selected');
-      alert('Please select a persistent process first');
-      return;
+    console.log('[Renderer] Executing:', { projectPath, query });
+    const result = await window.claudeAPI.executeClaudeCommand(projectPath, query);
+
+    if (!result.success) {
+      alert(`Failed to execute: ${result.error}`);
+    }
+  };
+
+  const renderStreamEvent = (event: StreamEvent, index: number): React.ReactNode => {
+    // Use type guards for type-safe event handling
+    if (isSystemInitEvent(event)) {
+      return (
+        <div key={index} style={styles.eventBox}>
+          <strong>🔧 System Init</strong>
+          <div>Session: {event.session_id}</div>
+          <div>CWD: {event.cwd}</div>
+          <div>Model: {event.model}</div>
+          {event.tools.length > 0 && <div style={styles.infoText}>Tools: {event.tools.join(', ')}</div>}
+        </div>
+      );
     }
 
-    log('🚀 Executing Claude command in persistent process', { pid: selectedPersistentPid, projectPath, query });
-    await window.claudeAPI.executeInProcess(selectedPersistentPid, projectPath, query);
-    setSelectedPid(selectedPersistentPid);
-    log('📤 Command sent to persistent process');
-  };
+    if (isAssistantEvent(event)) {
+      const textContent = extractTextFromMessage(event.message);
+      const toolUses = extractToolUsesFromMessage(event.message);
 
-  const handleResumeSession = async (session: SessionInfo) => {
-    log('🔄 Resuming session:', session.sessionId);
-    setProjectPath(session.projectPath);
+      return (
+        <div key={index} style={styles.eventBox}>
+          <strong>🤖 Assistant</strong>
+          {textContent && (
+            <div style={styles.contentText}>{textContent}</div>
+          )}
+          {toolUses.map((tool, i) => (
+            <div key={i} style={styles.toolUse}>
+              <div>🔨 Tool: {tool.name}</div>
+              <pre style={styles.codeBlock}>{JSON.stringify(tool.input, null, 2)}</pre>
+            </div>
+          ))}
+          <div style={styles.infoText}>
+            Tokens - Input: {event.message.usage.input_tokens} | Output: {event.message.usage.output_tokens}
+          </div>
+        </div>
+      );
+    }
 
-    await window.claudeAPI.executeClaudeCommand(session.projectPath, query || '', session.sessionId);
-    log('📤 Resume command sent');
-  };
+    if (isResultEvent(event)) {
+      return (
+        <div key={index} style={styles.eventBox}>
+          <strong>✅ Result</strong>
+          <div>Status: {event.subtype}</div>
+          {event.result && <div style={styles.contentText}>{event.result}</div>}
+          <div>Duration: {event.duration_ms}ms (API: {event.duration_api_ms}ms)</div>
+          <div>Turns: {event.num_turns}</div>
+          <div>Cost: ${event.total_cost_usd.toFixed(6)}</div>
+          <div style={styles.infoText}>
+            Total - Input: {event.usage.input_tokens} | Output: {event.usage.output_tokens}
+            {event.usage.cache_read_input_tokens && ` | Cache Read: ${event.usage.cache_read_input_tokens}`}
+          </div>
+        </div>
+      );
+    }
 
-  const formatTimestamp = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
+    if (isErrorEvent(event)) {
+      return (
+        <div key={index} style={styles.errorBox}>
+          <strong>❌ Error</strong>
+          <div style={styles.contentText}>
+            {event.error.type}: {event.error.message}
+          </div>
+        </div>
+      );
+    }
+
+    // Fallback for unknown event types
+    return (
+      <div key={index} style={styles.eventBox}>
+        <strong>📦 {event.type}</strong>
+        <pre style={styles.codeBlock}>{JSON.stringify(event, null, 2)}</pre>
+      </div>
+    );
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: 'monospace' }}>
-      {/* Session History Sidebar */}
-      <div
-        style={{
-          width: showSessions ? '300px' : '0px',
-          transition: 'width 0.3s',
-          borderRight: '1px solid #ccc',
-          overflow: 'hidden',
-          backgroundColor: '#f9f9f9',
-        }}
-      >
-        {showSessions && (
-          <div style={{ padding: '20px' }}>
-            <h3>Session History</h3>
-            <div style={{ maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}>
-              {sessions.length === 0 ? (
-                <p style={{ color: '#666', fontSize: '12px' }}>No sessions yet</p>
-              ) : (
-                sessions.map((session) => (
-                  <div
-                    key={session.sessionId}
-                    style={{
-                      padding: '10px',
-                      marginBottom: '10px',
-                      backgroundColor: currentSessionId === session.sessionId ? '#e3f2fd' : 'white',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                    }}
-                    onClick={() => handleResumeSession(session)}
-                  >
-                    <div style={{ fontWeight: 'bold', marginBottom: '5px', color: '#007acc' }}>
-                      {session.sessionId.substring(0, 8)}...
-                    </div>
-                    <div style={{ color: '#666', marginBottom: '3px' }}>
-                      {formatTimestamp(session.timestamp)}
-                    </div>
-                    <div style={{
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      color: '#333'
-                    }}>
-                      {session.query}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h1 style={styles.title}>Claude Code Headless Controller</h1>
+        <p style={styles.subtitle}>Stream JSON Output Mode</p>
       </div>
 
-      {/* Main Content */}
-      <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h1>Claude CLI Headless Controller</h1>
-          <button
-            onClick={() => setShowSessions(!showSessions)}
-            style={{
-              padding: '8px 16px',
-              fontSize: '14px',
-              backgroundColor: '#007acc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
-          >
-            {showSessions ? 'Hide' : 'Show'} Sessions ({sessions.length})
-          </button>
-        </div>
-
-        {/* Persistent Process Selection */}
-        <div style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <h3 style={{ margin: 0 }}>Persistent Processes ({persistentProcesses.length})</h3>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={loadPersistentProcesses}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '12px',
-                  backgroundColor: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '3px',
-                  cursor: 'pointer',
-                }}
-              >
-                🔄 Refresh
-              </button>
-              <button
-                onClick={handleCreatePersistentProcess}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '12px',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '3px',
-                  cursor: 'pointer',
-                }}
-              >
-                + New Process
-              </button>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', overflowX: 'auto' }}>
-            {persistentProcesses.map((proc) => (
-              <div
-                key={proc.pid}
-                onClick={() => setSelectedPersistentPid(proc.pid)}
-                style={{
-                  padding: '14px',
-                  backgroundColor: selectedPersistentPid === proc.pid ? '#007acc' : 'white',
-                  color: selectedPersistentPid === proc.pid ? 'white' : 'black',
-                  border: selectedPersistentPid === proc.pid ? '2px solid #005a9e' : '1px solid #ddd',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  minWidth: '280px',
-                  maxWidth: '350px',
-                  boxShadow: selectedPersistentPid === proc.pid ? '0 4px 12px rgba(0,122,204,0.3)' : '0 2px 6px rgba(0,0,0,0.1)',
-                  transition: 'all 0.2s',
-                }}
-              >
-                {/* Header with PID and Status Badge */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '15px' }}>
-                    🔧 PID: {proc.pid}
-                  </div>
-                  <div style={{
-                    fontSize: '10px',
-                    padding: '3px 8px',
-                    borderRadius: '12px',
-                    backgroundColor: proc.status === 'idle' ? '#28a745' : proc.status === 'busy' ? '#ffc107' : '#dc3545',
-                    color: proc.status === 'busy' ? '#000' : '#fff',
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase',
-                  }}>
-                    {proc.status === 'idle' ? '🟢 IDLE' : proc.status === 'busy' ? '🟡 BUSY' : '🔴 FAILED'}
-                  </div>
-                </div>
-
-                {/* Statistics Box */}
-                <div style={{
-                  fontSize: '11px',
-                  marginTop: '8px',
-                  padding: '8px',
-                  backgroundColor: selectedPersistentPid === proc.pid ? 'rgba(255,255,255,0.15)' : '#f8f9fa',
-                  borderRadius: '5px',
-                  border: selectedPersistentPid === proc.pid ? '1px solid rgba(255,255,255,0.2)' : '1px solid #e9ecef',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span>📊 Executions:</span>
-                    <strong>{proc.executionCount || 0}</strong>
-                  </div>
-                  {proc.lastExecutionTime && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span>🕐 Last Run:</span>
-                      <strong>{new Date(proc.lastExecutionTime).toLocaleTimeString()}</strong>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>⏱️ Uptime:</span>
-                    <strong>{Math.floor((Date.now() - proc.startTime) / 1000 / 60)}m {Math.floor(((Date.now() - proc.startTime) / 1000) % 60)}s</strong>
-                  </div>
-                </div>
-
-                {/* Current Directory */}
-                <div style={{
-                  fontSize: '10px',
-                  marginTop: '10px',
-                  padding: '8px',
-                  backgroundColor: selectedPersistentPid === proc.pid ? 'rgba(0,0,0,0.2)' : '#fff',
-                  borderRadius: '5px',
-                  border: selectedPersistentPid === proc.pid ? '1px solid rgba(255,255,255,0.2)' : '1px solid #dee2e6',
-                }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '4px', opacity: 0.8 }}>
-                    📁 Current Directory:
-                  </div>
-                  <div style={{
-                    fontFamily: 'monospace',
-                    fontSize: '9px',
-                    wordBreak: 'break-all',
-                    lineHeight: '1.4',
-                  }}>
-                    {proc.currentPath}
-                  </div>
-                </div>
-
-                {/* Last Query */}
-                {proc.lastQuery && (
-                  <div style={{
-                    fontSize: '10px',
-                    marginTop: '10px',
-                    padding: '8px',
-                    backgroundColor: selectedPersistentPid === proc.pid ? 'rgba(255,193,7,0.2)' : '#fff3cd',
-                    borderRadius: '5px',
-                    borderLeft: '3px solid #ffc107',
-                  }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                      💬 Last Query:
-                    </div>
-                    <div style={{ fontStyle: 'italic', wordBreak: 'break-word', lineHeight: '1.4' }}>
-                      {proc.lastQuery.length > 100 ? proc.lastQuery.substring(0, 100) + '...' : proc.lastQuery}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          {persistentProcesses.length === 0 && (
-            <p style={{ color: '#666', fontSize: '12px', margin: '10px 0' }}>No persistent processes. Creating one...</p>
-          )}
-        </div>
-
-        {claudeStatus && (
-          <div style={{
-            padding: '8px 12px',
-            backgroundColor: claudeStatus.available && claudeStatus.authenticated ? '#e8f5e9' : '#ffebee',
-            borderRadius: '4px',
-            marginBottom: '10px',
-            fontSize: '12px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <span>
-              {claudeStatus.available && claudeStatus.authenticated ? (
-                <>✅ Claude CLI: Ready</>
-              ) : claudeStatus.available && !claudeStatus.authenticated ? (
-                <>🔐 Claude CLI: Not authenticated (run `claude login`)</>
-              ) : (
-                <>❌ Claude CLI: Not installed</>
-              )}
-            </span>
+      <div style={styles.inputSection}>
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>Project Directory:</label>
+          <div style={styles.inputRow}>
+            <input
+              type="text"
+              value={projectPath}
+              onChange={(e) => setProjectPath(e.target.value)}
+              placeholder="Select or enter project directory"
+              style={styles.input}
+              disabled={isExecuting}
+            />
             <button
-              onClick={checkClaudeStatus}
-              style={{
-                padding: '4px 8px',
-                fontSize: '11px',
-                backgroundColor: '#007acc',
-                color: 'white',
-                border: 'none',
-                borderRadius: '3px',
-                cursor: 'pointer',
-              }}
+              onClick={handleSelectDirectory}
+              style={styles.browseButton}
+              disabled={isExecuting}
             >
-              Refresh
+              Browse...
             </button>
           </div>
-        )}
-
-        {currentSessionId && (
-          <div style={{
-            padding: '8px 12px',
-            backgroundColor: '#e8f5e9',
-            borderRadius: '4px',
-            marginBottom: '10px',
-            fontSize: '12px',
-          }}>
-            💾 Current Session: <code>{currentSessionId}</code>
-          </div>
-        )}
-
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ marginBottom: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-            <label style={{ display: 'block' }}>
-              Project Directory:
-            </label>
-            {selectedPersistentPid && (
-              <div style={{
-                fontSize: '11px',
-                padding: '4px 8px',
-                backgroundColor: '#007acc',
-                color: 'white',
-                borderRadius: '3px',
-                fontWeight: 'bold',
-              }}>
-                🎛️ Controlling PID: {selectedPersistentPid}
-              </div>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', gap: '10px', width: '100%', alignItems: 'center' }}>
-              <input
-                type="text"
-                value={projectPath}
-                onChange={(e) => handlePathChange(e.target.value)}
-                placeholder={selectedPersistentPid ? `Set directory for PID ${selectedPersistentPid}` : "Select or enter project directory"}
-                style={{
-                  flex: 1,
-                  padding: '8px',
-                  fontSize: '14px',
-                  border: `1px solid ${dirValidation?.valid === false ? '#f44336' : dirValidation?.valid ? '#4caf50' : '#ccc'}`,
-                  borderRadius: '4px',
-                  backgroundColor: dirValidation?.valid === false ? '#ffebee' : dirValidation?.valid ? '#e8f5e9' : 'white',
-                }}
-                disabled={!selectedPersistentPid}
-              />
-              <button
-                onClick={handleSelectDirectory}
-                disabled={!selectedPersistentPid}
-                style={{
-                  padding: '8px 16px',
-                  fontSize: '14px',
-                  backgroundColor: selectedPersistentPid ? '#007acc' : '#ccc',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: selectedPersistentPid ? 'pointer' : 'not-allowed',
-                }}
-              >
-                Browse...
-              </button>
-            </div>
-            {dirValidation && (
-              <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                {dirValidation.valid ? (
-                  <span style={{ color: '#4caf50' }}>
-                    ✅ Valid directory: {dirValidation.realPath}
-                  </span>
-                ) : (
-                  <span style={{ color: '#f44336' }}>
-                    ❌ {dirValidation.error}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
         </div>
 
-        <div style={{ marginBottom: '10px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>
-            Query:
-          </label>
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>Query:</label>
           <textarea
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={selectedPersistentPid ? `Enter query for PID ${selectedPersistentPid}` : "Select a persistent process first"}
+            placeholder="Enter your query for Claude"
             rows={4}
-            style={{
-              width: '100%',
-              padding: '8px',
-              fontSize: '14px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              fontFamily: 'monospace',
-            }}
-            disabled={!selectedPersistentPid}
+            style={styles.textarea}
+            disabled={isExecuting}
           />
         </div>
 
         <button
           onClick={handleExecute}
-          disabled={!selectedPersistentPid}
           style={{
-            padding: '10px 20px',
-            fontSize: '16px',
-            backgroundColor: selectedPersistentPid ? '#28a745' : '#ccc',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: selectedPersistentPid ? 'pointer' : 'not-allowed',
+            ...styles.executeButton,
+            ...(isExecuting ? styles.executeButtonDisabled : {}),
           }}
+          disabled={isExecuting}
         >
-          {selectedPersistentPid ? `Execute in PID ${selectedPersistentPid}` : 'Select Process First'}
+          {isExecuting ? `⏳ Executing (PID: ${currentPid})...` : '▶️ Execute'}
         </button>
       </div>
 
-      {/* Running Processes */}
-      {runningProcesses.length > 0 && (
-        <div style={{ marginBottom: '20px', marginTop: '20px' }}>
-          <h3>Running Processes ({runningProcesses.length})</h3>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            {runningProcesses.map((proc) => (
-              <div
-                key={proc.pid}
-                onClick={() => setSelectedPid(proc.pid)}
-                style={{
-                  padding: '10px',
-                  backgroundColor: selectedPid === proc.pid ? '#e3f2fd' : 'white',
-                  border: `2px solid ${selectedPid === proc.pid ? '#007acc' : '#ddd'}`,
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  minWidth: '150px',
-                }}
-              >
-                <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
-                  PID: {proc.pid}
-                  {proc.status === 'running' && <span style={{ color: '#4caf50' }}> ●</span>}
-                  {proc.status === 'completed' && <span style={{ color: '#2196f3' }}> ✓</span>}
-                  {proc.status === 'failed' && <span style={{ color: '#f44336' }}> ✗</span>}
-                </div>
-                <div style={{ color: '#666', fontSize: '11px', marginBottom: '3px' }}>
-                  {proc.query.substring(0, 30)}...
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '10px', color: '#999' }}>
-                    {new Date(proc.startTime).toLocaleTimeString()}
-                  </span>
-                  {proc.status === 'running' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleKillProcess(proc.pid);
-                      }}
-                      style={{
-                        padding: '2px 6px',
-                        fontSize: '10px',
-                        backgroundColor: '#f44336',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '3px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Kill
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+      <div style={styles.outputSection}>
+        <div style={styles.outputHeader}>
+          <h3 style={styles.outputTitle}>
+            Stream Output
+            {currentPid && <span style={styles.pidBadge}>PID: {currentPid}</span>}
+          </h3>
+          <div style={styles.stats}>
+            <span style={styles.statBadge}>Events: {streamEvents.length}</span>
+            {errors.length > 0 && (
+              <span style={styles.errorBadge}>Errors: {errors.length}</span>
+            )}
           </div>
         </div>
-      )}
 
-      <div
-        style={{
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-          padding: '10px',
-          minHeight: '400px',
-          maxHeight: '600px',
-          overflowY: 'auto',
-          backgroundColor: '#f5f5f5',
-        }}
-      >
-        <h3>Output: {selectedPid ? `PID ${selectedPid}` : 'No process selected'}</h3>
-        {(() => {
-          if (!selectedPid) {
-            return <p style={{ color: '#666' }}>Select a process to view output...</p>;
-          }
-          const processOutput = processes.get(selectedPid);
-          if (!processOutput || (processOutput.responses.length === 0 && processOutput.errors.length === 0)) {
-            return <p style={{ color: '#666' }}>No output yet...</p>;
-          }
-          return (
+        <div style={styles.outputContent}>
+          {streamEvents.length === 0 && errors.length === 0 ? (
+            <p style={styles.emptyMessage}>
+              No output yet. Execute a query to see stream-json output.
+            </p>
+          ) : (
             <>
-              {processOutput.responses.map((response, index) => (
-                <div
-                  key={`response-${index}`}
-                  style={{
-                    marginBottom: '10px',
-                    padding: '8px',
-                    backgroundColor: 'white',
-                    borderRadius: '4px',
-                    whiteSpace: 'pre-wrap',
-                  }}
-                >
-                  {response}
-                </div>
-              ))}
-
-              {processOutput.errors.map((error, index) => (
-                <div
-                  key={`error-${index}`}
-                  style={{
-                    marginBottom: '10px',
-                    padding: '8px',
-                    backgroundColor: '#ffe6e6',
-                    color: '#c00',
-                    borderRadius: '4px',
-                    whiteSpace: 'pre-wrap',
-                  }}
-                >
-                  {error}
+              {streamEvents.map((event, index) => renderStreamEvent(event, index))}
+              {errors.map((error, index) => (
+                <div key={`error-${index}`} style={styles.errorBox}>
+                  <div style={styles.eventType}>❌ Error</div>
+                  <pre style={styles.eventData}>{error}</pre>
                 </div>
               ))}
             </>
-          );
-        })()}
-
-        <div ref={responsesEndRef} />
-      </div>
-
-      {/* Developer Debug Room */}
-      <div style={{
-        position: 'fixed',
-        bottom: showDebugRoom ? '0' : '-400px',
-        left: '0',
-        right: '0',
-        height: '400px',
-        backgroundColor: '#1e1e1e',
-        color: '#d4d4d4',
-        borderTop: '2px solid #007acc',
-        transition: 'bottom 0.3s ease-in-out',
-        zIndex: 1000,
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '10px 15px',
-          backgroundColor: '#2d2d2d',
-          borderBottom: '1px solid #444',
-        }}>
-          <h3 style={{ margin: 0, fontSize: '14px', color: '#4ec9b0' }}>
-            🐛 Developer Debug Room
-          </h3>
-          <button
-            onClick={() => setShowDebugRoom(!showDebugRoom)}
-            style={{
-              padding: '4px 12px',
-              fontSize: '12px',
-              backgroundColor: '#007acc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '3px',
-              cursor: 'pointer',
-            }}
-          >
-            {showDebugRoom ? '▼ Hide' : '▲ Show'}
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', padding: '10px 15px', gap: '10px', borderBottom: '1px solid #444' }}>
-          <input
-            type="text"
-            value={testCommand}
-            onChange={(e) => setTestCommand(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleTestCommand()}
-            placeholder="Enter test command (e.g., echo 'test', pwd, ls)"
-            style={{
-              flex: 1,
-              padding: '8px',
-              fontSize: '13px',
-              backgroundColor: '#3c3c3c',
-              color: '#d4d4d4',
-              border: '1px solid #555',
-              borderRadius: '3px',
-              fontFamily: 'monospace',
-            }}
-          />
-          <button
-            onClick={handleTestCommand}
-            disabled={!selectedPersistentPid}
-            style={{
-              padding: '8px 16px',
-              fontSize: '13px',
-              backgroundColor: selectedPersistentPid ? '#4caf50' : '#555',
-              color: 'white',
-              border: 'none',
-              borderRadius: '3px',
-              cursor: selectedPersistentPid ? 'pointer' : 'not-allowed',
-            }}
-          >
-            Execute
-          </button>
-          <button
-            onClick={clearDebugOutput}
-            style={{
-              padding: '8px 16px',
-              fontSize: '13px',
-              backgroundColor: '#f44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: '3px',
-              cursor: 'pointer',
-            }}
-          >
-            Clear
-          </button>
-        </div>
-
-        <div style={{
-          flex: 1,
-          padding: '10px 15px',
-          overflowY: 'auto',
-          fontFamily: 'monospace',
-          fontSize: '12px',
-        }}>
-          {debugOutput.map((line, index) => (
-            <div key={index} style={{
-              padding: '2px 0',
-              color: line.startsWith('>>>') ? '#4ec9b0' : line.includes('❌') ? '#f48771' : '#d4d4d4',
-            }}>
-              {line}
-            </div>
-          ))}
-          {debugOutput.length === 0 && (
-            <div style={{ color: '#666', fontStyle: 'italic' }}>
-              No output yet. Select a persistent process and execute a test command.
-            </div>
           )}
-          <div ref={debugEndRef} />
+          <div ref={outputEndRef} />
         </div>
-      </div>
-
-      {/* Debug Room Toggle Button (Always Visible) */}
-      {!showDebugRoom && (
-        <button
-          onClick={() => setShowDebugRoom(true)}
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            padding: '10px 15px',
-            fontSize: '14px',
-            backgroundColor: '#007acc',
-            color: 'white',
-            border: 'none',
-            borderRadius: '50%',
-            cursor: 'pointer',
-            boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
-            zIndex: 999,
-            width: '50px',
-            height: '50px',
-          }}
-          title="Open Debug Room"
-        >
-          🐛
-        </button>
-      )}
       </div>
     </div>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100vh',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    padding: '20px 30px',
+    backgroundColor: '#007acc',
+    color: 'white',
+    borderBottom: '3px solid #005a9e',
+  },
+  title: {
+    margin: 0,
+    fontSize: '28px',
+    fontWeight: 600,
+  },
+  subtitle: {
+    margin: '5px 0 0 0',
+    fontSize: '14px',
+    opacity: 0.9,
+  },
+  inputSection: {
+    padding: '20px 30px',
+    backgroundColor: 'white',
+    borderBottom: '1px solid #ddd',
+  },
+  inputGroup: {
+    marginBottom: '15px',
+  },
+  label: {
+    display: 'block',
+    marginBottom: '5px',
+    fontSize: '14px',
+    fontWeight: 500,
+    color: '#333',
+  },
+  inputRow: {
+    display: 'flex',
+    gap: '10px',
+  },
+  input: {
+    flex: 1,
+    padding: '10px',
+    fontSize: '14px',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    fontFamily: 'monospace',
+  },
+  textarea: {
+    width: '100%',
+    padding: '10px',
+    fontSize: '14px',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    fontFamily: 'monospace',
+    resize: 'vertical',
+  },
+  browseButton: {
+    padding: '10px 20px',
+    fontSize: '14px',
+    backgroundColor: '#6c757d',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  executeButton: {
+    padding: '12px 24px',
+    fontSize: '16px',
+    backgroundColor: '#28a745',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontWeight: 600,
+  },
+  executeButtonDisabled: {
+    backgroundColor: '#6c757d',
+    cursor: 'not-allowed',
+  },
+  outputSection: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    padding: '20px 30px',
+    overflow: 'hidden',
+  },
+  outputHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '15px',
+  },
+  outputTitle: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: 600,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  pidBadge: {
+    fontSize: '12px',
+    padding: '4px 8px',
+    backgroundColor: '#007acc',
+    color: 'white',
+    borderRadius: '3px',
+    fontWeight: 'normal',
+  },
+  stats: {
+    display: 'flex',
+    gap: '10px',
+  },
+  statBadge: {
+    fontSize: '12px',
+    padding: '4px 8px',
+    backgroundColor: '#e9ecef',
+    borderRadius: '3px',
+  },
+  errorBadge: {
+    fontSize: '12px',
+    padding: '4px 8px',
+    backgroundColor: '#f8d7da',
+    color: '#721c24',
+    borderRadius: '3px',
+    fontWeight: 500,
+  },
+  outputContent: {
+    flex: 1,
+    overflowY: 'auto',
+    backgroundColor: 'white',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+    padding: '15px',
+  },
+  emptyMessage: {
+    color: '#999',
+    textAlign: 'center',
+    padding: '40px 20px',
+    fontSize: '14px',
+  },
+  eventBox: {
+    marginBottom: '10px',
+    padding: '10px',
+    backgroundColor: '#f8f9fa',
+    border: '1px solid #dee2e6',
+    borderRadius: '4px',
+  },
+  eventType: {
+    fontSize: '12px',
+    fontWeight: 600,
+    color: '#495057',
+    marginBottom: '5px',
+  },
+  eventData: {
+    fontSize: '11px',
+    fontFamily: 'monospace',
+    margin: 0,
+    padding: '8px',
+    backgroundColor: '#fff',
+    border: '1px solid #e9ecef',
+    borderRadius: '3px',
+    overflow: 'auto',
+    maxHeight: '200px',
+  },
+  contentDelta: {
+    marginBottom: '5px',
+    padding: '8px 12px',
+    backgroundColor: '#e3f2fd',
+    borderLeft: '3px solid #2196f3',
+    borderRadius: '3px',
+    fontSize: '14px',
+    lineHeight: '1.6',
+    fontFamily: 'monospace',
+    whiteSpace: 'pre-wrap',
+  },
+  errorBox: {
+    marginBottom: '10px',
+    padding: '10px',
+    backgroundColor: '#f8d7da',
+    border: '1px solid #f5c6cb',
+    borderRadius: '4px',
+  },
+  contentText: {
+    marginTop: '8px',
+    padding: '8px',
+    backgroundColor: '#fff',
+    border: '1px solid #e9ecef',
+    borderRadius: '3px',
+    fontSize: '14px',
+    lineHeight: '1.6',
+    whiteSpace: 'pre-wrap',
+  },
+  toolUse: {
+    marginTop: '8px',
+    padding: '8px',
+    backgroundColor: '#fff3cd',
+    border: '1px solid #ffeaa7',
+    borderRadius: '3px',
+  },
+  codeBlock: {
+    marginTop: '4px',
+    fontSize: '11px',
+    fontFamily: 'monospace',
+    padding: '8px',
+    backgroundColor: '#f8f9fa',
+    border: '1px solid #dee2e6',
+    borderRadius: '3px',
+    overflow: 'auto',
+    maxHeight: '200px',
+  },
+  infoText: {
+    fontSize: '12px',
+    color: '#666',
+    marginTop: '8px',
+  },
+};
 
 export default App;
