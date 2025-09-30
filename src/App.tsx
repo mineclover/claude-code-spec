@@ -364,73 +364,138 @@ function App() {
         {/* Persistent Process Selection */}
         <div style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <h3 style={{ margin: 0 }}>Persistent Processes</h3>
-            <button
-              onClick={handleCreatePersistentProcess}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                backgroundColor: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '3px',
-                cursor: 'pointer',
-              }}
-            >
-              + New Process
-            </button>
+            <h3 style={{ margin: 0 }}>Persistent Processes ({persistentProcesses.length})</h3>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={loadPersistentProcesses}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                }}
+              >
+                🔄 Refresh
+              </button>
+              <button
+                onClick={handleCreatePersistentProcess}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                }}
+              >
+                + New Process
+              </button>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', overflowX: 'auto' }}>
             {persistentProcesses.map((proc) => (
               <div
                 key={proc.pid}
                 onClick={() => setSelectedPersistentPid(proc.pid)}
                 style={{
-                  padding: '12px',
+                  padding: '14px',
                   backgroundColor: selectedPersistentPid === proc.pid ? '#007acc' : 'white',
                   color: selectedPersistentPid === proc.pid ? 'white' : 'black',
                   border: selectedPersistentPid === proc.pid ? '2px solid #005a9e' : '1px solid #ddd',
-                  borderRadius: '6px',
+                  borderRadius: '8px',
                   cursor: 'pointer',
                   fontSize: '13px',
-                  minWidth: '200px',
-                  maxWidth: '300px',
-                  boxShadow: selectedPersistentPid === proc.pid ? '0 2px 8px rgba(0,122,204,0.3)' : '0 1px 3px rgba(0,0,0,0.1)',
+                  minWidth: '280px',
+                  maxWidth: '350px',
+                  boxShadow: selectedPersistentPid === proc.pid ? '0 4px 12px rgba(0,122,204,0.3)' : '0 2px 6px rgba(0,0,0,0.1)',
                   transition: 'all 0.2s',
                 }}
               >
-                <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '6px' }}>
-                  🔧 PID: {proc.pid}
+                {/* Header with PID and Status Badge */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '15px' }}>
+                    🔧 PID: {proc.pid}
+                  </div>
+                  <div style={{
+                    fontSize: '10px',
+                    padding: '3px 8px',
+                    borderRadius: '12px',
+                    backgroundColor: proc.status === 'idle' ? '#28a745' : proc.status === 'busy' ? '#ffc107' : '#dc3545',
+                    color: proc.status === 'busy' ? '#000' : '#fff',
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                  }}>
+                    {proc.status === 'idle' ? '🟢 IDLE' : proc.status === 'busy' ? '🟡 BUSY' : '🔴 FAILED'}
+                  </div>
                 </div>
-                <div style={{ fontSize: '11px', marginTop: '4px', marginBottom: '4px' }}>
-                  Status: {proc.status === 'idle' ? '🟢 Idle' : proc.status === 'busy' ? '🟡 Busy' : '🔴 Failed'}
-                </div>
-                <div style={{ fontSize: '10px', marginTop: '2px', opacity: 0.7 }}>
-                  📊 Executions: {proc.executionCount || 0}
+
+                {/* Statistics Box */}
+                <div style={{
+                  fontSize: '11px',
+                  marginTop: '8px',
+                  padding: '8px',
+                  backgroundColor: selectedPersistentPid === proc.pid ? 'rgba(255,255,255,0.15)' : '#f8f9fa',
+                  borderRadius: '5px',
+                  border: selectedPersistentPid === proc.pid ? '1px solid rgba(255,255,255,0.2)' : '1px solid #e9ecef',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span>📊 Executions:</span>
+                    <strong>{proc.executionCount || 0}</strong>
+                  </div>
                   {proc.lastExecutionTime && (
-                    <span style={{ marginLeft: '8px' }}>
-                      🕐 {new Date(proc.lastExecutionTime).toLocaleTimeString()}
-                    </span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span>🕐 Last Run:</span>
+                      <strong>{new Date(proc.lastExecutionTime).toLocaleTimeString()}</strong>
+                    </div>
                   )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>⏱️ Uptime:</span>
+                    <strong>{Math.floor((Date.now() - proc.startTime) / 1000 / 60)}m {Math.floor(((Date.now() - proc.startTime) / 1000) % 60)}s</strong>
+                  </div>
                 </div>
+
+                {/* Current Directory */}
                 <div style={{
                   fontSize: '10px',
-                  marginTop: '4px',
-                  wordBreak: 'break-all',
-                  opacity: 0.8,
-                  borderTop: selectedPersistentPid === proc.pid ? '1px solid rgba(255,255,255,0.3)' : '1px solid #eee',
-                  paddingTop: '6px',
+                  marginTop: '10px',
+                  padding: '8px',
+                  backgroundColor: selectedPersistentPid === proc.pid ? 'rgba(0,0,0,0.2)' : '#fff',
+                  borderRadius: '5px',
+                  border: selectedPersistentPid === proc.pid ? '1px solid rgba(255,255,255,0.2)' : '1px solid #dee2e6',
                 }}>
-                  📁 {proc.currentPath.length > 40 ? '...' + proc.currentPath.substring(proc.currentPath.length - 37) : proc.currentPath}
+                  <div style={{ fontWeight: 'bold', marginBottom: '4px', opacity: 0.8 }}>
+                    📁 Current Directory:
+                  </div>
+                  <div style={{
+                    fontFamily: 'monospace',
+                    fontSize: '9px',
+                    wordBreak: 'break-all',
+                    lineHeight: '1.4',
+                  }}>
+                    {proc.currentPath}
+                  </div>
                 </div>
+
+                {/* Last Query */}
                 {proc.lastQuery && (
                   <div style={{
                     fontSize: '10px',
-                    marginTop: '4px',
-                    opacity: 0.7,
-                    fontStyle: 'italic',
+                    marginTop: '10px',
+                    padding: '8px',
+                    backgroundColor: selectedPersistentPid === proc.pid ? 'rgba(255,193,7,0.2)' : '#fff3cd',
+                    borderRadius: '5px',
+                    borderLeft: '3px solid #ffc107',
                   }}>
-                    Last: {proc.lastQuery.substring(0, 30)}{proc.lastQuery.length > 30 ? '...' : ''}
+                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                      💬 Last Query:
+                    </div>
+                    <div style={{ fontStyle: 'italic', wordBreak: 'break-word', lineHeight: '1.4' }}>
+                      {proc.lastQuery.length > 100 ? proc.lastQuery.substring(0, 100) + '...' : proc.lastQuery}
+                    </div>
                   </div>
                 )}
               </div>
