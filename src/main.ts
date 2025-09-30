@@ -257,10 +257,12 @@ const stopPwdPolling = (persistentProc: PersistentProcess) => {
 // Note: claude doctor functionality removed due to raw mode/TTY requirements
 // that are incompatible with persistent process architecture
 
-// Create a persistent Claude process
+// Create a persistent process for state tracking
+// Note: This creates a bash/PowerShell shell that stays alive for directory tracking
+// Claude CLI execution is done via separate spawn calls (see executeInProcess)
 const createPersistentClaudeProcess = async (cwd: string = process.env.HOME || process.env.USERPROFILE || '/'): Promise<number | null> => {
   try {
-    log('🚀 Creating persistent Claude process in:', cwd);
+    log('🚀 Creating persistent state-tracking process (bash/PowerShell) in:', cwd);
 
     const platform = process.platform;
 
@@ -357,7 +359,7 @@ const createPersistentClaudeProcess = async (cwd: string = process.env.HOME || p
     // Setup pwd polling (will get mainWindow reference later)
     setupPwdPolling(persistentProc, BrowserWindow.getAllWindows()[0] || null);
 
-    log('✅ Persistent Claude process created with PID:', pid);
+    log(`✅ Persistent process created with PID: ${pid} (state tracker only, Claude spawns separately)`);
     return pid;
   } catch (error) {
     log('❌ Failed to create persistent process:', error);
@@ -634,6 +636,8 @@ ipcMain.handle('claude:change-directory', async (event, persistentPid: number, p
 });
 
 // IPC handler for executing command in persistent process
+// Note: The persistent process (bash/PowerShell) only tracks state (currentPath, executionCount, etc.)
+// Claude CLI execution is done via direct spawn for proper TTY support
 ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number, projectPath: string, query: string) => {
   log('📤 IPC Request: claude:execute-in-process', { persistentPid, projectPath, query });
 
@@ -657,7 +661,7 @@ ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number,
     // Update working directory in persistent process state
     persistentProc.currentPath = projectPath;
 
-    log('🚀 Spawning new claude process in:', projectPath);
+    log(`🚀 [PID ${persistentPid}] Spawning Claude CLI in: ${projectPath}`);
 
     // Spawn claude as a separate process (not through bash)
     const claudeArgs = [
@@ -678,7 +682,7 @@ ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
-    log('✅ Claude process spawned with PID:', claudeProcess.pid);
+    log(`✅ [PID ${persistentPid}] Claude CLI spawned as subprocess PID: ${claudeProcess.pid}`);
 
     // Listen for stdout directly from claude process
     let outputBuffer = '';
@@ -686,22 +690,22 @@ ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number,
     claudeProcess.stdout.on('data', (data: Buffer) => {
       const chunk = data.toString();
       outputBuffer += chunk;
-      log('📥 Claude stdout:', chunk.substring(0, 200));
+      log(`📥 [PID ${persistentPid}→${claudeProcess.pid}] Claude output:`, chunk.substring(0, 200));
 
-      // Send to renderer
+      // Send to renderer (using persistent PID as identifier)
       event.sender.send('claude:response', { pid: persistentPid, data: chunk });
     });
 
     // Listen for stderr
     claudeProcess.stderr.on('data', (data: Buffer) => {
       const chunk = data.toString();
-      log('⚠️ Claude stderr:', chunk);
+      log(`⚠️ [PID ${persistentPid}→${claudeProcess.pid}] Claude stderr:`, chunk);
       event.sender.send('claude:error', { pid: persistentPid, error: chunk });
     });
 
     // Handle process completion
     claudeProcess.on('close', (code) => {
-      log('✅ Claude process closed with code:', code);
+      log(`✅ [PID ${persistentPid}→${claudeProcess.pid}] Claude process closed with code:`, code);
 
       // Try to parse accumulated output as JSON
       if (outputBuffer.includes('{')) {
