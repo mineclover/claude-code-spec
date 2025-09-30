@@ -2,6 +2,10 @@
 
 Electron 데스크톱 앱으로 Claude CLI를 헤드리스 모드로 실행하고, stream-json 형식의 실시간 출력을 웹 UI로 확인할 수 있는 도구입니다.
 
+[image](img/image.png)
+
+
+
 ## 주요 특징
 
 - ✅ **Claude CLI Headless 모드**: 백엔드에서 `claude` CLI를 자동으로 실행
