@@ -4,6 +4,7 @@
 
 import type { StreamEvent } from './types';
 
+export type { StreamEvent };
 export type StreamCallback = (event: StreamEvent) => void;
 export type ErrorCallback = (error: string) => void;
 
