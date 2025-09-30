@@ -107,7 +107,11 @@ ipcMain.handle('claude:execute', async (event, projectPath: string, query: strin
 
     // Execute query
     const childProcess = client.execute(query);
-    const pid = childProcess.pid!;
+    const pid = childProcess.pid;
+
+    if (!pid) {
+      throw new Error('Failed to get process PID');
+    }
 
     // Store active client
     activeClients.set(pid, client);
@@ -116,10 +120,11 @@ ipcMain.handle('claude:execute', async (event, projectPath: string, query: strin
     event.sender.send('claude:started', { pid });
 
     return { success: true, pid };
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('[Main] Execution error:', error);
-    event.sender.send('claude:error', { error: error.message });
-    return { success: false, error: error.message };
+    event.sender.send('claude:error', { error: errorMessage });
+    return { success: false, error: errorMessage };
   }
 });
 

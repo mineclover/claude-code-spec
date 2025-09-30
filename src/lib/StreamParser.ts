@@ -8,7 +8,7 @@ export type StreamCallback = (event: StreamEvent) => void;
 export type ErrorCallback = (error: string) => void;
 
 export class StreamParser {
-  private buffer: string = '';
+  private buffer = '';
   private onEvent: StreamCallback;
   private onError?: ErrorCallback;
 
