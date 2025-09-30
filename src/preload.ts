@@ -52,15 +52,9 @@ export interface RunningProcess {
   errors: string[];
 }
 
-export interface ClaudeExecutionOptions {
-  outputFormat?: 'json' | 'markdown' | 'text';
-  skipPermissions?: boolean;
-  additionalArgs?: string[];
-}
-
 export interface ClaudeAPI {
   executeClaudeCommand: (projectPath: string, query: string, sessionId?: string) => Promise<void>;
-  executeInProcess: (persistentPid: number, projectPath: string, query: string, options?: ClaudeExecutionOptions) => Promise<void>;
+  executeInProcess: (persistentPid: number, projectPath: string, query: string) => Promise<void>;
   changeDirectory: (persistentPid: number, projectPath: string) => Promise<{ success: boolean; error?: string }>;
   executeTestCommand: (persistentPid: number, command: string) => Promise<void>;
   onClaudeResponse: (callback: (pid: number, data: string) => void) => void;
@@ -164,9 +158,9 @@ contextBridge.exposeInMainWorld('claudeAPI', {
     log('📤 IPC Invoke: claude:create-persistent-process', cwd);
     return ipcRenderer.invoke('claude:create-persistent-process', cwd);
   },
-  executeInProcess: (persistentPid: number, projectPath: string, query: string, options?: ClaudeExecutionOptions) => {
-    log('📤 IPC Invoke: claude:execute-in-process', { persistentPid, projectPath, query, options });
-    return ipcRenderer.invoke('claude:execute-in-process', persistentPid, projectPath, query, options);
+  executeInProcess: (persistentPid: number, projectPath: string, query: string) => {
+    log('📤 IPC Invoke: claude:execute-in-process', { persistentPid, projectPath, query });
+    return ipcRenderer.invoke('claude:execute-in-process', persistentPid, projectPath, query);
   },
   changeDirectory: (persistentPid: number, projectPath: string) => {
     log('📤 IPC Invoke: claude:change-directory', { persistentPid, projectPath });

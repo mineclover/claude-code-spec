@@ -638,12 +638,8 @@ ipcMain.handle('claude:change-directory', async (event, persistentPid: number, p
 // IPC handler for executing command in persistent process
 // Note: The persistent process (bash/PowerShell) only tracks state (currentPath, executionCount, etc.)
 // Claude CLI execution is done via direct spawn for proper TTY support
-ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number, projectPath: string, query: string, options?: {
-  outputFormat?: 'json' | 'markdown' | 'text';
-  skipPermissions?: boolean;
-  additionalArgs?: string[];
-}) => {
-  log('📤 IPC Request: claude:execute-in-process', { persistentPid, projectPath, query, options });
+ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number, projectPath: string, query: string) => {
+  log('📤 IPC Request: claude:execute-in-process', { persistentPid, projectPath, query });
 
   const persistentProc = persistentProcesses.get(persistentPid);
   if (!persistentProc) {
@@ -667,24 +663,13 @@ ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number,
 
     log(`🚀 [PID ${persistentPid}] Spawning Claude CLI in: ${projectPath}`);
 
-    // Build claude arguments with configurable options
-    const outputFormat = options?.outputFormat || 'json';
-    const skipPermissions = options?.skipPermissions !== false; // Default to true
-
-    const claudeArgs = ['-p', query];
-
-    // Add output format
-    claudeArgs.push('--output-format', outputFormat);
-
-    // Add skip permissions flag if requested
-    if (skipPermissions) {
-      claudeArgs.push('--dangerously-skip-permissions');
-    }
-
-    // Add any additional arguments
-    if (options?.additionalArgs) {
-      claudeArgs.push(...options.additionalArgs);
-    }
+    // Build claude arguments (hardcoded for reliability)
+    const claudeArgs = [
+      '-p',
+      query,
+      '--output-format', 'json',
+      '--dangerously-skip-permissions'
+    ];
 
     log(`📋 Claude CLI args:`, claudeArgs);
 
