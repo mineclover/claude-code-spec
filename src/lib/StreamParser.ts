@@ -33,8 +33,16 @@ export class StreamParser {
 
     // Process complete lines
     for (const line of lines) {
-      if (!line.trim()) continue;
-      this.parseLine(line);
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue;
+
+      // Only try to parse if line looks like it starts with JSON
+      if (trimmedLine.startsWith('{') || trimmedLine.startsWith('[')) {
+        this.parseLine(trimmedLine);
+      } else {
+        // Non-JSON output (e.g., debug messages, warnings)
+        console.log('[StreamParser] Non-JSON output:', trimmedLine);
+      }
     }
   }
 
@@ -46,10 +54,29 @@ export class StreamParser {
       const event: StreamEvent = JSON.parse(line);
       this.onEvent(event);
     } catch (error) {
-      const errorMsg = `Failed to parse JSON: ${line.substring(0, 100)}`;
-      console.error('[StreamParser]', errorMsg, error);
+      // Check if this looks like a truncated JSON (incomplete)
+      const openBraces = (line.match(/{/g) || []).length;
+      const closeBraces = (line.match(/}/g) || []).length;
+      const openBrackets = (line.match(/\[/g) || []).length;
+      const closeBrackets = (line.match(/]/g) || []).length;
+
+      if (openBraces !== closeBraces || openBrackets !== closeBrackets) {
+        // This looks like incomplete JSON, might be a chunking issue
+        console.warn(
+          '[StreamParser] Incomplete JSON detected (possible chunking issue):',
+          line.substring(0, 100),
+        );
+        console.warn(
+          `[StreamParser] Braces: ${openBraces} open, ${closeBraces} close | Brackets: ${openBrackets} open, ${closeBrackets} close`,
+        );
+      } else {
+        // Complete but invalid JSON
+        const errorMsg = `Failed to parse JSON: ${line.substring(0, 100)}`;
+        console.error('[StreamParser]', errorMsg, error);
+      }
+
       if (this.onError) {
-        this.onError(errorMsg);
+        this.onError(`JSON parse error: ${line.substring(0, 100)}`);
       }
     }
   }

@@ -86,3 +86,55 @@ npm run start
 - **가시성**: 모든 프로세스의 투명한 모니터링
 - **인사이트**: 데이터 기반 의사결정 지원
 - **자동화**: 반복 작업 및 최적화 자동화
+
+## 테스트용 쿼리 템플릿
+
+### UI 입력 → CLI 명령어 변환
+UI의 Query 입력란에 입력한 내용은 다음과 같이 변환됩니다:
+```
+UI 입력: "/context"
+↓
+CLI 실행: claude -p "/context" --output-format stream-json --verbose --dangerously-skip-permissions
+```
+
+### 빠른 테스트용 명령어 (터미널에서 직접 실행)
+
+```bash
+# 프로젝트 디렉토리로 이동
+cd /Users/junwoobang/project/claude-code-spec
+
+# 1. /context 명령어 테스트
+claude -p "/context" --output-format stream-json --verbose --dangerously-skip-permissions
+
+# 2. 간단한 질문
+claude -p "What files are in this directory?" --output-format stream-json --verbose --dangerously-skip-permissions
+
+# 3. 코드 분석
+claude -p "Explain the StreamParser class in src/lib/StreamParser.ts" --output-format stream-json --verbose --dangerously-skip-permissions
+
+# 4. 파일 수정 요청
+claude -p "Add a comment to the processChunk method explaining what it does" --output-format stream-json --verbose --dangerously-skip-permissions
+
+# 5. 에러 재현 테스트
+claude -p "/context" --output-format stream-json --verbose --dangerously-skip-permissions 2>&1 | tee test-output.log
+```
+
+### UI에서 테스트하기
+
+1. **프로젝트 경로**: `/Users/junwoobang/project/claude-code-spec`
+2. **테스트 쿼리**:
+   - `/context` - 현재 컨텍스트 정보 확인
+   - `/help` - 도움말 확인
+   - `List all files in src/components` - 파일 목록
+   - `What is the purpose of this project?` - 프로젝트 설명
+
+### 출력 형식 확인
+
+Stream JSON 출력은 JSONL 형식 (JSON Lines):
+```jsonl
+{"type":"system","subtype":"init","session_id":"...","model":"...","cwd":"..."}
+{"type":"message","subtype":"assistant","message":{"role":"assistant","content":[...]}}
+{"type":"result","result":{"status":"success","duration_ms":1234}}
+```
+
+각 줄은 완전한 JSON 객체여야 하며, 줄바꿈(`\n`)으로 구분됩니다.
