@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { StreamEvent } from './lib/types';
+import type { LogEntry } from './services/logger';
 
 export interface SessionInfo {
   sessionId: string;
@@ -26,6 +27,23 @@ export interface ClaudeCompleteData {
 
 export interface ClaudeStartedData {
   pid: number;
+}
+
+export interface LoggerAPI {
+  // Get list of log files
+  getLogFiles: () => Promise<string[]>;
+
+  // Read log entries from a file
+  readLogFile: (filePath: string) => Promise<LogEntry[]>;
+
+  // Analyze event patterns
+  analyzePatterns: (filePath: string) => Promise<Record<string, number>>;
+
+  // Export logs as JSON
+  exportJSON: (filePath: string, outputPath: string) => Promise<{ success: boolean }>;
+
+  // Rotate (clean up) old log files
+  rotateLogs: () => Promise<{ success: boolean }>;
 }
 
 export interface ClaudeAPI {
@@ -87,3 +105,17 @@ contextBridge.exposeInMainWorld('claudeAPI', {
     ipcRenderer.on('claude:complete', (_event, data) => callback(data));
   },
 } as ClaudeAPI);
+
+// Expose LoggerAPI
+contextBridge.exposeInMainWorld('loggerAPI', {
+  getLogFiles: () => ipcRenderer.invoke('logger:get-files'),
+
+  readLogFile: (filePath: string) => ipcRenderer.invoke('logger:read-file', filePath),
+
+  analyzePatterns: (filePath: string) => ipcRenderer.invoke('logger:analyze-patterns', filePath),
+
+  exportJSON: (filePath: string, outputPath: string) =>
+    ipcRenderer.invoke('logger:export-json', filePath, outputPath),
+
+  rotateLogs: () => ipcRenderer.invoke('logger:rotate'),
+} as LoggerAPI);

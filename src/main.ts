@@ -4,7 +4,16 @@ import started from 'electron-squirrel-startup';
 import { ClaudeClient } from './lib/ClaudeClient';
 import { SessionManager } from './lib/SessionManager';
 import type { StreamEvent } from './lib/StreamParser';
-import { isResultEvent, isSystemInitEvent } from './lib/types';
+import { extractSessionId, isResultEvent, isSystemInitEvent } from './lib/types';
+import {
+  analyzeLogFile,
+  createConfig,
+  createSessionLogger,
+  exportLogsAsJSON,
+  getLogFiles,
+  readLogFile,
+  rotateLogFiles,
+} from './services/logger';
 
 if (started) {
   app.quit();
@@ -13,6 +22,10 @@ if (started) {
 let mainWindow: BrowserWindow | null = null;
 const sessionManager = new SessionManager();
 const activeClients = new Map<number, ClaudeClient>();
+
+// Create functional logger
+const loggerConfig = createConfig();
+const logger = createSessionLogger(loggerConfig);
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -82,7 +95,13 @@ ipcMain.handle(
               query,
               timestamp: Date.now(),
             });
+            // Start logging session BEFORE logging the event
+            logger.startSession(streamEvent.session_id);
           }
+
+          // Log stream event (now session is started for system init events)
+          const sessionId = extractSessionId(streamEvent);
+          logger.logEvent(streamEvent, sessionId);
 
           // Save result from result event
           if (isResultEvent(streamEvent)) {
@@ -90,6 +109,8 @@ ipcMain.handle(
             if (currentSessionId) {
               sessionManager.updateSessionResult(currentSessionId, streamEvent.result);
             }
+            // Close logging session
+            logger.closeSession();
           }
         },
         onError: (error: string) => {
@@ -159,5 +180,36 @@ ipcMain.handle(
 ipcMain.handle('claude:clear-sessions', async () => {
   sessionManager.clearSessions();
   console.log('[Main] Sessions cleared');
+  return { success: true };
+});
+
+// ============================================================================
+// Logger IPC Handlers
+// ============================================================================
+
+// Get all log files
+ipcMain.handle('logger:get-files', async () => {
+  return getLogFiles(loggerConfig);
+});
+
+// Get log entries from a specific file
+ipcMain.handle('logger:read-file', async (_event, filePath: string) => {
+  return readLogFile(filePath);
+});
+
+// Analyze event patterns from a log file
+ipcMain.handle('logger:analyze-patterns', async (_event, filePath: string) => {
+  return analyzeLogFile(filePath);
+});
+
+// Export logs as JSON
+ipcMain.handle('logger:export-json', async (_event, filePath: string, outputPath: string) => {
+  exportLogsAsJSON(filePath, outputPath);
+  return { success: true };
+});
+
+// Rotate log files (clean up old ones)
+ipcMain.handle('logger:rotate', async () => {
+  rotateLogFiles(loggerConfig);
   return { success: true };
 });

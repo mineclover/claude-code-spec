@@ -1,0 +1,30 @@
+.tokenUsage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statLabel {
+  color: #6c757d;
+}
+
+.statValue {
+  font-weight: 600;
+  color: #212529;
+  font-family: "SF Mono", Monaco, monospace;
+}
