@@ -658,6 +658,38 @@ ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number,
     persistentProc.executionCount++;
     persistentProc.lastExecutionTime = Date.now();
 
+    log(`🚀 [PID ${persistentPid}] Changing directory to: ${projectPath}`);
+
+    // First, synchronously change directory in persistent bash process
+    const platform = process.platform;
+
+    // Setup one-time listener to verify pwd
+    let pwdVerified = false;
+    const pwdVerifyListener = (data: Buffer) => {
+      const output = data.toString();
+      if (output.includes(projectPath)) {
+        pwdVerified = true;
+        log(`✅ [PID ${persistentPid}] Directory change verified: ${projectPath}`);
+      }
+    };
+
+    addStdoutListener(persistentProc, pwdVerifyListener);
+
+    // Execute cd and pwd to verify
+    if (platform === 'win32') {
+      persistentProc.process.stdin.write(`cd /d "${projectPath}" && cd\n`);
+    } else {
+      persistentProc.process.stdin.write(`cd "${projectPath}" && pwd\n`);
+    }
+
+    // Wait for verification
+    await new Promise(resolve => setTimeout(resolve, 200));
+    removeStdoutListener(persistentProc, pwdVerifyListener);
+
+    if (!pwdVerified) {
+      log(`⚠️ [PID ${persistentPid}] Could not verify directory change, proceeding anyway...`);
+    }
+
     // Update working directory in persistent process state
     persistentProc.currentPath = projectPath;
 
@@ -673,15 +705,32 @@ ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number,
 
     log(`📋 Claude CLI args:`, claudeArgs);
 
+    // Build minimal clean environment
+    const cleanEnv: Record<string, string> = {
+      PATH: getComprehensivePath(),
+      HOME: process.env.HOME || process.env.USERPROFILE || '',
+      USER: process.env.USER || process.env.USERNAME || '',
+      SHELL: process.env.SHELL || '/bin/bash',
+      LANG: 'en_US.UTF-8',
+      FORCE_COLOR: '0',
+      NO_COLOR: '1',
+    };
+
+    // Add Windows-specific vars
+    if (platform === 'win32') {
+      cleanEnv.USERPROFILE = process.env.USERPROFILE || '';
+      cleanEnv.APPDATA = process.env.APPDATA || '';
+      cleanEnv.LOCALAPPDATA = process.env.LOCALAPPDATA || '';
+      cleanEnv.SystemRoot = process.env.SystemRoot || 'C:\\Windows';
+    }
+
+    log(`🔧 Using clean environment, PATH length: ${cleanEnv.PATH.length}`);
+
     const claudeProcess = spawn('claude', claudeArgs, {
       cwd: projectPath,
-      env: {
-        ...process.env,
-        PATH: getComprehensivePath(),
-        FORCE_COLOR: '0',
-        NO_COLOR: '1',
-      },
+      env: cleanEnv,
       stdio: ['pipe', 'pipe', 'pipe'],
+      shell: false, // Direct spawn without shell wrapper
     });
 
     log(`✅ [PID ${persistentPid}] Claude CLI spawned as subprocess PID: ${claudeProcess.pid}`);
