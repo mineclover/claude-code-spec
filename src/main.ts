@@ -4,6 +4,7 @@ import started from 'electron-squirrel-startup';
 import { ClaudeClient } from './lib/ClaudeClient';
 import { SessionManager } from './lib/SessionManager';
 import { StreamEvent } from './lib/StreamParser';
+import { isSystemInitEvent, isResultEvent } from './lib/types';
 
 if (started) {
   app.quit();
@@ -75,7 +76,7 @@ ipcMain.handle('claude:execute', async (event, projectPath: string, query: strin
         });
 
         // Extract and save session info from system init event
-        if (streamEvent.type === 'system' && streamEvent.subtype === 'init' && streamEvent.session_id) {
+        if (isSystemInitEvent(streamEvent)) {
           sessionManager.saveSession(streamEvent.session_id, {
             cwd: projectPath,
             query,
@@ -84,7 +85,7 @@ ipcMain.handle('claude:execute', async (event, projectPath: string, query: strin
         }
 
         // Save result from result event
-        if (streamEvent.type === 'result' && streamEvent.result) {
+        if (isResultEvent(streamEvent)) {
           const currentSessionId = client.getSessionId();
           if (currentSessionId) {
             sessionManager.updateSessionResult(currentSessionId, streamEvent.result);
