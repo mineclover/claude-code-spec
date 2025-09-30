@@ -1,4 +1,4 @@
-import { ClaudeAPI, SessionInfo, ClaudeStatus, RunningProcess, PersistentProcess } from './preload';
+import { ClaudeAPI, SessionInfo, ClaudeStatus, RunningProcess, PersistentProcess, ClaudeExecutionOptions } from './preload';
 
 declare global {
   interface Window {
@@ -6,4 +6,4 @@ declare global {
   }
 }
 
-export type { SessionInfo, ClaudeStatus, RunningProcess, PersistentProcess };
+export type { SessionInfo, ClaudeStatus, RunningProcess, PersistentProcess, ClaudeExecutionOptions };

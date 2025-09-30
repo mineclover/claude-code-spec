@@ -638,8 +638,12 @@ ipcMain.handle('claude:change-directory', async (event, persistentPid: number, p
 // IPC handler for executing command in persistent process
 // Note: The persistent process (bash/PowerShell) only tracks state (currentPath, executionCount, etc.)
 // Claude CLI execution is done via direct spawn for proper TTY support
-ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number, projectPath: string, query: string) => {
-  log('📤 IPC Request: claude:execute-in-process', { persistentPid, projectPath, query });
+ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number, projectPath: string, query: string, options?: {
+  outputFormat?: 'json' | 'markdown' | 'text';
+  skipPermissions?: boolean;
+  additionalArgs?: string[];
+}) => {
+  log('📤 IPC Request: claude:execute-in-process', { persistentPid, projectPath, query, options });
 
   const persistentProc = persistentProcesses.get(persistentPid);
   if (!persistentProc) {
@@ -663,13 +667,26 @@ ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number,
 
     log(`🚀 [PID ${persistentPid}] Spawning Claude CLI in: ${projectPath}`);
 
-    // Spawn claude as a separate process (not through bash)
-    const claudeArgs = [
-      '-p',
-      query,
-      '--output-format', 'json',
-      '--dangerously-skip-permissions'
-    ];
+    // Build claude arguments with configurable options
+    const outputFormat = options?.outputFormat || 'json';
+    const skipPermissions = options?.skipPermissions !== false; // Default to true
+
+    const claudeArgs = ['-p', query];
+
+    // Add output format
+    claudeArgs.push('--output-format', outputFormat);
+
+    // Add skip permissions flag if requested
+    if (skipPermissions) {
+      claudeArgs.push('--dangerously-skip-permissions');
+    }
+
+    // Add any additional arguments
+    if (options?.additionalArgs) {
+      claudeArgs.push(...options.additionalArgs);
+    }
+
+    log(`📋 Claude CLI args:`, claudeArgs);
 
     const claudeProcess = spawn('claude', claudeArgs, {
       cwd: projectPath,
@@ -712,17 +729,28 @@ ipcMain.handle('claude:execute-in-process', async (event, persistentPid: number,
         try {
           const jsonStart = outputBuffer.indexOf('{');
           const json = JSON.parse(outputBuffer.substring(jsonStart));
-          log('✅ Parsed JSON response');
+          log('✅ Parsed JSON response:', JSON.stringify(json).substring(0, 200));
 
-          if (json.content) {
-            for (const block of json.content) {
-              if (block.type === 'text' && block.text) {
-                event.sender.send('claude:response', { pid: persistentPid, data: '\n\n' + block.text });
-              }
-            }
+          // Claude CLI --output-format json returns { type, result, ... }
+          if (json.result) {
+            event.sender.send('claude:response', {
+              pid: persistentPid,
+              data: '\n\n=== Claude Response ===\n' + json.result + '\n=====================\n'
+            });
+          }
+
+          // Also send metadata if available
+          if (json.duration_ms) {
+            const metadata = `\n[Duration: ${json.duration_ms}ms, Cost: $${json.total_cost_usd?.toFixed(4) || '0'}]`;
+            event.sender.send('claude:response', { pid: persistentPid, data: metadata });
           }
         } catch (e) {
           log('⚠️ Failed to parse JSON:', e.message);
+          // If JSON parsing fails, send raw output
+          event.sender.send('claude:response', {
+            pid: persistentPid,
+            data: '\n\n=== Raw Output ===\n' + outputBuffer + '\n================\n'
+          });
         }
       }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { SessionInfo, RunningProcess, PersistentProcess } from './global';
+import type { SessionInfo, RunningProcess, PersistentProcess, ClaudeExecutionOptions } from './global';
 
 // Debug logging
 const DEBUG = true; // Enable by default for development
@@ -34,6 +34,10 @@ function App() {
   const [testCommand, setTestCommand] = useState<string>('echo "Hello from PID $$"');
   const [debugOutput, setDebugOutput] = useState<string[]>([]);
   const debugEndRef = useRef<HTMLDivElement>(null);
+
+  // Claude execution options
+  const [outputFormat, setOutputFormat] = useState<'json' | 'markdown' | 'text'>('json');
+  const [skipPermissions, setSkipPermissions] = useState<boolean>(true);
 
   useEffect(() => {
     log('🔧 Setting up IPC listeners');
@@ -268,8 +272,13 @@ function App() {
       return;
     }
 
-    log('🚀 Executing Claude command in persistent process', { pid: selectedPersistentPid, projectPath, query });
-    await window.claudeAPI.executeInProcess(selectedPersistentPid, projectPath, query);
+    const options: ClaudeExecutionOptions = {
+      outputFormat,
+      skipPermissions,
+    };
+
+    log('🚀 Executing Claude command in persistent process', { pid: selectedPersistentPid, projectPath, query, options });
+    await window.claudeAPI.executeInProcess(selectedPersistentPid, projectPath, query, options);
     setSelectedPid(selectedPersistentPid);
     log('📤 Command sent to persistent process');
   };
@@ -577,6 +586,50 @@ function App() {
             }}
             disabled={!selectedPersistentPid}
           />
+        </div>
+
+        {/* Execution Options */}
+        <div style={{
+          marginBottom: '10px',
+          padding: '10px',
+          backgroundColor: '#f5f5f5',
+          borderRadius: '4px',
+          border: '1px solid #ddd',
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '13px' }}>
+            ⚙️ Execution Options
+          </div>
+          <div style={{ display: 'flex', gap: '20px', fontSize: '13px' }}>
+            <div>
+              <label style={{ marginRight: '8px' }}>Output Format:</label>
+              <select
+                value={outputFormat}
+                onChange={(e) => setOutputFormat(e.target.value as 'json' | 'markdown' | 'text')}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '3px',
+                  border: '1px solid #ccc',
+                }}
+                disabled={!selectedPersistentPid}
+              >
+                <option value="json">JSON</option>
+                <option value="markdown">Markdown</option>
+                <option value="text">Text</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={skipPermissions}
+                  onChange={(e) => setSkipPermissions(e.target.checked)}
+                  style={{ marginRight: '6px' }}
+                  disabled={!selectedPersistentPid}
+                />
+                Skip Permissions (--dangerously-skip-permissions)
+              </label>
+            </div>
+          </div>
         </div>
 
         <button
