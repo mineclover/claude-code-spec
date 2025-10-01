@@ -26,6 +26,20 @@ Claude가 한 번에 처리할 수 있는 토큰의 최대 크기.
 ### Token
 텍스트 처리의 기본 단위. 대략 4자 = 1 토큰.
 
+## 상태 관리
+
+### ProjectContext
+애플리케이션 전역에서 현재 선택된 프로젝트 정보를 공유하는 React Context 시스템.
+
+### contextProjectPath
+ProjectContext에서 관리되는 전역 프로젝트 경로 상태. localStorage에 저장되어 세션 간 유지됨.
+
+### 로컬 projectPath
+컴포넌트 내부의 프로젝트 경로 상태. UI 입력 필드 제어용으로 contextProjectPath와 동기화됨.
+
+### useProject Hook
+ProjectContext의 값을 읽고 업데이트하기 위한 React Hook.
+
 ## CLI 명령어
 
 ### `/context`

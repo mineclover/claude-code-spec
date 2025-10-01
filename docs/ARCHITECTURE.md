@@ -101,6 +101,47 @@ src/
     └── utils/           # Shared Utilities
 ```
 
+## State Management
+
+### ProjectContext
+애플리케이션 전역 프로젝트 상태를 관리하는 React Context 시스템입니다.
+
+#### 구조
+```typescript
+interface ProjectContextValue {
+  projectPath: string | null;          // 현재 프로젝트 경로
+  projectDirName: string | null;       // 프로젝트 디렉토리 이름
+  updateProject: (path, dirName) => void;
+  clearProject: () => void;
+}
+```
+
+#### 주요 특징
+- **전역 상태 공유**: 모든 페이지에서 `useProject()` 훅으로 접근
+- **영속성**: localStorage를 통한 세션 간 유지
+- **자동 동기화**: Context 변경 시 관련 컴포넌트 자동 업데이트
+
+#### 사용 컴포넌트
+- `ExecutePage`: Context에서 프로젝트 경로 읽어 입력 필드 자동 설정
+- `ClaudeProjectsList`: 프로젝트 선택 시 Context 업데이트
+- `McpConfigsPage`: 현재 프로젝트 기반 MCP 설정 관리
+- `Layout`: 사이드바에 현재 프로젝트 표시
+
+#### 데이터 흐름
+```
+사용자 프로젝트 선택
+  ↓
+updateProject(path, dirName)
+  ↓
+localStorage 저장
+  ↓
+Context 상태 업데이트
+  ↓
+구독 중인 컴포넌트 자동 갱신
+```
+
+자세한 내용은 [ProjectContext 문서](./controller-docs/project-context.md)를 참조하세요.
+
 ## IPC Communication Pattern
 
 ### 1. Request-Response Pattern

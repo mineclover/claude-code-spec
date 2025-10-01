@@ -197,8 +197,8 @@ export function McpConfigsPage() {
             Select a project to manage MCP configurations
           </p>
           <div className={styles.emptyStateActions}>
-            <button onClick={handleSelectProject} className={styles.primaryButton}>
-              📂 Select Project
+            <button onClick={() => navigate('/claude-projects')} className={styles.primaryButton}>
+              📁 Browse Claude Projects
             </button>
             <button onClick={() => navigate('/')} className={styles.secondaryButton}>
               Go to Execute Page

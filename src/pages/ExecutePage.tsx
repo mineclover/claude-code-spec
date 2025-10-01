@@ -9,7 +9,7 @@ import { getCachedSessionsPage, setCachedSessionsPage } from '../services/cache'
 import styles from './ExecutePage.module.css';
 
 export const ExecutePage: React.FC = () => {
-  const { updateProject } = useProject();
+  const { projectPath: contextProjectPath, updateProject } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const [projectPath, setProjectPath] = useState('');
   const [query, setQuery] = useState('');
@@ -108,6 +108,14 @@ export const ExecutePage: React.FC = () => {
       setSearchParams({});
     }
   }, [searchParams, setSearchParams]);
+
+  // Sync with ProjectContext when it changes
+  useEffect(() => {
+    if (contextProjectPath && contextProjectPath !== projectPath) {
+      console.log('[ExecutePage] Syncing with ProjectContext:', contextProjectPath);
+      setProjectPath(contextProjectPath);
+    }
+  }, [contextProjectPath, projectPath]);
 
   // Load recent sessions when projectPath or page changes
   useEffect(() => {
