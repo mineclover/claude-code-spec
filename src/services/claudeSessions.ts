@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { settingsService } from './appSettings';
 
 // ============================================================================
 // Types
@@ -63,6 +64,11 @@ export const dashFormatToPath = (dashFormat: string): string => {
 // ============================================================================
 
 export const getClaudeProjectsDir = (): string => {
+  const configuredPath = settingsService.getClaudeProjectsPath();
+  if (configuredPath) {
+    return configuredPath;
+  }
+  // Fallback to default path if not configured
   return path.join(os.homedir(), '.claude', 'projects');
 };
 
@@ -357,24 +363,9 @@ export const getAllClaudeProjects = (): ClaudeProjectInfo[] => {
 };
 
 /**
- * Cache for total project count
- */
-let totalProjectCountCache: { count: number; timestamp: number } | null = null;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Get total count of projects with sessions (fast, cached)
+ * Get total count of projects with sessions (no caching)
  */
 export const getTotalProjectCount = (): number => {
-  // Check cache
-  if (totalProjectCountCache) {
-    const now = Date.now();
-    if (now - totalProjectCountCache.timestamp < CACHE_DURATION) {
-      console.log('[ClaudeSessions] Using cached total count:', totalProjectCountCache.count);
-      return totalProjectCountCache.count;
-    }
-  }
-
   const projectsDir = getClaudeProjectsDir();
 
   if (!fs.existsSync(projectsDir)) {
@@ -397,23 +388,12 @@ export const getTotalProjectCount = (): number => {
       }
     }
 
-    // Update cache
-    totalProjectCountCache = { count, timestamp: Date.now() };
-    console.log('[ClaudeSessions] Updated total count cache:', count);
-
+    console.log('[ClaudeSessions] Total project count:', count);
     return count;
   } catch (error) {
     console.error('[ClaudeSessions] Failed to get total project count:', error);
     return 0;
   }
-};
-
-/**
- * Clear the total count cache (call when data changes)
- */
-export const clearTotalCountCache = () => {
-  totalProjectCountCache = null;
-  console.log('[ClaudeSessions] Cleared total count cache');
 };
 
 /**

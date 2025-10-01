@@ -141,11 +141,8 @@ export interface ClaudeSessionsAPI {
   // Get all projects with Claude sessions
   getAllProjects: () => Promise<ClaudeProjectInfo[]>;
 
-  // Get total project count (fast, cached)
+  // Get total project count
   getTotalCount: () => Promise<number>;
-
-  // Clear total count cache
-  clearCountCache: () => Promise<{ success: boolean }>;
 
   // Get paginated projects with Claude sessions
   getAllProjectsPaginated: (page: number, pageSize: number) => Promise<PaginatedProjectsResult>;
@@ -334,8 +331,6 @@ contextBridge.exposeInMainWorld('claudeSessionsAPI', {
 
   getTotalCount: () => ipcRenderer.invoke('claude-sessions:get-total-count'),
 
-  clearCountCache: () => ipcRenderer.invoke('claude-sessions:clear-count-cache'),
-
   getAllProjectsPaginated: (page: number, pageSize: number) =>
     ipcRenderer.invoke('claude-sessions:get-all-projects-paginated', page, pageSize),
 
@@ -363,3 +358,21 @@ contextBridge.exposeInMainWorld('claudeSessionsAPI', {
   getPreview: (projectPath: string, sessionId: string) =>
     ipcRenderer.invoke('claude-sessions:get-preview', projectPath, sessionId),
 } as ClaudeSessionsAPI);
+
+// App Settings API
+export interface AppSettings {
+  claudeProjectsPath?: string;
+}
+
+export interface AppSettingsAPI {
+  getAllSettings: () => Promise<AppSettings>;
+  getClaudeProjectsPath: () => Promise<string | undefined>;
+  setClaudeProjectsPath: (path: string) => Promise<{ success: boolean }>;
+}
+
+contextBridge.exposeInMainWorld('appSettingsAPI', {
+  getAllSettings: () => ipcRenderer.invoke('app-settings:get-all'),
+  getClaudeProjectsPath: () => ipcRenderer.invoke('app-settings:get-claude-projects-path'),
+  setClaudeProjectsPath: (path: string) =>
+    ipcRenderer.invoke('app-settings:set-claude-projects-path', path),
+} as AppSettingsAPI);

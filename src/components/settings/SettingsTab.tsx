@@ -4,19 +4,42 @@ import type { ProjectSettings, SettingsBackup } from '../../preload';
 import styles from './SettingsTab.module.css';
 
 interface SettingsTabProps {
-  projectPath: string;
+  projectPath?: string;
 }
 
 export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
+  const [claudeProjectsPath, setClaudeProjectsPath] = useState('');
+  const [isPathLoading, setIsPathLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Legacy project settings states (only used if projectPath is provided)
   const [settings, setSettings] = useState<ProjectSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeFile, setActiveFile] = useState<'claudeMd' | 'mcpJson' | null>(null);
 
   useEffect(() => {
-    loadSettings();
+    loadAppSettings();
+    if (projectPath) {
+      loadSettings();
+    }
   }, [projectPath]);
 
+  const loadAppSettings = async () => {
+    setIsPathLoading(true);
+    try {
+      const path = await window.appSettingsAPI.getClaudeProjectsPath();
+      setClaudeProjectsPath(path || '');
+    } catch (error) {
+      console.error('Failed to load app settings:', error);
+    } finally {
+      setIsPathLoading(false);
+    }
+  };
+
   const loadSettings = async () => {
+    if (!projectPath) return;
+
     setLoading(true);
     try {
       const projectSettings = await window.settingsAPI.findFiles(projectPath);
@@ -28,7 +51,35 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
     }
   };
 
+  const handleSelectDirectory = async () => {
+    const path = await window.claudeAPI.selectDirectory();
+    if (path) {
+      setClaudeProjectsPath(path);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!claudeProjectsPath) {
+      setSaveMessage({ type: 'error', text: 'Please enter a path' });
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveMessage(null);
+    try {
+      await window.appSettingsAPI.setClaudeProjectsPath(claudeProjectsPath);
+      setSaveMessage({ type: 'success', text: 'Settings saved successfully!' });
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      setSaveMessage({ type: 'error', text: 'Failed to save settings' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleBackup = async () => {
+    if (!projectPath) return;
     try {
       const backup = await window.settingsAPI.createBackup(projectPath);
       const timestamp = new Date(backup.timestamp).toISOString().replace(/[:.]/g, '-');
@@ -43,6 +94,58 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
     }
   };
 
+  // If no projectPath, show app settings UI
+  if (!projectPath) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <h2>Application Settings</h2>
+        </div>
+
+        <div className={styles.settingsSection}>
+          <div className={styles.settingItem}>
+            <label className={styles.settingLabel}>Claude Projects Path</label>
+            <div className={styles.settingDescription}>
+              The directory path where Claude CLI stores session data (typically ~/.claude/projects)
+            </div>
+            <div className={styles.pathInput}>
+              <input
+                type="text"
+                value={claudeProjectsPath}
+                onChange={(e) => setClaudeProjectsPath(e.target.value)}
+                placeholder="/Users/yourusername/.claude/projects"
+                className={styles.input}
+                disabled={isPathLoading}
+              />
+              <button
+                type="button"
+                onClick={handleSelectDirectory}
+                className={styles.browseButton}
+                disabled={isPathLoading}
+              >
+                Browse
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={handleSave}
+              className={styles.saveButton}
+              disabled={isSaving || isPathLoading}
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
+            {saveMessage && (
+              <div className={saveMessage.type === 'success' ? styles.successMessage : styles.errorMessage}>
+                {saveMessage.text}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Legacy project settings UI
   if (loading) {
     return <div className={styles.container}>Loading settings...</div>;
   }

@@ -2,6 +2,13 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { ClaudeProjectsList } from '../components/sessions/ClaudeProjectsList';
 import type { ClaudeProjectInfo } from '../preload';
+import {
+  clearAllCache,
+  getCachedProjectsPage,
+  getCachedTotalCount,
+  setCachedProjectsPage,
+  setCachedTotalCount,
+} from '../services/cache';
 import styles from './ClaudeProjectsPage.module.css';
 
 export const ClaudeProjectsPage: React.FC = () => {
@@ -11,6 +18,7 @@ export const ClaudeProjectsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalProjects, setTotalProjects] = useState(0);
   const [hasMore, setHasMore] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const PAGE_SIZE = 10;
 
   // Load total count first (fast, cached)
@@ -25,8 +33,19 @@ export const ClaudeProjectsPage: React.FC = () => {
 
   const loadTotalCount = async () => {
     try {
+      // Try to get from cache first
+      const cachedCount = await getCachedTotalCount();
+      if (cachedCount !== null) {
+        setTotalProjects(cachedCount);
+        return;
+      }
+
+      // If cache miss, fetch from backend
       const total = await window.claudeSessionsAPI.getTotalCount();
       setTotalProjects(total);
+
+      // Cache the result
+      await setCachedTotalCount(total);
     } catch (error) {
       console.error('Failed to load total count:', error);
     }
@@ -35,10 +54,26 @@ export const ClaudeProjectsPage: React.FC = () => {
   const loadClaudeProjects = async (page: number) => {
     setLoading(true);
     try {
+      // Try to get from cache first
+      const cachedPage = await getCachedProjectsPage(page, PAGE_SIZE);
+      if (cachedPage !== null) {
+        setProjects(cachedPage.projects);
+        setTotalProjects(cachedPage.total);
+        setHasMore(cachedPage.hasMore);
+        setLoading(false);
+        setInitialLoading(false);
+        return;
+      }
+
+      // If cache miss, fetch from backend
       const result = await window.claudeSessionsAPI.getAllProjectsPaginated(page, PAGE_SIZE);
       setProjects(result.projects);
       setTotalProjects(result.total);
       setHasMore(result.hasMore);
+      setLastUpdated(Date.now());
+
+      // Cache the result
+      await setCachedProjectsPage(page, PAGE_SIZE, result.projects, result.total, result.hasMore);
     } catch (error) {
       console.error('Failed to load Claude projects:', error);
     } finally {
@@ -52,8 +87,8 @@ export const ClaudeProjectsPage: React.FC = () => {
   };
 
   const handleRefresh = async () => {
-    // Clear cache and reload current page
-    await window.claudeSessionsAPI.clearCountCache();
+    // Clear all cache and reload current page
+    await clearAllCache();
     await loadTotalCount();
     await loadClaudeProjects(currentPage);
   };
@@ -69,6 +104,7 @@ export const ClaudeProjectsPage: React.FC = () => {
         onPageChange={handlePageChange}
         loading={loading}
         initialLoading={initialLoading}
+        lastUpdated={lastUpdated}
       />
     </div>
   );

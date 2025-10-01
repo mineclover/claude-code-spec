@@ -1,9 +1,16 @@
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import type { ClaudeProjectInfo, ClaudeSessionInfo } from '../../preload';
 import styles from './ClaudeProjectsList.module.css';
 import { SessionLogViewer } from './SessionLogViewer';
+import { Pagination } from '../common/Pagination';
+import {
+  getCachedSessionsPage,
+  setCachedSessionsPage,
+  clearSessionsPagesCache,
+} from '../../services/cache';
 
 type SortOption = 'recent' | 'oldest' | 'name';
 
@@ -16,6 +23,7 @@ interface ClaudeProjectsListProps {
   onPageChange?: (page: number) => void;
   loading?: boolean;
   initialLoading?: boolean;
+  lastUpdated?: number | null;
 }
 
 export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
@@ -27,22 +35,107 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
   onPageChange,
   loading = false,
   initialLoading = false,
+  lastUpdated = null,
 }) => {
+  const navigate = useNavigate();
   const [selectedProject, setSelectedProject] = useState<ClaudeProjectInfo | null>(null);
   const [selectedSession, setSelectedSession] = useState<ClaudeSessionInfo | null>(null);
   const [viewingLogs, setViewingLogs] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('recent');
 
+  // Sessions pagination state
+  const [sessions, setSessions] = useState<ClaudeSessionInfo[]>([]);
+  const [sessionsPage, setSessionsPage] = useState(0);
+  const [totalSessions, setTotalSessions] = useState(0);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const SESSIONS_PAGE_SIZE = 20;
+
+  // Load sessions when project selected or page changes
+  useEffect(() => {
+    if (selectedProject) {
+      loadSessions(sessionsPage);
+    }
+  }, [selectedProject, sessionsPage]);
+
+  const loadSessions = async (page: number) => {
+    if (!selectedProject) return;
+
+    setSessionsLoading(true);
+    try {
+      // Try cache first
+      const cached = await getCachedSessionsPage(
+        selectedProject.projectPath,
+        page,
+        SESSIONS_PAGE_SIZE
+      );
+
+      if (cached) {
+        setSessions(cached.sessions);
+        setTotalSessions(cached.total);
+        setSessionsLoading(false);
+        return;
+      }
+
+      // Fetch from backend
+      const result = await window.claudeSessionsAPI.getProjectSessionsPaginated(
+        selectedProject.projectPath,
+        page,
+        SESSIONS_PAGE_SIZE
+      );
+
+      // Get metadata for each session
+      const sessionsWithMetadata = await Promise.all(
+        result.sessions.map(async (session) => {
+          try {
+            const metadata = await window.claudeSessionsAPI.getSessionMetadata(
+              selectedProject.projectPath,
+              session.sessionId
+            );
+            return { ...session, ...metadata };
+          } catch (error) {
+            console.error('Failed to load session metadata:', error);
+            return { ...session, hasData: false };
+          }
+        })
+      );
+
+      setSessions(sessionsWithMetadata);
+      setTotalSessions(result.total);
+
+      // Cache the result
+      await setCachedSessionsPage(
+        selectedProject.projectPath,
+        page,
+        SESSIONS_PAGE_SIZE,
+        sessionsWithMetadata,
+        result.total,
+        result.hasMore
+      );
+    } catch (error) {
+      console.error('Failed to load sessions:', error);
+      setSessions([]);
+      setTotalSessions(0);
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
   const handleProjectClick = (project: ClaudeProjectInfo) => {
     setSelectedProject(project);
     setSelectedSession(null);
     setViewingLogs(false);
+    setSessionsPage(0); // Reset to first page
+    setSessions([]);
+    setTotalSessions(0);
   };
 
   const handleBackToProjects = () => {
     setSelectedProject(null);
     setSelectedSession(null);
     setViewingLogs(false);
+    setSessionsPage(0);
+    setSessions([]);
+    setTotalSessions(0);
   };
 
   const handleSessionClick = (session: ClaudeSessionInfo) => {
@@ -61,8 +154,10 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
     toast.success('Session ID copied to clipboard!');
   };
 
-  // Calculate pagination info
-  const totalPages = Math.ceil(totalProjects / pageSize);
+  const handleUseInExecute = (projectPath: string) => {
+    navigate(`/?projectPath=${encodeURIComponent(projectPath)}`);
+    toast.success('Project path loaded in Execute tab');
+  };
 
   const handleProjectPageChange = (newPage: number) => {
     if (onPageChange) {
@@ -93,11 +188,13 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
         </div>
 
         <div className={styles.sessionsGrid}>
-          {selectedProject.sessions.length === 0 ? (
+          {sessionsLoading && sessions.length === 0 ? (
+            <div className={styles.empty}>Loading sessions...</div>
+          ) : sessions.length === 0 ? (
             <div className={styles.empty}>No sessions for this project</div>
           ) : (
             <>
-              {selectedProject.sessions.map((session) => {
+              {sessions.map((session) => {
                 const isLoading = !session.hasData && session.cwd === undefined && session.firstUserMessage === undefined;
                 return (
                 <div
@@ -152,6 +249,13 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
           )}
         </div>
 
+        <Pagination
+          currentPage={sessionsPage}
+          totalItems={totalSessions}
+          pageSize={SESSIONS_PAGE_SIZE}
+          onPageChange={setSessionsPage}
+          itemName="sessions"
+        />
       </div>
     );
   }
@@ -171,9 +275,16 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
             </select>
           </div>
           {onRefresh && (
-            <button type="button" onClick={onRefresh} className={styles.button}>
-              Refresh
-            </button>
+            <div className={styles.refreshContainer}>
+              <button type="button" onClick={onRefresh} className={styles.button}>
+                Refresh
+              </button>
+              {lastUpdated && (
+                <span className={styles.lastUpdated}>
+                  Updated: {new Date(lastUpdated).toLocaleTimeString()}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -189,96 +300,44 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
           projects.map((project) => {
             const latestSession = project.sessions.length > 0 ? project.sessions[0] : null;
             return (
-              <div
-                key={project.projectPath}
-                className={styles.projectCard}
-                onClick={() => handleProjectClick(project)}
-              >
-                <div className={styles.projectPath}>{project.projectPath}</div>
-                <div className={styles.projectInfo}>
-                  <span>
-                    {project.sessions.length} session{project.sessions.length !== 1 ? 's' : ''}
-                  </span>
-                  {latestSession && (
-                    <span className={styles.lastModified}>
-                      Last: {new Date(latestSession.lastModified).toLocaleString()}
+              <div key={project.projectPath} className={styles.projectCard}>
+                <div onClick={() => handleProjectClick(project)} className={styles.projectCardContent}>
+                  <div className={styles.projectPath}>{project.projectPath}</div>
+                  <div className={styles.projectInfo}>
+                    <span>
+                      {project.sessions.length} session{project.sessions.length !== 1 ? 's' : ''}
                     </span>
-                  )}
+                    {latestSession && (
+                      <span className={styles.lastModified}>
+                        Last: {new Date(latestSession.lastModified).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  className={styles.useInExecuteButton}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUseInExecute(project.projectPath);
+                  }}
+                  title="Use in Execute tab"
+                >
+                  ▶ Execute
+                </button>
               </div>
             );
           })
         )}
       </div>
 
-      {totalProjects > pageSize && (
-        <div className={styles.paginationContainer}>
-          <div className={styles.paginationInfo}>
-            <span className={styles.sessionCount}>
-              Page {currentPage + 1} of {totalPages} • Total {totalProjects} projects
-            </span>
-          </div>
-          <div className={styles.paginationControls}>
-            <button
-              type="button"
-              onClick={() => handleProjectPageChange(0)}
-              className={styles.paginationButton}
-              disabled={currentPage === 0}
-            >
-              ««
-            </button>
-            <button
-              type="button"
-              onClick={() => handleProjectPageChange(currentPage - 1)}
-              className={styles.paginationButton}
-              disabled={currentPage === 0}
-            >
-              ‹ Prev
-            </button>
-            <div className={styles.pageNumbers}>
-              {Array.from({ length: totalPages }, (_, i) => {
-                // Show max 7 pages: current +/- 2
-                if (
-                  i === 0 ||
-                  i === totalPages - 1 ||
-                  (i >= currentPage - 2 && i <= currentPage + 2)
-                ) {
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handleProjectPageChange(i)}
-                      className={`${styles.pageNumber} ${i === currentPage ? styles.active : ''}`}
-                    >
-                      {i + 1}
-                    </button>
-                  );
-                }
-                if (i === currentPage - 3 || i === currentPage + 3) {
-                  return <span key={i} className={styles.ellipsis}>...</span>;
-                }
-                return null;
-              })}
-            </div>
-            <button
-              type="button"
-              onClick={() => handleProjectPageChange(currentPage + 1)}
-              className={styles.paginationButton}
-              disabled={currentPage >= totalPages - 1}
-            >
-              Next ›
-            </button>
-            <button
-              type="button"
-              onClick={() => handleProjectPageChange(totalPages - 1)}
-              className={styles.paginationButton}
-              disabled={currentPage >= totalPages - 1}
-            >
-              »»
-            </button>
-          </div>
-        </div>
-      )}
+      <Pagination
+        currentPage={currentPage}
+        totalItems={totalProjects}
+        pageSize={pageSize}
+        onPageChange={handleProjectPageChange}
+        itemName="projects"
+      />
     </div>
   );
 };

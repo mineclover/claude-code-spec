@@ -1,10 +1,10 @@
 .container {
   height: 100%;
   background: #fff;
-  padding: 24px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .loading {

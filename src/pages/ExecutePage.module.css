@@ -144,3 +144,118 @@
   background: #fff;
   min-height: 0;
 }
+
+.sessionsList {
+  margin-bottom: 16px;
+}
+
+.sessionsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.sessionsHeader label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #212529;
+  margin: 0;
+}
+
+.refreshButton {
+  padding: 4px 10px;
+  border: 1px solid #6c757d;
+  border-radius: 3px;
+  background: #fff;
+  color: #495057;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.refreshButton:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #495057;
+}
+
+.refreshButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sessionsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.sessionItem {
+  padding: 8px 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sessionItem:hover {
+  background: #f8f9fa;
+  border-color: #17a2b8;
+}
+
+.sessionItem.selected {
+  background: #e7f3ff;
+  border-color: #17a2b8;
+  border-width: 2px;
+  padding: 7px 9px;
+}
+
+.sessionItemId {
+  font-size: 11px;
+  font-family: "SF Mono", Monaco, monospace;
+  color: #495057;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.sessionItemPreview {
+  font-size: 11px;
+  color: #6c757d;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sessionItemTime {
+  font-size: 10px;
+  color: #17a2b8;
+  font-weight: 500;
+}
+
+.noSessions {
+  padding: 12px;
+  text-align: center;
+  color: #6c757d;
+  font-size: 11px;
+  border: 1px dashed #dee2e6;
+  border-radius: 4px;
+  background: #f8f9fa;
+}
+
+.sessionsPagination {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e9ecef;
+}

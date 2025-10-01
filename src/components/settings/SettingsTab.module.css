@@ -41,6 +41,116 @@
   background: #1177bb;
 }
 
+.settingsSection {
+  margin-top: 20px;
+}
+
+.settingItem {
+  margin-bottom: 24px;
+}
+
+.settingLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #d4d4d4;
+}
+
+.settingDescription {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 12px;
+}
+
+.pathInput {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.input {
+  flex: 1;
+  padding: 8px 12px;
+  background: #252525;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  color: #d4d4d4;
+  font-size: 13px;
+  font-family: "SF Mono", Monaco, monospace;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #0e639c;
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.browseButton {
+  padding: 8px 16px;
+  background: #3c3c3c;
+  color: #d4d4d4;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+
+.browseButton:hover:not(:disabled) {
+  background: #4a4a4a;
+}
+
+.browseButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.saveButton {
+  padding: 8px 24px;
+  background: #0e639c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.saveButton:hover:not(:disabled) {
+  background: #1177bb;
+}
+
+.saveButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.successMessage {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #1e3a1e;
+  color: #4caf50;
+  border: 1px solid #2d5a2d;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.errorMessage {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #3a1e1e;
+  color: #f44336;
+  border: 1px solid #5a2d2d;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
 .fileList {
   display: flex;
   flex-direction: column;

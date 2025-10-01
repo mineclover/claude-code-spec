@@ -22,7 +22,6 @@ import {
   getAllClaudeProjects,
   getAllClaudeProjectsPaginated,
   getTotalProjectCount,
-  clearTotalCountCache,
   getProjectSessions,
   getProjectSessionsBasic,
   getProjectSessionsPaginated,
@@ -53,6 +52,7 @@ import {
   validateMcpJson,
   writeSettingsFile,
 } from './services/settings';
+import { settingsService } from './services/appSettings';
 
 if (started) {
   app.quit();
@@ -384,15 +384,9 @@ ipcMain.handle('claude-sessions:get-all-projects', async () => {
   return getAllClaudeProjects();
 });
 
-// Get total project count (fast, cached)
+// Get total project count
 ipcMain.handle('claude-sessions:get-total-count', async () => {
   return getTotalProjectCount();
-});
-
-// Clear total count cache
-ipcMain.handle('claude-sessions:clear-count-cache', async () => {
-  clearTotalCountCache();
-  return { success: true };
 });
 
 // Get paginated Claude projects with sessions
@@ -448,3 +442,17 @@ ipcMain.handle(
     return getSessionPreview(projectPath, sessionId);
   },
 );
+
+// App settings handlers
+ipcMain.handle('app-settings:get-all', async () => {
+  return settingsService.getAllSettings();
+});
+
+ipcMain.handle('app-settings:get-claude-projects-path', async () => {
+  return settingsService.getClaudeProjectsPath();
+});
+
+ipcMain.handle('app-settings:set-claude-projects-path', async (_event, projectsPath: string) => {
+  settingsService.setClaudeProjectsPath(projectsPath);
+  return { success: true };
+});
