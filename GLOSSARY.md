@@ -90,15 +90,65 @@ interface ClaudeSessionEntry {
 
 ## 아키텍처 패턴
 
-### Event Renderer Pattern (이벤트 렌더러 패턴)
-이벤트의 타입에 따라 적절한 컴포넌트를 선택하여 렌더링하는 디자인 패턴입니다.
+### Unified Event System (통합 이벤트 시스템)
+StreamEvent와 ClaudeSessionEntry를 통합하여 관리하는 중앙화된 이벤트 시스템입니다.
+
+**핵심 컴포넌트:**
+- **EventTypeRegistry**: 이벤트 타입 감지 및 렌더러 매핑을 관리하는 중앙 레지스트리
+- **UnifiedEvent**: StreamEvent와 ClaudeSessionEntry를 포괄하는 통합 타입
+- **UnifiedEventRenderer**: 모든 이벤트 타입을 처리하는 통합 렌더러
 
 **장점:**
-- 타입별 로직 분리
-- 컴포넌트 재사용성 향상
-- 새로운 이벤트 타입 추가 용이
+- Stream Output과 Session Log Viewer에서 동일한 렌더링 로직 사용
+- 새로운 이벤트 타입 추가가 용이 (레지스트리에 등록만 하면 됨)
+- 타입 안정성과 확장성 향상
+- 중복 코드 제거
 
-**구현:**
+**구조:**
+```typescript
+// 1. 이벤트 타입 정의
+export enum EventType {
+  SYSTEM_INIT = 'system_init',
+  USER = 'user',
+  ASSISTANT = 'assistant',
+  RESULT = 'result',
+  ERROR = 'error',
+  SUMMARY = 'summary',
+  MESSAGE = 'message',
+  UNKNOWN = 'unknown',
+}
+
+// 2. 레지스트리에 감지기 등록
+eventRegistry.registerDetector({
+  type: EventType.USER,
+  priority: 90,
+  detect: (event) => event.type === 'user' && 'message' in event,
+});
+
+// 3. 레지스트리에 렌더러 등록
+eventRegistry.registerRenderer({
+  eventType: EventType.USER,
+  component: UserEvent,
+});
+
+// 4. 통합 렌더러 사용
+export const UnifiedEventRenderer = ({ event }) => {
+  const eventType = eventRegistry.detectEventType(event);
+  const renderer = eventRegistry.getRenderer(eventType);
+  const Component = renderer.component;
+  return <Component event={event} />;
+};
+```
+
+**파일 위치:**
+- `src/lib/event-registry.ts`: 이벤트 타입 시스템 및 레지스트리
+- `src/components/common/UnifiedEventRenderer.tsx`: 통합 이벤트 렌더러
+
+### Event Renderer Pattern (이벤트 렌더러 패턴)
+이벤트의 타입에 따라 적절한 컴포넌트를 선택하여 렌더링하는 디자인 패턴입니다.
+이 패턴은 현재 Unified Event System으로 구현되어 있습니다.
+
+**레거시 구현 (참고용):**
 ```typescript
 export const StreamEventRenderer: React.FC<Props> = ({ event }) => {
   if (isSystemInitEvent(event)) {
@@ -109,6 +159,13 @@ export const StreamEventRenderer: React.FC<Props> = ({ event }) => {
   }
   // ... 다른 타입들
   return <UnknownEvent event={event} />;
+};
+```
+
+**현재 구현:**
+```typescript
+export const StreamEventRenderer: React.FC<Props> = ({ event, index }) => {
+  return <UnifiedEventRenderer event={event} index={index} />;
 };
 ```
 
