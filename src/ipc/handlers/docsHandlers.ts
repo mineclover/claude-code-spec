@@ -72,7 +72,9 @@ export function registerDocsHandlers(router: IPCRouter): void {
   // Read file content
   router.handle('read-file', async (_event, filePath: string) => {
     try {
-      const content = await fs.readFile(filePath, 'utf-8');
+      // Clean the file path - remove any trailing backticks or quotes
+      const cleanPath = filePath.replace(/[`'"]+$/, '').trim();
+      const content = await fs.readFile(cleanPath, 'utf-8');
       return content;
     } catch (error) {
       console.error(`Error reading file ${filePath}:`, error);

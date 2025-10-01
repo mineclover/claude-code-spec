@@ -87,6 +87,21 @@ npm run start
 - **인사이트**: 데이터 기반 의사결정 지원
 - **자동화**: 반복 작업 및 최적화 자동화
 
+## Claude Code 실행 설정
+
+### 권한 관리
+프로젝트는 `.claude/settings.json`을 통해 세밀한 권한 제어를 사용합니다.
+`--dangerously-skip-permissions` 대신 필요한 권한만 명시적으로 허용하여 안전하게 자동화합니다.
+
+**설정 파일:** `.claude/settings.json` (팀 공유, git 커밋됨)
+
+**자세한 내용:** [SETUP.md](./docs/SETUP.md) | [실행 전략](./docs/claude-context/usage/claude-execution-strategy.md) | [권한 설정](./docs/claude-context/config/permissions-configuration.md)
+
+### MCP 서버 선택
+- **분석용:** `.claude/.mcp-analysis.json` (serena + sequential-thinking)
+- **개발용:** `.claude/.mcp-dev.json` (serena + context7)
+- **최소:** `.claude/.mcp-empty.json` (MCP 없음)
+
 ## 테스트용 쿼리 템플릿
 
 ### UI 입력 → CLI 명령어 변환
@@ -94,8 +109,14 @@ UI의 Query 입력란에 입력한 내용은 다음과 같이 변환됩니다:
 ```
 UI 입력: "/context"
 ↓
-CLI 실행: claude -p "/context" --output-format stream-json --verbose --dangerously-skip-permissions
+CLI 실행: claude -p "/context" --output-format stream-json --verbose \
+  --mcp-config .claude/.mcp-dev.json --strict-mcp-config
 ```
+
+**특징:**
+- `settings.json`의 권한 규칙 자동 적용 (안전)
+- 개발용 MCP 서버만 로드 (빠른 초기화)
+- 안전하면서도 자동화된 실행
 
 ### 빠른 테스트용 명령어 (터미널에서 직접 실행)
 
@@ -103,20 +124,31 @@ CLI 실행: claude -p "/context" --output-format stream-json --verbose --dangero
 # 프로젝트 디렉토리로 이동
 cd /Users/junwoobang/project/claude-code-spec
 
-# 1. /context 명령어 테스트
-claude -p "/context" --output-format stream-json --verbose --dangerously-skip-permissions
+# 1. 읽기 전용 분석 (Plan 모드)
+claude --permission-mode plan \
+  --mcp-config .claude/.mcp-analysis.json --strict-mcp-config \
+  -p "프로젝트 아키텍처 분석"
 
-# 2. 간단한 질문
-claude -p "What files are in this directory?" --output-format stream-json --verbose --dangerously-skip-permissions
+# 2. /context 명령어 (settings.json 권한 사용)
+claude -p "/context" --output-format stream-json --verbose \
+  --mcp-config .claude/.mcp-dev.json --strict-mcp-config
 
-# 3. 코드 분석
-claude -p "Explain the StreamParser class in src/lib/StreamParser.ts" --output-format stream-json --verbose --dangerously-skip-permissions
+# 3. 간단한 질문 (최소 MCP)
+claude --mcp-config .claude/.mcp-empty.json --strict-mcp-config \
+  -p "What files are in this directory?"
 
-# 4. 파일 수정 요청
-claude -p "Add a comment to the processChunk method explaining what it does" --output-format stream-json --verbose --dangerously-skip-permissions
+# 4. 코드 분석
+claude --mcp-config .claude/.mcp-analysis.json --strict-mcp-config \
+  -p "Explain the StreamParser class in src/lib/StreamParser.ts"
 
-# 5. 에러 재현 테스트
-claude -p "/context" --output-format stream-json --verbose --dangerously-skip-permissions 2>&1 | tee test-output.log
+# 5. 파일 수정 (settings.json 권한 사용)
+claude --mcp-config .claude/.mcp-dev.json --strict-mcp-config \
+  -p "Add a comment to the processChunk method explaining what it does"
+
+# 6. 실시간 모니터링
+claude --output-format stream-json --verbose \
+  --mcp-config .claude/.mcp-dev.json --strict-mcp-config \
+  -p "/context" 2>&1 | tee test-output.log
 ```
 
 ### UI에서 테스트하기

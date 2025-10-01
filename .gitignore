@@ -90,3 +90,6 @@ typings/
 
 # Electron-Forge
 out/
+
+# Claude Code
+.claude/settings.local.json

@@ -211,3 +211,147 @@ export const validateMcpJson = (content: string): { valid: boolean; error?: stri
     };
   }
 };
+
+// ============================================================================
+// MCP Configuration Management
+// ============================================================================
+
+export interface McpConfigFile {
+  name: string;
+  path: string;
+  content: string;
+  lastModified: number;
+}
+
+export interface McpServer {
+  name: string;
+  type: string;
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+}
+
+/**
+ * List all MCP configuration files in project's .claude/ directory
+ */
+export const listMcpConfigs = (projectPath: string): McpConfigFile[] => {
+  const claudeDir = path.join(projectPath, '.claude');
+
+  if (!fs.existsSync(claudeDir)) {
+    return [];
+  }
+
+  const files = fs.readdirSync(claudeDir)
+    .filter(file => file.startsWith('.mcp-') && file.endsWith('.json'))
+    .map(file => {
+      const filePath = path.join(claudeDir, file);
+      const stats = fs.statSync(filePath);
+      const content = fs.readFileSync(filePath, 'utf-8');
+
+      return {
+        name: file,
+        path: filePath,
+        content,
+        lastModified: stats.mtimeMs,
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return files;
+};
+
+/**
+ * Get available MCP servers from user config (~/.claude.json)
+ */
+export const getMcpServerList = (): { servers: McpServer[], error?: string } => {
+  try {
+    const homeDir = process.env.HOME || process.env.USERPROFILE;
+    if (!homeDir) {
+      return { servers: [], error: 'Home directory not found' };
+    }
+
+    const claudeConfigPath = path.join(homeDir, '.claude.json');
+    if (!fs.existsSync(claudeConfigPath)) {
+      return { servers: [], error: '~/.claude.json not found' };
+    }
+
+    const content = fs.readFileSync(claudeConfigPath, 'utf-8');
+    const config = JSON.parse(content);
+
+    if (!config.mcpServers || typeof config.mcpServers !== 'object') {
+      return { servers: [] };
+    }
+
+    const servers: McpServer[] = Object.entries(config.mcpServers).map(([name, server]: [string, any]) => ({
+      name,
+      type: server.type || 'stdio',
+      command: server.command || '',
+      args: server.args || [],
+      env: server.env || {},
+    }));
+
+    return { servers };
+  } catch (error) {
+    return {
+      servers: [],
+      error: error instanceof Error ? error.message : 'Failed to read MCP servers',
+    };
+  }
+};
+
+/**
+ * Create a new MCP configuration file with template
+ */
+export const createMcpConfig = (
+  projectPath: string,
+  name: string,
+  servers: string[]
+): { success: boolean; path?: string; error?: string } => {
+  try {
+    // Get available servers
+    const { servers: availableServers, error } = getMcpServerList();
+    if (error) {
+      return { success: false, error };
+    }
+
+    // Filter selected servers
+    const selectedServers = availableServers.filter(s => servers.includes(s.name));
+    if (selectedServers.length === 0) {
+      return { success: false, error: 'No servers selected' };
+    }
+
+    // Build MCP config
+    const mcpConfig: Record<string, any> = {
+      mcpServers: {},
+    };
+
+    for (const server of selectedServers) {
+      mcpConfig.mcpServers[server.name] = {
+        type: server.type,
+        command: server.command,
+        args: server.args,
+        env: server.env,
+      };
+    }
+
+    // Ensure .claude/ directory exists
+    const claudeDir = path.join(projectPath, '.claude');
+    if (!fs.existsSync(claudeDir)) {
+      fs.mkdirSync(claudeDir, { recursive: true });
+    }
+
+    // Write config file
+    const fileName = name.startsWith('.mcp-') ? name : `.mcp-${name}.json`;
+    const filePath = path.join(claudeDir, fileName);
+
+    fs.writeFileSync(filePath, JSON.stringify(mcpConfig, null, 2), 'utf-8');
+    console.log(`[Settings] Created MCP config: ${filePath}`);
+
+    return { success: true, path: filePath };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create MCP config',
+    };
+  }
+};

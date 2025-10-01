@@ -9,6 +9,8 @@ Electron 데스크톱 앱으로 Claude CLI를 헤드리스 모드로 실행하�
 ## 주요 특징
 
 - ✅ **Claude CLI Headless 모드**: 백엔드에서 `claude` CLI를 자동으로 실행
+- ✅ **세밀한 권한 제어**: settings.json 기반 안전한 자동화 (`--dangerously-skip-permissions` 불필요)
+- ✅ **MCP 서버 선택**: 작업별 최적화된 MCP 서버 설정 (분석/개발/최소)
 - ✅ **Stream JSON 실시간 파싱**: Line-by-line JSON 파싱으로 실시간 이벤트 처리
 - ✅ **세션 관리**: Session ID를 통한 대화 이어가기 지원
 - ✅ **모듈화 아키텍처**: 재사용 가능한 독립 모듈 설계
@@ -28,11 +30,54 @@ npm start
 npm run package
 ```
 
-## 사용법
+## 빠른 시작
+
+### 1. 초기 설정
+프로젝트는 이미 권한 설정과 MCP 서버가 구성되어 있습니다:
+
+- **권한 설정**: `.claude/settings.json` (팀 공유)
+- **MCP 서버**: `.claude/.mcp-*.json` (용도별 설정)
+
+**상세 가이드:** [SETUP.md](./docs/SETUP.md)
+
+### 2. 사용법
 
 1. **프로젝트 디렉토리 선택**: Browse 버튼 또는 직접 입력
 2. **쿼리 입력**: Claude에게 요청할 작업 입력
 3. **Execute 클릭**: Claude CLI가 실행되고 실시간 응답 표시
+
+**실행 명령 예시:**
+```bash
+claude -p "코드 분석" \
+  --output-format stream-json \
+  --mcp-config .claude/.mcp-dev.json \
+  --strict-mcp-config
+```
+
+### 3. 권한 관리
+
+프로젝트는 `.claude/settings.json`으로 안전하게 자동화됩니다:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Read(./src/**)",
+      "Write(./src/**)",
+      "Bash(npm run test)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Bash(rm:*)"
+    ]
+  }
+}
+```
+
+**장점:**
+- ✅ `--dangerously-skip-permissions` 불필요
+- ✅ 민감한 파일 보호
+- ✅ 팀 정책 공유 가능
 
 ## 아키텍처
 
@@ -239,8 +284,17 @@ streamEvents.forEach(event => {
 
 ## 참고 문서
 
+### 프로젝트 문서
+- [설정 가이드](./docs/SETUP.md) - 권한 및 MCP 서버 설정 방법
+- [MCP 설정 가이드](./docs/mcp-config-guide.md) - 작업별 MCP 서버 선택
+- [MCP Tools Reference](./docs/mcp-tools-reference.md) - 전체 도구 목록
+- [실행 전략](./docs/claude-context/usage/claude-execution-strategy.md) - 최적화된 실행 패턴
+- [권한 설정](./docs/claude-context/config/permissions-configuration.md) - 세밀한 권한 제어
+- [프로젝트 비전](./CLAUDE.md) - 프로젝트 목표 및 비전
+
+### 공식 문서
 - [Claude Code Headless 공식 문서](https://docs.claude.com/en/docs/claude-code/headless.md)
-- [아키텍처 상세 문서](./ARCHITECTURE.md)
+- [Claude Code Settings](https://docs.claude.com/en/docs/claude-code/settings)
 
 ## 라이선스
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import type { ClaudeProjectInfo, ClaudeSessionInfo } from '../../preload';
+import { useProject } from '../../contexts/ProjectContext';
 import styles from './ClaudeProjectsList.module.css';
 import { SessionLogViewer } from './SessionLogViewer';
 import { Pagination } from '../common/Pagination';
@@ -38,6 +39,7 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
   lastUpdated = null,
 }) => {
   const navigate = useNavigate();
+  const { updateProject } = useProject();
   const { projectDirName, sessionId } = useParams<{ projectDirName?: string; sessionId?: string }>();
   const [selectedProject, setSelectedProject] = useState<ClaudeProjectInfo | null>(null);
   const [selectedSession, setSelectedSession] = useState<ClaudeSessionInfo | null>(null);
@@ -198,9 +200,23 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
     toast.success('Session ID copied to clipboard!');
   };
 
-  const handleUseInExecute = (projectPath: string) => {
+  const handleUseInExecute = async (projectPath: string) => {
+    console.log('[ClaudeProjectsList] Execute button clicked for:', projectPath);
+
+    // Extract directory name from path
+    const dirName = projectPath.split('/').filter(Boolean).pop() || projectPath;
+    console.log('[ClaudeProjectsList] Project dirName:', dirName);
+
+    // Update ProjectContext
+    updateProject(projectPath, dirName);
+
+    // Save to main process
+    const result = await window.appSettingsAPI.setCurrentProject(projectPath, dirName);
+    console.log('[ClaudeProjectsList] Saved to main process:', result);
+
+    // Navigate to Execute page with projectPath in URL
     navigate(`/?projectPath=${encodeURIComponent(projectPath)}`);
-    toast.success('Project path loaded in Execute tab');
+    toast.success('Project loaded in Execute tab');
   };
 
   const handleProjectPageChange = (newPage: number) => {

@@ -9,6 +9,8 @@ import { app } from 'electron';
 
 interface AppSettings {
   claudeProjectsPath?: string;
+  currentProjectPath?: string;
+  currentProjectDirName?: string;
 }
 
 export class SettingsService {
@@ -52,6 +54,31 @@ export class SettingsService {
 
   getAllSettings(): AppSettings {
     return { ...this.settings };
+  }
+
+  getCurrentProjectPath(): string | undefined {
+    console.log('[SettingsService] getCurrentProjectPath:', this.settings.currentProjectPath);
+    return this.settings.currentProjectPath;
+  }
+
+  getCurrentProjectDirName(): string | undefined {
+    console.log('[SettingsService] getCurrentProjectDirName:', this.settings.currentProjectDirName);
+    return this.settings.currentProjectDirName;
+  }
+
+  setCurrentProject(projectPath: string, projectDirName: string): void {
+    console.log('[SettingsService] setCurrentProject:', { projectPath, projectDirName });
+    this.settings.currentProjectPath = projectPath;
+    this.settings.currentProjectDirName = projectDirName;
+    this.saveSettings();
+    console.log('[SettingsService] Settings after save:', this.settings);
+  }
+
+  clearCurrentProject(): void {
+    console.log('[SettingsService] clearCurrentProject');
+    this.settings.currentProjectPath = undefined;
+    this.settings.currentProjectDirName = undefined;
+    this.saveSettings();
   }
 }
 

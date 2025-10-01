@@ -1,0 +1,260 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude.ai/schemas/mcp-config.json",
+  "title": "Claude Code MCP Configuration",
+  "description": "Model Context Protocol (MCP) server configuration for Claude Code",
+  "type": "object",
+  "properties": {
+    "mcpServers": {
+      "type": "object",
+      "description": "Collection of MCP server configurations",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "$ref": "#/definitions/McpServer"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["mcpServers"],
+  "definitions": {
+    "McpServer": {
+      "type": "object",
+      "description": "MCP server configuration",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["stdio", "http", "sse"],
+          "description": "Server transport type"
+        },
+        "command": {
+          "type": "string",
+          "description": "Executable command for stdio servers"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Command arguments for stdio servers (supports ${VAR} and ${VAR:-default} expansion)"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Server URL for HTTP/SSE servers"
+        },
+        "transport": {
+          "type": "string",
+          "enum": ["http", "sse"],
+          "description": "Network transport protocol for HTTP/SSE servers"
+        },
+        "env": {
+          "type": "object",
+          "description": "Environment variables (supports ${VAR} and ${VAR:-default} expansion)",
+          "patternProperties": {
+            "^[A-Z_][A-Z0-9_]*$": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "auth": {
+          "$ref": "#/definitions/Auth",
+          "description": "Authentication configuration"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Connection timeout in milliseconds",
+          "default": 30000
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata",
+          "description": "Optional server metadata"
+        }
+      },
+      "required": ["type"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "stdio"
+              }
+            }
+          },
+          "then": {
+            "required": ["command"],
+            "properties": {
+              "command": true,
+              "args": true,
+              "env": true,
+              "timeout": true,
+              "metadata": true
+            },
+            "not": {
+              "anyOf": [
+                {"required": ["url"]},
+                {"required": ["transport"]}
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["http", "sse"]
+              }
+            }
+          },
+          "then": {
+            "required": ["url"],
+            "properties": {
+              "url": true,
+              "transport": true,
+              "auth": true,
+              "env": true,
+              "timeout": true,
+              "metadata": true
+            },
+            "not": {
+              "anyOf": [
+                {"required": ["command"]},
+                {"required": ["args"]}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "Auth": {
+      "type": "object",
+      "description": "Authentication configuration",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["oauth", "bearer", "basic"],
+          "description": "Authentication type"
+        },
+        "token": {
+          "type": "string",
+          "description": "Authentication token (supports ${VAR} expansion)"
+        },
+        "username": {
+          "type": "string",
+          "description": "Username for basic authentication"
+        },
+        "password": {
+          "type": "string",
+          "description": "Password for basic authentication (supports ${VAR} expansion)"
+        }
+      },
+      "required": ["type"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "basic"
+              }
+            }
+          },
+          "then": {
+            "required": ["username", "password"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "bearer"
+              }
+            }
+          },
+          "then": {
+            "required": ["token"]
+          }
+        }
+      ]
+    },
+    "Metadata": {
+      "type": "object",
+      "description": "Optional server metadata",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable server description"
+        },
+        "version": {
+          "type": "string",
+          "description": "Server version",
+          "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?$"
+        },
+        "author": {
+          "type": "string",
+          "description": "Server author or maintainer"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Categorization tags"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "mcpServers": {
+        "github": {
+          "type": "stdio",
+          "command": "npx",
+          "args": ["-y", "@modelcontextprotocol/server-github"],
+          "env": {
+            "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+          },
+          "metadata": {
+            "description": "GitHub integration server",
+            "version": "1.0.0"
+          }
+        },
+        "sentry": {
+          "type": "http",
+          "url": "https://mcp.sentry.dev/mcp",
+          "transport": "http",
+          "auth": {
+            "type": "oauth"
+          },
+          "timeout": 30000,
+          "metadata": {
+            "description": "Sentry error monitoring"
+          }
+        },
+        "database": {
+          "type": "stdio",
+          "command": "npx",
+          "args": [
+            "-y",
+            "@bytebase/dbhub",
+            "--dsn",
+            "${DATABASE_URL:-postgresql://localhost:5432/dev}"
+          ],
+          "env": {
+            "DATABASE_URL": "${DATABASE_URL}"
+          }
+        },
+        "analytics": {
+          "type": "sse",
+          "url": "https://api.example.com/mcp",
+          "transport": "sse",
+          "auth": {
+            "type": "bearer",
+            "token": "${API_TOKEN}"
+          }
+        }
+      }
+    }
+  ]
+}

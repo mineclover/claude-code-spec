@@ -4,10 +4,50 @@
 
 MCP server configurations are stored in JSON files at different scope levels, similar to Memory and Settings hierarchies.
 
-### User-Level Configuration
-**Location:** `~/.claude.json`
+## Platform-Specific Configuration Paths
+
+### System Configuration Location
+
+The user-level configuration file location varies by operating system:
+
+**macOS/Linux:**
+```
+~/.claude.json
+```
+Expands to: `/Users/username/.claude.json` (macOS) or `/home/username/.claude.json` (Linux)
+
+**Windows:**
+```
+%USERPROFILE%\.claude.json
+```
+Expands to: `C:\Users\username\.claude.json`
+
+### Alternative Configuration Sources
+
+While `~/.claude.json` is the default location, Claude Code may support alternative configuration sources:
+
+- **Custom config directory:** Some installations may use `~/.config/claude/config.json`
+- **Environment variable override:** `CLAUDE_CONFIG_PATH` environment variable
+- **XDG Base Directory (Linux):** `$XDG_CONFIG_HOME/claude/config.json`
+
+**Finding your configuration location:**
+```bash
+# macOS/Linux
+ls -la ~/.claude.json
+ls -la ~/.config/claude/
+
+# Windows PowerShell
+dir $env:USERPROFILE\.claude.json
+```
+
+**Note:** The UI's "Create New Configuration" feature reads available MCP servers from your system's configuration file, which may vary based on your setup.
+
+### User-Level Configuration (System Scope)
+**Default Location:** `~/.claude.json` (see Platform-Specific section above for exact paths)
 
 **Purpose:** Personal MCP servers available across all projects
+
+**Scope:** System-wide, applies to all Claude Code projects for this user
 
 **Format:**
 ```json
@@ -43,9 +83,11 @@ MCP server configurations are stored in JSON files at different scope levels, si
 - Document personal server setup in user notes
 
 ### Project-Level Configuration
-**Location:** `.mcp.json` (project root)
+**Location:** `.mcp.json` (in project root directory)
 
 **Purpose:** Team-shared MCP servers for the project
+
+**Scope:** Project-specific, shared with team via version control
 
 **Format:**
 ```json
@@ -85,10 +127,12 @@ MCP server configurations are stored in JSON files at different scope levels, si
 - Use environment variable expansion for secrets
 - Specify exact versions when possible
 
-### Local Project Configuration
-**Location:** `.mcp.local.json` (not in git)
+### Local Project Configuration (Developer Override)
+**Location:** `.mcp.local.json` (in project root, not committed to git)
 
 **Purpose:** Personal project overrides and experiments
+
+**Scope:** Project-specific, but personal (not shared with team)
 
 **Format:**
 ```json
@@ -117,10 +161,27 @@ MCP server configurations are stored in JSON files at different scope levels, si
 ## Configuration Hierarchy and Merging
 
 ### Precedence Order
-When same server name exists at multiple levels:
-1. **Local Project** (`.mcp.local.json`) - Highest priority
-2. **Project** (`.mcp.json`)
-3. **User** (`~/.claude.json`) - Lowest priority
+When the same server name exists at multiple levels, Claude Code applies them in this order:
+
+1. **Local Project** (`.mcp.local.json`) - **Highest priority** (developer overrides)
+2. **Project** (`.mcp.json`) - **Medium priority** (team shared)
+3. **User/System** (`~/.claude.json`) - **Lowest priority** (system-wide defaults)
+
+**Visual Hierarchy:**
+```
+┌─────────────────────────────────────────┐
+│ .mcp.local.json (highest priority)      │ ← Developer overrides
+├─────────────────────────────────────────┤
+│ .mcp.json (medium priority)             │ ← Team configuration
+├─────────────────────────────────────────┤
+│ ~/.claude.json (lowest priority)        │ ← System defaults
+└─────────────────────────────────────────┘
+```
+
+**Key Points:**
+- Higher-level configs completely override lower-level configs for the same server name
+- Different server names from all levels are merged together
+- Use `.mcp.local.json` to temporarily override team settings without affecting others
 
 ### Merging Behavior
 ```json
@@ -314,3 +375,37 @@ claude -p "Test connection to [server-name]"
 1. Verify variable is set: `printenv | grep VAR_NAME`
 2. Check syntax: Use `${VAR}` not `$VAR`
 3. Quote in command args: `"--token=${TOKEN}"`
+
+## Configuration Management in UI
+
+### Using the MCP Configs Page
+
+The application's MCP Configs page (🔌 MCP Configs) provides a visual interface for managing project-level MCP configurations:
+
+**Data Sources:**
+- **System Configuration:** Reads available MCP servers from `~/.claude.json` (or platform-specific location)
+- **Project Configuration:** Manages `.mcp-*.json` files in `{projectRoot}/.claude/` directory
+
+**Workflow:**
+1. Select a project (Browse button or from Claude Projects page)
+2. Create new configuration by selecting servers from system config
+3. Edit existing configurations with JSON editor
+4. Copy usage scripts for terminal execution
+
+**File Naming Convention:**
+- UI creates: `.claude/.mcp-{name}.json`
+- Example: `.claude/.mcp-analysis.json`, `.claude/.mcp-dev.json`
+
+**Usage Pattern:**
+```bash
+# From project root
+cd /path/to/your/project
+
+# Interactive mode
+claude --mcp-config .claude/.mcp-analysis.json --strict-mcp-config
+
+# Single query
+claude -p "your query" --mcp-config .claude/.mcp-dev.json --strict-mcp-config
+```
+
+This allows you to have multiple MCP configurations per project, each selecting different subsets of MCP servers for different purposes (development, analysis, UI work, etc.).

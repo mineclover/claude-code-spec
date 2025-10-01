@@ -10,6 +10,11 @@ Claude Code uses hierarchical settings configuration to manage behavior across e
 
 Five-level precedence: Enterprise → CLI → Local Project → Shared Project → User.
 
+### Permissions Configuration
+@context/config/permissions-configuration.md
+
+Granular permission control for tools, files, and commands with allow/deny/ask rules.
+
 ### Settings Features
 @context/config/settings-features.md
 

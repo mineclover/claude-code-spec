@@ -10,6 +10,11 @@ Claude Code CLI command patterns and request formats. Practical guide for effect
 
 Command-line interface commands, flags, and options.
 
+### Execution Strategy
+@context/usage/claude-execution-strategy.md
+
+Claude Code execution strategies with MCP selection, permission management, and optimization techniques.
+
 ### Common Workflows
 @context/usage/common-workflows.md
 

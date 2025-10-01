@@ -14,6 +14,9 @@ import {
   saveBackupToFile,
   validateMcpJson,
   writeSettingsFile,
+  listMcpConfigs,
+  getMcpServerList,
+  createMcpConfig,
 } from '../../services/settings';
 
 export function registerSettingsHandlers(router: IPCRouter): void {
@@ -60,5 +63,24 @@ export function registerSettingsHandlers(router: IPCRouter): void {
   // Validate MCP JSON
   router.handle('validate-mcp-json', async (_event, content: string) => {
     return validateMcpJson(content);
+  });
+
+  // ============================================================================
+  // MCP Configuration Management
+  // ============================================================================
+
+  // List MCP config files
+  router.handle('list-mcp-configs', async (_event, projectPath: string) => {
+    return listMcpConfigs(projectPath);
+  });
+
+  // Get MCP server list from ~/.claude.json
+  router.handle('get-mcp-servers', async (_event) => {
+    return getMcpServerList();
+  });
+
+  // Create MCP config file
+  router.handle('create-mcp-config', async (_event, projectPath: string, name: string, servers: string[]) => {
+    return createMcpConfig(projectPath, name, servers);
   });
 }

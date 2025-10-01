@@ -25,4 +25,26 @@ export function registerAppSettingsHandlers(
     settingsService.setClaudeProjectsPath(projectsPath);
     return { success: true };
   });
+
+  // Get current project path
+  router.handle('get-current-project-path', async () => {
+    return settingsService.getCurrentProjectPath();
+  });
+
+  // Get current project dir name
+  router.handle('get-current-project-dir-name', async () => {
+    return settingsService.getCurrentProjectDirName();
+  });
+
+  // Set current project
+  router.handle('set-current-project', async (_event, projectPath: string, projectDirName: string) => {
+    settingsService.setCurrentProject(projectPath, projectDirName);
+    return { success: true };
+  });
+
+  // Clear current project
+  router.handle('clear-current-project', async () => {
+    settingsService.clearCurrentProject();
+    return { success: true };
+  });
 }

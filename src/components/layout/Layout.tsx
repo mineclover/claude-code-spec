@@ -2,6 +2,7 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { PAGE_INDEX, getPageById } from '../../data/pageIndex';
+import { useProject } from '../../contexts/ProjectContext';
 import styles from './Layout.module.css';
 
 interface LayoutProps {
@@ -13,6 +14,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const [addressInput, setAddressInput] = useState('');
   const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const { projectPath, projectDirName } = useProject();
+
+  console.log('[Layout] Render - projectPath:', projectPath, 'projectDirName:', projectDirName);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -91,6 +95,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Link>
 
           <Link
+            to="/mcp-configs"
+            className={`${styles.navItem} ${isActive('/mcp-configs') ? styles.active : ''}`}
+          >
+            <span className={styles.icon}>🔌</span>
+            <span>MCP Configs</span>
+          </Link>
+
+          <Link
             to="/claude-docs"
             className={`${styles.navItem} ${isActive('/claude-docs') ? styles.active : ''}`}
           >
@@ -116,6 +128,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
 
         <div className={styles.footer}>
+          {projectPath ? (
+            <div className={styles.currentProject}>
+              <div className={styles.currentProjectLabel}>📂 Current Project</div>
+              <div className={styles.currentProjectPath} title={projectPath}>
+                {projectDirName || projectPath.split('/').filter(Boolean).pop() || 'Unknown'}
+              </div>
+            </div>
+          ) : (
+            <div className={styles.noProject}>
+              <div className={styles.noProjectLabel}>No project selected</div>
+            </div>
+          )}
           <div className={styles.version}>v1.0.0</div>
         </div>
       </nav>

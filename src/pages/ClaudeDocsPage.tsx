@@ -117,11 +117,13 @@ export const ClaudeDocsPage: React.FC = () => {
 
     // Check if clicked element contains a reference pattern (@context/...)
     const text = target.textContent || '';
-    const referenceMatch = text.match(/@context\/([^\s]+)/);
+    const referenceMatch = text.match(/@context\/([^\s`]+)/);
 
     if (referenceMatch) {
       const referencePath = referenceMatch[1];
-      const fullPath = `${DOCS_ROOT}/${referencePath}`;
+      // Clean up the path - remove any trailing backticks or special characters
+      const cleanPath = referencePath.replace(/[`'"]$/, '');
+      const fullPath = `${DOCS_ROOT}/${cleanPath}`;
 
       // Load the referenced document
       loadFileContent(fullPath);

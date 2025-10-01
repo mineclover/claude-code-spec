@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "serena": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@agentic-insights/mcp-server-serena"]
+    },
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    }
+  }
+}

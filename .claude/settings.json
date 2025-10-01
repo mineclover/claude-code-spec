@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(./src/**)",
+      "Read(./docs/**)",
+      "Read(./package.json)",
+      "Read(./tsconfig.json)",
+      "Read(./electron.vite.config.ts)",
+      "Write(./src/**)",
+      "Edit(./src/**)",
+      "Write(./docs/**)",
+      "Edit(./docs/**)",
+      "Glob(**/*)",
+      "Grep(**/*)",
+      "Bash(npm run build)",
+      "Bash(npm run dev)",
+      "Bash(npm run start)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run format:*)",
+      "Bash(npm run type-check)",
+      "Bash(git status)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Write(./.env)",
+      "Edit(./.env)",
+      "Edit(./package-lock.json)",
+      "Bash(rm:*)",
+      "Bash(git push:*)",
+      "Bash(npm publish:*)"
+    ]
+  }
+}

@@ -7,24 +7,29 @@ import { ControllerDocsPage } from './pages/ControllerDocsPage';
 import { ExecutePage } from './pages/ExecutePage';
 import { IndexPage } from './pages/IndexPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { ProjectProvider } from './contexts/ProjectContext';
+import { McpConfigsPage } from './pages/McpConfigsPage';
 
 function App() {
   return (
-    <HashRouter>
-      <Toaster position="top-right" />
-      <Layout>
-        <Routes>
-          <Route path="/" element={<ExecutePage />} />
-          <Route path="/index" element={<IndexPage />} />
-          <Route path="/claude-projects" element={<ClaudeProjectsPage />} />
-          <Route path="/claude-projects/:projectDirName" element={<ClaudeProjectsPage />} />
-          <Route path="/claude-projects/:projectDirName/:sessionId" element={<ClaudeProjectsPage />} />
-          <Route path="/claude-docs" element={<ClaudeDocsPage />} />
-          <Route path="/controller-docs" element={<ControllerDocsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Routes>
-      </Layout>
-    </HashRouter>
+    <ProjectProvider>
+      <HashRouter>
+        <Toaster position="top-right" />
+        <Layout>
+          <Routes>
+            <Route path="/" element={<ExecutePage />} />
+            <Route path="/index" element={<IndexPage />} />
+            <Route path="/claude-projects" element={<ClaudeProjectsPage />} />
+            <Route path="/claude-projects/:projectDirName" element={<ClaudeProjectsPage />} />
+            <Route path="/claude-projects/:projectDirName/:sessionId" element={<ClaudeProjectsPage />} />
+            <Route path="/mcp-configs" element={<McpConfigsPage />} />
+            <Route path="/claude-docs" element={<ClaudeDocsPage />} />
+            <Route path="/controller-docs" element={<ControllerDocsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Routes>
+        </Layout>
+      </HashRouter>
+    </ProjectProvider>
   );
 }
 

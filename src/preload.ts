@@ -60,6 +60,21 @@ export interface SessionBookmark {
   tags?: string[];
 }
 
+export interface McpConfigFile {
+  name: string;
+  path: string;
+  content: string;
+  lastModified: number;
+}
+
+export interface McpServer {
+  name: string;
+  type: string;
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+}
+
 export interface SettingsAPI {
   // Find settings files in project
   findFiles: (projectPath: string) => Promise<ProjectSettings>;
@@ -77,6 +92,11 @@ export interface SettingsAPI {
 
   // Validation
   validateMcpJson: (content: string) => Promise<{ valid: boolean; error?: string }>;
+
+  // MCP Configuration Management
+  listMcpConfigs: (projectPath: string) => Promise<McpConfigFile[]>;
+  getMcpServers: () => Promise<{ servers: McpServer[], error?: string }>;
+  createMcpConfig: (projectPath: string, name: string, servers: string[]) => Promise<{ success: boolean; path?: string; error?: string }>;
 }
 
 export interface BookmarksAPI {
@@ -294,6 +314,14 @@ contextBridge.exposeInMainWorld('settingsAPI', {
   deleteFile: (filePath: string) => ipcRenderer.invoke('settings:delete-file', filePath),
 
   validateMcpJson: (content: string) => ipcRenderer.invoke('settings:validate-mcp-json', content),
+
+  // MCP Configuration Management
+  listMcpConfigs: (projectPath: string) => ipcRenderer.invoke('settings:list-mcp-configs', projectPath),
+
+  getMcpServers: () => ipcRenderer.invoke('settings:get-mcp-servers'),
+
+  createMcpConfig: (projectPath: string, name: string, servers: string[]) =>
+    ipcRenderer.invoke('settings:create-mcp-config', projectPath, name, servers),
 } as SettingsAPI);
 
 // Expose BookmarksAPI
@@ -362,12 +390,18 @@ contextBridge.exposeInMainWorld('claudeSessionsAPI', {
 // App Settings API
 export interface AppSettings {
   claudeProjectsPath?: string;
+  currentProjectPath?: string;
+  currentProjectDirName?: string;
 }
 
 export interface AppSettingsAPI {
   getAllSettings: () => Promise<AppSettings>;
   getClaudeProjectsPath: () => Promise<string | undefined>;
   setClaudeProjectsPath: (path: string) => Promise<{ success: boolean }>;
+  getCurrentProjectPath: () => Promise<string | undefined>;
+  getCurrentProjectDirName: () => Promise<string | undefined>;
+  setCurrentProject: (projectPath: string, projectDirName: string) => Promise<{ success: boolean }>;
+  clearCurrentProject: () => Promise<{ success: boolean }>;
 }
 
 contextBridge.exposeInMainWorld('appSettingsAPI', {
@@ -375,6 +409,11 @@ contextBridge.exposeInMainWorld('appSettingsAPI', {
   getClaudeProjectsPath: () => ipcRenderer.invoke('app-settings:get-claude-projects-path'),
   setClaudeProjectsPath: (path: string) =>
     ipcRenderer.invoke('app-settings:set-claude-projects-path', path),
+  getCurrentProjectPath: () => ipcRenderer.invoke('app-settings:get-current-project-path'),
+  getCurrentProjectDirName: () => ipcRenderer.invoke('app-settings:get-current-project-dir-name'),
+  setCurrentProject: (projectPath: string, projectDirName: string) =>
+    ipcRenderer.invoke('app-settings:set-current-project', projectPath, projectDirName),
+  clearCurrentProject: () => ipcRenderer.invoke('app-settings:clear-current-project'),
 } as AppSettingsAPI);
 
 // Docs API

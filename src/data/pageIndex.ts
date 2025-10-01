@@ -65,6 +65,16 @@ export const PAGE_INDEX: PageIndex[] = [
     category: 'management',
     keywords: ['projects', 'sessions', 'logs', '프로젝트', '세션', '로그'],
   },
+  {
+    id: 'mcp-configs',
+    name: 'MCP Configs',
+    displayName: 'MCP 설정',
+    description: 'MCP 서버 설정 파일을 생성하고 관리합니다.',
+    route: '/mcp-configs',
+    icon: '🔌',
+    category: 'management',
+    keywords: ['mcp', 'config', 'servers', 'tools', 'configuration', '설정', '서버', '도구'],
+  },
 
   // Configuration
   {

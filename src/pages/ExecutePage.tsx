@@ -9,8 +9,10 @@ import {
   getCachedSessionsPage,
   setCachedSessionsPage,
 } from '../services/cache';
+import { useProject } from '../contexts/ProjectContext';
 
 export const ExecutePage: React.FC = () => {
+  const { updateProject } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const [projectPath, setProjectPath] = useState('');
   const [query, setQuery] = useState('');
@@ -130,7 +132,18 @@ export const ExecutePage: React.FC = () => {
   const handleSelectDirectory = async () => {
     const path = await window.claudeAPI.selectDirectory();
     if (path) {
+      console.log('[ExecutePage] Selected project path:', path);
       setProjectPath(path);
+
+      // Update ProjectContext for use in MCP Configs and other pages
+      // Extract directory name from path (last segment)
+      const dirName = path.split('/').filter(Boolean).pop() || path;
+      console.log('[ExecutePage] Project dirName:', dirName);
+      updateProject(path, dirName);
+
+      // Save to main process
+      const result = await window.appSettingsAPI.setCurrentProject(path, dirName);
+      console.log('[ExecutePage] Saved to main process:', result);
     }
   };
 
