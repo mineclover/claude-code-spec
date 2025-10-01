@@ -24,7 +24,7 @@ interface ProjectContextValue {
 - **정의**: ProjectContext에서 관리되는 전역 프로젝트 경로 상태
 - **타입**: `string | null`
 - **용도**: 여러 페이지 간 프로젝트 정보 동기화
-- **지속성**: localStorage에 자동 저장되어 세션 간 유지
+- **지속성**: 메인 프로세스 설정에 자동 저장되어 세션 간 유지
 
 ### 로컬 projectPath vs contextProjectPath
 
@@ -32,7 +32,7 @@ interface ProjectContextValue {
 |------|-----------------|-------------------|
 | 범위 | 컴포넌트 내부 상태 | 전역 공유 상태 |
 | 용도 | UI 입력 필드 제어 | 페이지 간 동기화 |
-| 지속성 | 컴포넌트 마운트 시 소멸 | localStorage 저장 |
+| 지속성 | 컴포넌트 마운트 시 소멸 | 메인 프로세스 설정에 저장 |
 | 업데이트 | 사용자 직접 입력 | Context API를 통한 업데이트 |
 
 ## 사용 패턴
@@ -46,8 +46,8 @@ const { projectPath: contextProjectPath } = useProject();
 ```typescript
 const { updateProject } = useProject();
 
-// 프로젝트 선택 시
-updateProject('/path/to/project', 'project-name');
+// 프로젝트 선택 시 (async - 메인 프로세스에 자동 저장)
+await updateProject('/path/to/project', 'project-name');
 ```
 
 ### 3. 로컬 상태와 동기화
@@ -83,13 +83,15 @@ useEffect(() => {
 
 ```
 1. Context 업데이트
-   └─ updateProject() 호출
-      └─ localStorage.setItem('currentProjectPath', path)
+   └─ updateProject() 호출 (async)
+      └─ appSettingsAPI.setCurrentProject(path, dirName)
+         └─ 메인 프로세스 설정 파일에 저장
 
 2. 앱 재시작
    └─ ProjectProvider 마운트
-      └─ localStorage에서 저장된 경로 복원
-         └─ contextProjectPath 상태 초기화
+      └─ appSettingsAPI.getCurrentProjectPath/DirName()
+         └─ 메인 프로세스에서 저장된 경로 복원
+            └─ contextProjectPath 상태 초기화
 ```
 
 ## 통합 지점
@@ -128,7 +130,8 @@ useEffect(() => {
 ### Context가 업데이트되지 않는 경우
 1. `ProjectProvider`가 앱 최상위에 있는지 확인
 2. `useProject()` 훅이 Provider 내부에서 호출되는지 확인
-3. Browser DevTools → Application → Local Storage에서 값 확인
+3. `updateProject()`를 `await`로 호출하는지 확인
+4. Browser DevTools Console에서 저장 로그 확인
 
 ### 페이지 간 동기화 안 되는 경우
 1. contextProjectPath useEffect 의존성 배열 확인

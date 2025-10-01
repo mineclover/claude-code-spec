@@ -213,12 +213,8 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
     const dirName = projectPath.split('/').filter(Boolean).pop() || projectPath;
     console.log('[ClaudeProjectsList] Project dirName:', dirName);
 
-    // Update ProjectContext
-    updateProject(projectPath, dirName);
-
-    // Save to main process
-    const result = await window.appSettingsAPI.setCurrentProject(projectPath, dirName);
-    console.log('[ClaudeProjectsList] Saved to main process:', result);
+    // Update ProjectContext (auto-saves to main process)
+    await updateProject(projectPath, dirName);
 
     // Navigate to Execute page with projectPath in URL
     navigate(`/?projectPath=${encodeURIComponent(projectPath)}`);

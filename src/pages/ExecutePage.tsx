@@ -138,15 +138,10 @@ export const ExecutePage: React.FC = () => {
       console.log('[ExecutePage] Selected project path:', path);
       setProjectPath(path);
 
-      // Update ProjectContext for use in MCP Configs and other pages
-      // Extract directory name from path (last segment)
+      // Update ProjectContext (auto-saves to main process)
       const dirName = path.split('/').filter(Boolean).pop() || path;
       console.log('[ExecutePage] Project dirName:', dirName);
-      updateProject(path, dirName);
-
-      // Save to main process
-      const result = await window.appSettingsAPI.setCurrentProject(path, dirName);
-      console.log('[ExecutePage] Saved to main process:', result);
+      await updateProject(path, dirName);
     }
   };
 

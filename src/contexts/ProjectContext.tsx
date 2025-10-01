@@ -14,8 +14,8 @@ interface ProjectContextValue {
   projectDirName: string | null;
   setProjectDirName: (name: string | null) => void;
 
-  // Update both at once
-  updateProject: (path: string | null, dirName: string | null) => void;
+  // Update both at once (async - saves to main process)
+  updateProject: (path: string | null, dirName: string | null) => Promise<void>;
 
   // Clear project selection
   clearProject: () => void;
@@ -33,28 +33,22 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
   const setProjectPath = useCallback((path: string | null) => {
     setProjectPathState(path);
-    // Store in localStorage for persistence
-    if (path) {
-      localStorage.setItem('currentProjectPath', path);
-    } else {
-      localStorage.removeItem('currentProjectPath');
-    }
   }, []);
 
   const setProjectDirName = useCallback((name: string | null) => {
     setProjectDirNameState(name);
-    if (name) {
-      localStorage.setItem('currentProjectDirName', name);
-    } else {
-      localStorage.removeItem('currentProjectDirName');
-    }
   }, []);
 
   const updateProject = useCallback(
-    (path: string | null, dirName: string | null) => {
+    async (path: string | null, dirName: string | null) => {
       console.log('[ProjectContext] updateProject:', { path, dirName });
       setProjectPath(path);
       setProjectDirName(dirName);
+
+      // Save to main process settings
+      if (path && dirName) {
+        await window.appSettingsAPI.setCurrentProject(path, dirName);
+      }
     },
     [setProjectPath, setProjectDirName],
   );
@@ -64,17 +58,26 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
     setProjectDirName(null);
   }, [setProjectPath, setProjectDirName]);
 
-  // Restore from localStorage on mount
+  // Restore from main process settings on mount
   React.useEffect(() => {
-    const savedPath = localStorage.getItem('currentProjectPath');
-    const savedDirName = localStorage.getItem('currentProjectDirName');
-    console.log('[ProjectContext] Restoring from localStorage:', { savedPath, savedDirName });
-    if (savedPath) {
-      setProjectPathState(savedPath);
-    }
-    if (savedDirName) {
-      setProjectDirNameState(savedDirName);
-    }
+    const loadFromSettings = async () => {
+      try {
+        const savedPath = await window.appSettingsAPI.getCurrentProjectPath();
+        const savedDirName = await window.appSettingsAPI.getCurrentProjectDirName();
+        console.log('[ProjectContext] Restoring from main process:', { savedPath, savedDirName });
+
+        if (savedPath) {
+          setProjectPathState(savedPath);
+        }
+        if (savedDirName) {
+          setProjectDirNameState(savedDirName);
+        }
+      } catch (error) {
+        console.error('[ProjectContext] Failed to restore from settings:', error);
+      }
+    };
+
+    loadFromSettings();
   }, []);
 
   const value: ProjectContextValue = {

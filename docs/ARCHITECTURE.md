@@ -118,7 +118,7 @@ interface ProjectContextValue {
 
 #### 주요 특징
 - **전역 상태 공유**: 모든 페이지에서 `useProject()` 훅으로 접근
-- **영속성**: localStorage를 통한 세션 간 유지
+- **영속성**: 메인 프로세스 설정을 통한 세션 간 유지
 - **자동 동기화**: Context 변경 시 관련 컴포넌트 자동 업데이트
 
 #### 사용 컴포넌트
@@ -131,9 +131,9 @@ interface ProjectContextValue {
 ```
 사용자 프로젝트 선택
   ↓
-updateProject(path, dirName)
+await updateProject(path, dirName)
   ↓
-localStorage 저장
+메인 프로세스 설정 저장 (appSettingsAPI)
   ↓
 Context 상태 업데이트
   ↓
