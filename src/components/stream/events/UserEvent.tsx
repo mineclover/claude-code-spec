@@ -16,15 +16,17 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
       <EventBox type="user" icon="🔧" title="Tool Result" rawData={event}>
         {content.map((item, idx) => {
           // Safely extract text from content that might be a string or object
-          const extractContent = (content: any): string => {
+          const extractContent = (content: unknown): string => {
             if (typeof content === 'string') {
               return content;
             }
-            if (typeof content === 'object' && content !== null) {
+            if (typeof content === 'object' && content !== null && 'type' in content && 'text' in content) {
               // Handle text block objects like {type: 'text', text: '...'}
               if (content.type === 'text' && typeof content.text === 'string') {
                 return content.text;
               }
+            }
+            if (typeof content === 'object' && content !== null) {
               // Otherwise stringify the object
               return JSON.stringify(content, null, 2);
             }

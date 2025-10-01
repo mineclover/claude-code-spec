@@ -1,8 +1,8 @@
 import type React from 'react';
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PAGE_INDEX, CATEGORY_INFO, searchPages, getPagesByCategory } from '../data/pageIndex';
 import type { PageIndex } from '../data/pageIndex';
+import { CATEGORY_INFO, getPagesByCategory, PAGE_INDEX, searchPages } from '../data/pageIndex';
 import styles from './IndexPage.module.css';
 
 export const IndexPage: React.FC = () => {
@@ -28,11 +28,11 @@ export const IndexPage: React.FC = () => {
 
   const pagesByCategory = useMemo(() => {
     const result: Record<string, PageIndex[]> = {};
-    categories.forEach(category => {
+    categories.forEach((category) => {
       result[category] = getPagesByCategory(category);
     });
     return result;
-  }, []);
+  }, [categories.forEach]);
 
   return (
     <div className={styles.container}>
@@ -129,9 +129,7 @@ export const IndexPage: React.FC = () => {
             <div className={styles.searchResults}>
               <div className={styles.resultsHeader}>
                 {searchQuery && (
-                  <p className={styles.resultsCount}>
-                    검색 결과: {filteredPages.length}개
-                  </p>
+                  <p className={styles.resultsCount}>검색 결과: {filteredPages.length}개</p>
                 )}
               </div>
 
@@ -148,7 +146,9 @@ export const IndexPage: React.FC = () => {
                       <p className={styles.pageDescription}>{page.description}</p>
                       <div className={styles.pageTags}>
                         {page.keywords.slice(0, 3).map((keyword, idx) => (
-                          <span key={idx} className={styles.pageTag}>{keyword}</span>
+                          <span key={idx} className={styles.pageTag}>
+                            {keyword}
+                          </span>
                         ))}
                       </div>
                     </div>

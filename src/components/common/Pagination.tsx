@@ -51,11 +51,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <div className={styles.pageNumbers}>
           {Array.from({ length: totalPages }, (_, i) => {
             // Show max 7 pages: current +/- 2
-            if (
-              i === 0 ||
-              i === totalPages - 1 ||
-              (i >= currentPage - 2 && i <= currentPage + 2)
-            ) {
+            if (i === 0 || i === totalPages - 1 || (i >= currentPage - 2 && i <= currentPage + 2)) {
               return (
                 <button
                   key={i}
@@ -70,7 +66,11 @@ export const Pagination: React.FC<PaginationProps> = ({
               );
             }
             if (i === currentPage - 3 || i === currentPage + 3) {
-              return <span key={i} className={styles.ellipsis}>...</span>;
+              return (
+                <span key={i} className={styles.ellipsis}>
+                  ...
+                </span>
+              );
             }
             return null;
           })}

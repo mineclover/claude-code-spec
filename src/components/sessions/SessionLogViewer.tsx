@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ClaudeSessionEntry } from '../../preload';
 import { SessionLogEventRenderer } from './SessionLogEventRenderer';
 import styles from './SessionLogViewer.module.css';
@@ -21,15 +21,7 @@ export const SessionLogViewer: React.FC<SessionLogViewerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    loadSessionLogs();
-  }, [projectPath, sessionId]);
-
-  useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
-
-  const loadSessionLogs = async () => {
+  const loadSessionLogs = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -46,7 +38,15 @@ export const SessionLogViewer: React.FC<SessionLogViewerProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectPath, sessionId]);
+
+  useEffect(() => {
+    loadSessionLogs();
+  }, [loadSessionLogs]);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   const handleExport = async () => {
     try {
@@ -62,7 +62,6 @@ export const SessionLogViewer: React.FC<SessionLogViewerProps> = ({
       console.error('Failed to export logs:', err);
     }
   };
-
 
   if (loading) {
     return <div className={styles.loading}>Loading session logs...</div>;

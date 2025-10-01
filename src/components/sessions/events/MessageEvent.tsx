@@ -34,10 +34,17 @@ export const MessageEvent: React.FC<MessageEventProps> = ({ event }) => {
   // Handle array content (tool results or complex content)
   if (Array.isArray(message.content)) {
     // Safely extract text from various content formats
-    const extractText = (item: any): string | null => {
+    const extractText = (item: unknown): string | null => {
       if (!item) return null;
       if (typeof item === 'string') return item;
-      if (typeof item === 'object' && item.type === 'text' && typeof item.text === 'string') {
+      if (
+        typeof item === 'object' &&
+        item !== null &&
+        'type' in item &&
+        item.type === 'text' &&
+        'text' in item &&
+        typeof item.text === 'string'
+      ) {
         return item.text;
       }
       return null;
@@ -72,9 +79,7 @@ export const MessageEvent: React.FC<MessageEventProps> = ({ event }) => {
         <div className={styles.arrayContent}>
           {message.content.map((item, idx) => {
             // Ensure we always render a string, never an object
-            const displayContent = typeof item === 'string'
-              ? item
-              : JSON.stringify(item, null, 2);
+            const displayContent = typeof item === 'string' ? item : JSON.stringify(item, null, 2);
 
             return (
               <div key={idx} className={styles.contentItem}>

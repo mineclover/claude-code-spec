@@ -6,21 +6,18 @@
  */
 
 import type React from 'react';
-import { eventRegistry, EventType, type UnifiedEvent } from '../../lib/event-registry';
-import { ErrorBoundary } from './ErrorBoundary';
-
-// Import stream event components
-import { SystemInitEvent } from '../stream/events/SystemInitEvent';
-import { UserEvent } from '../stream/events/UserEvent';
-import { AssistantEvent } from '../stream/events/AssistantEvent';
-import { ResultEvent } from '../stream/events/ResultEvent';
-import { ErrorEvent } from '../stream/events/ErrorEvent';
-import { UnknownEvent } from '../stream/events/UnknownEvent';
-
+import { EventType, eventRegistry, type UnifiedEvent } from '../../lib/event-registry';
+import { MessageEvent } from '../sessions/events/MessageEvent';
 // Import session event components
 import { SummaryEvent } from '../sessions/events/SummaryEvent';
-import { MessageEvent } from '../sessions/events/MessageEvent';
-import { UnknownSessionEvent } from '../sessions/events/UnknownSessionEvent';
+import { AssistantEvent } from '../stream/events/AssistantEvent';
+import { ErrorEvent } from '../stream/events/ErrorEvent';
+import { ResultEvent } from '../stream/events/ResultEvent';
+// Import stream event components
+import { SystemInitEvent } from '../stream/events/SystemInitEvent';
+import { UnknownEvent } from '../stream/events/UnknownEvent';
+import { UserEvent } from '../stream/events/UserEvent';
+import { ErrorBoundary } from './ErrorBoundary';
 
 // ============================================================================
 // Register Event Renderers

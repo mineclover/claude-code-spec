@@ -80,7 +80,9 @@ export const getClaudeProjectDir = (projectPath: string): string => {
 /**
  * Extract session metadata from the session log file
  */
-const extractSessionMetadata = (filePath: string): Pick<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'> => {
+const extractSessionMetadata = (
+  filePath: string,
+): Pick<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'> => {
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
     const lines = content.split('\n').filter((line) => line.trim());
@@ -112,13 +114,19 @@ const extractSessionMetadata = (filePath: string): Pick<ClaudeSessionInfo, 'cwd'
             const message = block.message as { role?: string; content?: string };
             if (message.role === 'user' && message.content) {
               firstUserMessage = message.content.trim();
-              console.log('[extractSessionMetadata] Found user message:', firstUserMessage.substring(0, 50));
+              console.log(
+                '[extractSessionMetadata] Found user message:',
+                firstUserMessage.substring(0, 50),
+              );
             }
           }
           // Some formats might have content directly on the block
           else if (block.role === 'user' && block.content) {
             firstUserMessage = block.content.trim();
-            console.log('[extractSessionMetadata] Found user message (direct):', firstUserMessage.substring(0, 50));
+            console.log(
+              '[extractSessionMetadata] Found user message (direct):',
+              firstUserMessage?.substring(0, 50),
+            );
           }
         }
 
@@ -126,10 +134,7 @@ const extractSessionMetadata = (filePath: string): Pick<ClaudeSessionInfo, 'cwd'
         if (cwd && firstUserMessage) {
           break;
         }
-      } catch (parseError) {
-        // Skip malformed lines
-        continue;
-      }
+      } catch (_parseError) {}
     }
 
     return {
@@ -198,7 +203,9 @@ export const getProjectSessionCount = (projectPath: string): number => {
 /**
  * Get basic session info without metadata (fast)
  */
-export const getProjectSessionsBasic = (projectPath: string): Omit<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>[] => {
+export const getProjectSessionsBasic = (
+  projectPath: string,
+): Omit<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>[] => {
   const projectDir = getClaudeProjectDir(projectPath);
 
   if (!fs.existsSync(projectDir)) {
@@ -235,7 +242,7 @@ export const getProjectSessionsBasic = (projectPath: string): Omit<ClaudeSession
 export const getProjectSessionsPaginated = (
   projectPath: string,
   page: number = 0,
-  pageSize: number = 20
+  pageSize: number = 20,
 ): {
   sessions: Omit<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>[];
   total: number;
@@ -282,7 +289,10 @@ export const getProjectSessionsPaginated = (
 /**
  * Get metadata for a single session
  */
-export const getSessionMetadata = (projectPath: string, sessionId: string): Pick<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'> => {
+export const getSessionMetadata = (
+  projectPath: string,
+  sessionId: string,
+): Pick<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'> => {
   const projectDir = getClaudeProjectDir(projectPath);
   const sessionFile = path.join(projectDir, `${sessionId}.jsonl`);
 
@@ -401,7 +411,7 @@ export const getTotalProjectCount = (): number => {
  */
 export const getAllClaudeProjectsPaginated = (
   page: number = 0,
-  pageSize: number = 10
+  pageSize: number = 10,
 ): {
   projects: ClaudeProjectInfo[];
   total: number;
@@ -447,7 +457,7 @@ export const getAllClaudeProjectsPaginated = (
         };
       })
       .filter((p) => p !== null)
-      .sort((a, b) => b!.latestTimestamp - a!.latestTimestamp);
+      .sort((a, b) => b?.latestTimestamp - a?.latestTimestamp);
 
     const total = allProjects.length;
     const start = page * pageSize;
@@ -506,7 +516,7 @@ export const getSessionPreview = (projectPath: string, sessionId: string): strin
       if (message.role === 'user' && message.content) {
         // Truncate to first 100 characters for preview
         const preview = message.content.trim();
-        return preview.length > 100 ? preview.substring(0, 100) + '...' : preview;
+        return preview.length > 100 ? `${preview.substring(0, 100)}...` : preview;
       }
     }
   }

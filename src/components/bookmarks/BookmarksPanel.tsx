@@ -1,11 +1,11 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { SessionBookmark } from '../../preload';
 import styles from './BookmarksPanel.module.css';
 
 interface BookmarksPanelProps {
-  projectPath: string;
-  onResumeSession?: (sessionId: string, query: string) => void;
+  projectPath?: string;
+  onResumeSession?: (sessionId: string, query: string, projectPath: string) => void;
 }
 
 export const BookmarksPanel: React.FC<BookmarksPanelProps> = ({ projectPath, onResumeSession }) => {
@@ -13,21 +13,23 @@ export const BookmarksPanel: React.FC<BookmarksPanelProps> = ({ projectPath, onR
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadBookmarks();
-  }, [projectPath]);
-
-  const loadBookmarks = async () => {
+  const loadBookmarks = useCallback(async () => {
     setLoading(true);
     try {
-      const allBookmarks = await window.bookmarksAPI.getByProject(projectPath);
+      const allBookmarks = projectPath
+        ? await window.bookmarksAPI.getByProject(projectPath)
+        : await window.bookmarksAPI.getAll();
       setBookmarks(allBookmarks);
     } catch (error) {
       console.error('Failed to load bookmarks:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectPath]);
+
+  useEffect(() => {
+    loadBookmarks();
+  }, [loadBookmarks]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -37,8 +39,8 @@ export const BookmarksPanel: React.FC<BookmarksPanelProps> = ({ projectPath, onR
 
     try {
       const results = await window.bookmarksAPI.search(searchQuery);
-      // Filter by current project
-      setBookmarks(results.filter((b) => b.projectPath === projectPath));
+      // Filter by current project if projectPath is provided
+      setBookmarks(projectPath ? results.filter((b) => b.projectPath === projectPath) : results);
     } catch (error) {
       console.error('Search failed:', error);
     }
@@ -59,7 +61,7 @@ export const BookmarksPanel: React.FC<BookmarksPanelProps> = ({ projectPath, onR
 
   const handleResume = (bookmark: SessionBookmark) => {
     if (onResumeSession && bookmark.query) {
-      onResumeSession(bookmark.sessionId, bookmark.query);
+      onResumeSession(bookmark.sessionId, bookmark.query, bookmark.projectPath);
     }
   };
 

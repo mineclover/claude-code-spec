@@ -119,7 +119,7 @@ const getPageId = (page: number, pageSize: number): string => {
 
 export const getCachedProjectsPage = async (
   page: number,
-  pageSize: number
+  pageSize: number,
 ): Promise<{
   projects: ClaudeProjectInfo[];
   total: number;
@@ -150,7 +150,7 @@ export const setCachedProjectsPage = async (
   pageSize: number,
   projects: ClaudeProjectInfo[],
   total: number,
-  hasMore: boolean
+  hasMore: boolean,
 ): Promise<void> => {
   try {
     const pageId = getPageId(page, pageSize);
@@ -191,7 +191,7 @@ const getSessionsPageId = (projectPath: string, page: number, pageSize: number):
 export const getCachedSessionsPage = async (
   projectPath: string,
   page: number,
-  pageSize: number
+  pageSize: number,
 ): Promise<{
   sessions: ClaudeSessionInfo[];
   total: number;
@@ -223,7 +223,7 @@ export const setCachedSessionsPage = async (
   pageSize: number,
   sessions: ClaudeSessionInfo[],
   total: number,
-  hasMore: boolean
+  hasMore: boolean,
 ): Promise<void> => {
   try {
     const pageId = getSessionsPageId(projectPath, page, pageSize);
@@ -248,7 +248,7 @@ export const clearSessionsPagesCache = async (projectPath?: string): Promise<voi
     if (projectPath) {
       // Clear only sessions for specific project
       const sessions = await db.sessionPages.where('projectPath').equals(projectPath).toArray();
-      await Promise.all(sessions.map(s => db.sessionPages.delete(s.id)));
+      await Promise.all(sessions.map((s) => db.sessionPages.delete(s.id)));
       console.log('[Cache] Cleared sessions cache for project:', projectPath);
     } else {
       // Clear all sessions
@@ -266,11 +266,7 @@ export const clearSessionsPagesCache = async (projectPath?: string): Promise<voi
 
 export const clearAllCache = async (): Promise<void> => {
   try {
-    await Promise.all([
-      db.counts.clear(),
-      db.projectPages.clear(),
-      db.sessionPages.clear(),
-    ]);
+    await Promise.all([db.counts.clear(), db.projectPages.clear(), db.sessionPages.clear()]);
     console.log('[Cache] Cleared all cache');
   } catch (error) {
     console.error('[Cache] Failed to clear all cache:', error);

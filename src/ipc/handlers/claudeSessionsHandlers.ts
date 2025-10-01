@@ -3,7 +3,6 @@
  * Handles all Claude CLI session data queries
  */
 
-import type { IPCRouter } from '../IPCRouter';
 import {
   getAllClaudeProjects,
   getAllClaudeProjectsPaginated,
@@ -17,6 +16,7 @@ import {
   getTotalProjectCount,
   readSessionLog,
 } from '../../services/claudeSessions';
+import type { IPCRouter } from '../IPCRouter';
 
 export function registerClaudeSessionsHandlers(router: IPCRouter): void {
   // Get all projects
@@ -45,12 +45,9 @@ export function registerClaudeSessionsHandlers(router: IPCRouter): void {
   });
 
   // Get session metadata
-  router.handle(
-    'get-session-metadata',
-    async (_event, projectPath: string, sessionId: string) => {
-      return getSessionMetadata(projectPath, sessionId);
-    },
-  );
+  router.handle('get-session-metadata', async (_event, projectPath: string, sessionId: string) => {
+    return getSessionMetadata(projectPath, sessionId);
+  });
 
   // Get paginated sessions
   router.handle(

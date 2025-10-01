@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './ClaudeDocsPage.module.css';
 
@@ -21,11 +21,7 @@ export const ClaudeDocsPage: React.FC = () => {
 
   const DOCS_ROOT = '/Users/junwoobang/project/claude-code-spec/docs/claude-context';
 
-  useEffect(() => {
-    loadFileTree();
-  }, []);
-
-  const loadFileTree = async () => {
+  const loadFileTree = useCallback(async () => {
     try {
       const tree = await window.docsAPI.readDocsStructure(DOCS_ROOT);
       setFileTree(tree);
@@ -34,7 +30,11 @@ export const ClaudeDocsPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to load docs structure:', error);
     }
-  };
+  }, [DOCS_ROOT]);
+
+  useEffect(() => {
+    loadFileTree();
+  }, [loadFileTree]);
 
   const loadFileContent = async (filePath: string) => {
     setLoading(true);
@@ -51,7 +51,7 @@ export const ClaudeDocsPage: React.FC = () => {
   };
 
   const toggleDirectory = (dirPath: string) => {
-    setExpandedDirs(prev => {
+    setExpandedDirs((prev) => {
       const next = new Set(prev);
       if (next.has(dirPath)) {
         next.delete(dirPath);
@@ -79,9 +79,7 @@ export const ClaudeDocsPage: React.FC = () => {
               <span className={styles.dirName}>{node.name}</span>
             </div>
             {isExpanded && node.children && (
-              <div className={styles.children}>
-                {renderFileTree(node.children, level + 1)}
-              </div>
+              <div className={styles.children}>{renderFileTree(node.children, level + 1)}</div>
             )}
           </div>
         );
@@ -136,7 +134,7 @@ export const ClaudeDocsPage: React.FC = () => {
 
   const getRelativePath = (filePath: string): string => {
     if (!filePath) return '';
-    return filePath.replace(DOCS_ROOT + '/', '');
+    return filePath.replace(`${DOCS_ROOT}/`, '');
   };
 
   return (
@@ -146,9 +144,7 @@ export const ClaudeDocsPage: React.FC = () => {
           <h3>Claude Cookbooks</h3>
           <p className={styles.subtitle}>Context Documentation</p>
         </div>
-        <div className={styles.fileTreeContainer}>
-          {renderFileTree(fileTree)}
-        </div>
+        <div className={styles.fileTreeContainer}>{renderFileTree(fileTree)}</div>
       </div>
 
       <div className={styles.content}>

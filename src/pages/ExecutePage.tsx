@@ -1,15 +1,12 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { StreamOutput } from '../components/stream/StreamOutput';
-import type { StreamEvent } from '../lib/types';
-import styles from './ExecutePage.module.css';
 import { Pagination } from '../components/common/Pagination';
-import {
-  getCachedSessionsPage,
-  setCachedSessionsPage,
-} from '../services/cache';
+import { StreamOutput } from '../components/stream/StreamOutput';
 import { useProject } from '../contexts/ProjectContext';
+import type { StreamEvent } from '../lib/types';
+import { getCachedSessionsPage, setCachedSessionsPage } from '../services/cache';
+import styles from './ExecutePage.module.css';
 
 export const ExecutePage: React.FC = () => {
   const { updateProject } = useProject();
@@ -21,12 +18,86 @@ export const ExecutePage: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPid, setCurrentPid] = useState<number | null>(null);
-  const [recentSessions, setRecentSessions] = useState<Array<{ sessionId: string; firstUserMessage?: string; lastModified: number }>>([]);
+  const [recentSessions, setRecentSessions] = useState<
+    Array<{ sessionId: string; firstUserMessage?: string; lastModified: number }>
+  >([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [sessionsPage, setSessionsPage] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const SESSIONS_PAGE_SIZE = 10;
+
+  const loadRecentSessions = useCallback(async (page: number, skipCache = false) => {
+    if (!projectPath) return;
+
+    setSessionsLoading(true);
+    try {
+      // Try cache first (unless refresh is requested)
+      if (!skipCache) {
+        const cached = await getCachedSessionsPage(projectPath, page, SESSIONS_PAGE_SIZE);
+
+        if (cached) {
+          const sessions = cached.sessions.map((s) => ({
+            sessionId: s.sessionId,
+            firstUserMessage: s.firstUserMessage,
+            lastModified: s.lastModified,
+          }));
+          setRecentSessions(sessions);
+          setTotalSessions(cached.total);
+          setSessionsLoading(false);
+          return;
+        }
+      }
+
+      // Fetch from backend
+      const result = await window.claudeSessionsAPI.getProjectSessionsPaginated(
+        projectPath,
+        page,
+        SESSIONS_PAGE_SIZE,
+      );
+
+      // Get metadata for each session
+      const sessionsWithMetadata = await Promise.all(
+        result.sessions.map(async (session) => {
+          try {
+            const metadata = await window.claudeSessionsAPI.getSessionMetadata(
+              projectPath,
+              session.sessionId,
+            );
+            return { ...session, ...metadata };
+          } catch (error) {
+            console.error('Failed to load session metadata:', error);
+            return { ...session, hasData: false };
+          }
+        }),
+      );
+
+      const sessions = sessionsWithMetadata.map((s) => ({
+        sessionId: s.sessionId,
+        firstUserMessage: s.firstUserMessage,
+        lastModified: s.lastModified,
+      }));
+
+      setRecentSessions(sessions);
+      setTotalSessions(result.total);
+
+      // Cache the result
+      await setCachedSessionsPage(
+        projectPath,
+        page,
+        SESSIONS_PAGE_SIZE,
+        sessionsWithMetadata,
+        result.total,
+        result.hasMore,
+      );
+    } catch (err) {
+      console.error('Failed to load recent sessions:', err);
+      setRecentSessions([]);
+      setTotalSessions(0);
+    } finally {
+      setSessionsLoading(false);
+    }
+  }, [projectPath]);
 
   // Handle projectPath from URL params
   useEffect(() => {
@@ -47,83 +118,7 @@ export const ExecutePage: React.FC = () => {
       setSelectedSessionId(null);
       setTotalSessions(0);
     }
-  }, [projectPath, sessionsPage]);
-
-  const loadRecentSessions = async (page: number, skipCache = false) => {
-    if (!projectPath) return;
-
-    setSessionsLoading(true);
-    try {
-      // Try cache first (unless refresh is requested)
-      if (!skipCache) {
-        const cached = await getCachedSessionsPage(
-          projectPath,
-          page,
-          SESSIONS_PAGE_SIZE
-        );
-
-        if (cached) {
-          const sessions = cached.sessions.map((s) => ({
-            sessionId: s.sessionId,
-            firstUserMessage: s.firstUserMessage,
-            lastModified: s.lastModified,
-          }));
-          setRecentSessions(sessions);
-          setTotalSessions(cached.total);
-          setSessionsLoading(false);
-          return;
-        }
-      }
-
-      // Fetch from backend
-      const result = await window.claudeSessionsAPI.getProjectSessionsPaginated(
-        projectPath,
-        page,
-        SESSIONS_PAGE_SIZE
-      );
-
-      // Get metadata for each session
-      const sessionsWithMetadata = await Promise.all(
-        result.sessions.map(async (session) => {
-          try {
-            const metadata = await window.claudeSessionsAPI.getSessionMetadata(
-              projectPath,
-              session.sessionId
-            );
-            return { ...session, ...metadata };
-          } catch (error) {
-            console.error('Failed to load session metadata:', error);
-            return { ...session, hasData: false };
-          }
-        })
-      );
-
-      const sessions = sessionsWithMetadata.map((s) => ({
-        sessionId: s.sessionId,
-        firstUserMessage: s.firstUserMessage,
-        lastModified: s.lastModified,
-      }));
-
-      setRecentSessions(sessions);
-      setTotalSessions(result.total);
-
-      // Cache the result
-      await setCachedSessionsPage(
-        projectPath,
-        page,
-        SESSIONS_PAGE_SIZE,
-        sessionsWithMetadata,
-        result.total,
-        result.hasMore
-      );
-    } catch (err) {
-      console.error('Failed to load recent sessions:', err);
-      setRecentSessions([]);
-      setTotalSessions(0);
-    } finally {
-      setSessionsLoading(false);
-    }
-  };
+  }, [projectPath, sessionsPage, loadRecentSessions]);
 
   const handleRefreshSessions = () => {
     loadRecentSessions(sessionsPage, true);
@@ -163,7 +158,7 @@ export const ExecutePage: React.FC = () => {
       const result = await window.claudeAPI.executeClaudeCommand(
         projectPath,
         query,
-        selectedSessionId || undefined
+        selectedSessionId || undefined,
       );
 
       if (result.success && result.pid) {
@@ -196,7 +191,7 @@ export const ExecutePage: React.FC = () => {
       const result = await window.claudeAPI.executeClaudeCommand(
         projectPath,
         query || '', // Use current query or empty string
-        sessionId
+        sessionId,
       );
 
       if (result.success && result.pid) {
@@ -292,13 +287,9 @@ export const ExecutePage: React.FC = () => {
               </button>
             </div>
             {sessionsLoading && recentSessions.length === 0 ? (
-              <div className={styles.noSessions}>
-                Loading sessions...
-              </div>
+              <div className={styles.noSessions}>Loading sessions...</div>
             ) : recentSessions.length === 0 ? (
-              <div className={styles.noSessions}>
-                No sessions for this project
-              </div>
+              <div className={styles.noSessions}>No sessions for this project</div>
             ) : (
               <>
                 <div className={styles.sessionsContainer}>
@@ -316,7 +307,10 @@ export const ExecutePage: React.FC = () => {
                           {session.sessionId}
                         </div>
                         {session.firstUserMessage && (
-                          <div className={styles.sessionItemPreview} title={session.firstUserMessage}>
+                          <div
+                            className={styles.sessionItemPreview}
+                            title={session.firstUserMessage}
+                          >
                             {session.firstUserMessage}
                           </div>
                         )}

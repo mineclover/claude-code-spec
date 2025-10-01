@@ -3,7 +3,7 @@
  * Handles session bookmark operations
  */
 
-import type { IPCRouter } from '../IPCRouter';
+import type { SessionBookmark } from '../../services/bookmarks';
 import {
   addBookmark,
   clearAllBookmarks,
@@ -17,6 +17,7 @@ import {
   searchBookmarks,
   updateBookmark,
 } from '../../services/bookmarks';
+import type { IPCRouter } from '../IPCRouter';
 
 export function registerBookmarksHandlers(router: IPCRouter): void {
   // Get all bookmarks
@@ -30,14 +31,17 @@ export function registerBookmarksHandlers(router: IPCRouter): void {
   });
 
   // Add bookmark
-  router.handle('add', async (_event, bookmark: unknown) => {
+  router.handle('add', async (_event, bookmark: Omit<SessionBookmark, 'id' | 'timestamp'>) => {
     return addBookmark(bookmark);
   });
 
   // Update bookmark
-  router.handle('update', async (_event, id: string, updates: unknown) => {
-    return updateBookmark(id, updates);
-  });
+  router.handle(
+    'update',
+    async (_event, id: string, updates: Partial<Omit<SessionBookmark, 'id' | 'timestamp'>>) => {
+      return updateBookmark(id, updates);
+    },
+  );
 
   // Delete bookmark
   router.handle('delete', async (_event, id: string) => {
@@ -70,7 +74,7 @@ export function registerBookmarksHandlers(router: IPCRouter): void {
   });
 
   // Import bookmarks
-  router.handle('import', async (_event, inputPath: string, merge = true) => {
+  router.handle('import', async (_event, inputPath: string, merge: boolean = true) => {
     return importBookmarks(inputPath, merge);
   });
 }

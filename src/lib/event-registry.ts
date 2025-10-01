@@ -6,8 +6,8 @@
  */
 
 import type React from 'react';
-import type { StreamEvent } from './types';
 import type { ClaudeSessionEntry } from '../preload';
+import type { StreamEvent } from './types';
 
 // ============================================================================
 // Unified Event Type
@@ -88,7 +88,7 @@ export class EventTypeRegistry {
   detectEventType(event: UnifiedEvent): EventType {
     // Sort detectors by priority (descending)
     const sortedDetectors = Array.from(this.detectors.values()).sort(
-      (a, b) => b.priority - a.priority
+      (a, b) => b.priority - a.priority,
     );
 
     // Find the first matching detector
@@ -129,18 +129,14 @@ export const defaultDetectors: EventTypeDetector[] = [
     type: EventType.SYSTEM_INIT,
     priority: 100,
     detect: (event: UnifiedEvent) =>
-      'type' in event &&
-      event.type === 'system' &&
-      'subtype' in event &&
-      event.subtype === 'init',
+      'type' in event && event.type === 'system' && 'subtype' in event && event.subtype === 'init',
   },
 
   // User Event
   {
     type: EventType.USER,
     priority: 90,
-    detect: (event: UnifiedEvent) =>
-      'type' in event && event.type === 'user' && 'message' in event,
+    detect: (event: UnifiedEvent) => 'type' in event && event.type === 'user' && 'message' in event,
   },
 
   // Assistant Event
@@ -163,8 +159,7 @@ export const defaultDetectors: EventTypeDetector[] = [
   {
     type: EventType.ERROR,
     priority: 90,
-    detect: (event: UnifiedEvent) =>
-      'type' in event && event.type === 'error' && 'error' in event,
+    detect: (event: UnifiedEvent) => 'type' in event && event.type === 'error' && 'error' in event,
   },
 
   // Summary Event (for session logs)

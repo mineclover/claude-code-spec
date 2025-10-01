@@ -1,8 +1,8 @@
 import type React from 'react';
-import { RawDataActions } from './RawDataActions';
 import styles from './EventBox.module.css';
+import { RawDataActions } from './RawDataActions';
 
-export type EventType = 'system' | 'assistant' | 'result' | 'error' | 'unknown';
+export type EventType = 'system' | 'assistant' | 'result' | 'error' | 'user' | 'unknown';
 
 interface EventBoxProps {
   type: EventType;
@@ -22,6 +22,8 @@ const getEventClass = (type: EventType): string => {
       return styles.result;
     case 'error':
       return styles.error;
+    case 'user':
+      return styles.user;
     default:
       return styles.unknown;
   }
@@ -37,7 +39,7 @@ export const EventBox: React.FC<EventBoxProps> = ({ type, icon, title, children,
           {icon && <span className={styles.icon}>{icon}</span>}
           <strong className={styles.title}>{title}</strong>
         </div>
-        {rawData && <RawDataActions rawData={rawData} />}
+        {rawData ? <RawDataActions rawData={rawData} /> : null}
       </div>
       <div className={styles.content}>{children}</div>
     </div>

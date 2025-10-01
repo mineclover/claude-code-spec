@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { SessionInfo } from '../../preload';
 import { SessionLogViewer } from './SessionLogViewer';
 import styles from './SessionsPanel.module.css';
@@ -18,11 +18,7 @@ export const SessionsPanel: React.FC<SessionsPanelProps> = ({
   const [loading, setLoading] = useState(true);
   const [viewingLogs, setViewingLogs] = useState(false);
 
-  useEffect(() => {
-    loadSessions();
-  }, []);
-
-  const loadSessions = async () => {
+  const loadSessions = useCallback(async () => {
     setLoading(true);
     try {
       const allSessions = await window.claudeAPI.getSessions();
@@ -32,7 +28,11 @@ export const SessionsPanel: React.FC<SessionsPanelProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
 
   const handleClearSessions = async () => {
     if (!confirm('Clear all session history?')) {

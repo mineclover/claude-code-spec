@@ -3,8 +3,8 @@
  * Stores user preferences like Claude Projects path in JSON file
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { app } from 'electron';
 
 interface AppSettings {
@@ -106,7 +106,7 @@ export class SettingsService {
 
   removeMcpResourcePath(path: string): void {
     if (this.settings.mcpResourcePaths) {
-      this.settings.mcpResourcePaths = this.settings.mcpResourcePaths.filter(p => p !== path);
+      this.settings.mcpResourcePaths = this.settings.mcpResourcePaths.filter((p) => p !== path);
       this.saveSettings();
     }
   }

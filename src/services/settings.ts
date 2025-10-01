@@ -241,9 +241,10 @@ export const listMcpConfigs = (projectPath: string): McpConfigFile[] => {
     return [];
   }
 
-  const files = fs.readdirSync(claudeDir)
-    .filter(file => file.startsWith('.mcp-') && file.endsWith('.json'))
-    .map(file => {
+  const files = fs
+    .readdirSync(claudeDir)
+    .filter((file) => file.startsWith('.mcp-') && file.endsWith('.json'))
+    .map((file) => {
       const filePath = path.join(claudeDir, file);
       const stats = fs.statSync(filePath);
       const content = fs.readFileSync(filePath, 'utf-8');
@@ -264,7 +265,9 @@ export const listMcpConfigs = (projectPath: string): McpConfigFile[] => {
  * Get available MCP servers from user config (~/.claude.json) and additional resource paths
  * @param additionalPaths - Optional additional config file paths to read
  */
-export const getMcpServerList = (additionalPaths?: string[]): { servers: McpServer[], error?: string, sourcePaths: string[] } => {
+export const getMcpServerList = (
+  additionalPaths?: string[],
+): { servers: McpServer[]; error?: string; sourcePaths: string[] } => {
   const allServers: McpServer[] = [];
   const sourcePathsSet = new Set<string>(); // Track unique source paths
   const errors: string[] = [];
@@ -284,20 +287,24 @@ export const getMcpServerList = (additionalPaths?: string[]): { servers: McpServ
         return [];
       }
 
-      const servers: McpServer[] = Object.entries(config.mcpServers).map(([name, server]: [string, any]) => ({
-        name,
-        type: server.type || 'stdio',
-        command: server.command || '',
-        args: server.args || [],
-        env: server.env || {},
-      }));
+      const servers: McpServer[] = Object.entries(config.mcpServers).map(
+        ([name, server]: [string, any]) => ({
+          name,
+          type: server.type || 'stdio',
+          command: server.command || '',
+          args: server.args || [],
+          env: server.env || {},
+        }),
+      );
 
       // Normalize path and add to set (prevents duplicates)
       const normalizedPath = path.normalize(configPath);
       sourcePathsSet.add(normalizedPath);
       return servers;
     } catch (error) {
-      errors.push(`Failed to read ${configPath}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      errors.push(
+        `Failed to read ${configPath}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return [];
     }
   };
@@ -352,7 +359,7 @@ export const getMcpServerList = (additionalPaths?: string[]): { servers: McpServ
 export const createMcpConfig = (
   projectPath: string,
   name: string,
-  servers: string[]
+  servers: string[],
 ): { success: boolean; path?: string; error?: string } => {
   try {
     // Get available servers
@@ -362,7 +369,7 @@ export const createMcpConfig = (
     }
 
     // Filter selected servers
-    const selectedServers = availableServers.filter(s => servers.includes(s.name));
+    const selectedServers = availableServers.filter((s) => servers.includes(s.name));
     if (selectedServers.length === 0) {
       return { success: false, error: 'No servers selected' };
     }

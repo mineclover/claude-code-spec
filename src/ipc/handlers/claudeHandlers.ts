@@ -5,11 +5,11 @@
 
 import type { IpcMainInvokeEvent } from 'electron';
 import type { ClaudeClient } from '../../lib/ClaudeClient';
-import type { SessionLogger } from '../../services/logger';
+import { ClaudeClient as ClaudeClientClass } from '../../lib/ClaudeClient';
 import type { SessionManager } from '../../lib/SessionManager';
 import type { StreamEvent } from '../../lib/StreamParser';
 import { extractSessionId, isResultEvent, isSystemInitEvent } from '../../lib/types';
-import { ClaudeClient as ClaudeClientClass } from '../../lib/ClaudeClient';
+import type { SessionLogger } from '../../services/logger';
 import type { IPCRouter } from '../IPCRouter';
 
 interface ClaudeHandlersContext {

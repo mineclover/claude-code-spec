@@ -1,6 +1,6 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
-import type { ProjectSettings, SettingsBackup } from '../../preload';
+import { useCallback, useEffect, useState } from 'react';
+import type { ProjectSettings } from '../../preload';
 import styles from './SettingsTab.module.css';
 
 interface SettingsTabProps {
@@ -11,27 +11,26 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
   const [claudeProjectsPath, setClaudeProjectsPath] = useState('');
   const [isPathLoading, setIsPathLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [saveMessage, setSaveMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   // MCP Resource Paths state
   const [mcpResourcePaths, setMcpResourcePaths] = useState<string[]>([]);
   const [newMcpPath, setNewMcpPath] = useState('');
   const [defaultProjectsPath, setDefaultProjectsPath] = useState('');
-  const [mcpPathsMessage, setMcpPathsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [mcpPathsMessage, setMcpPathsMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   // Legacy project settings states (only used if projectPath is provided)
   const [settings, setSettings] = useState<ProjectSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeFile, setActiveFile] = useState<'claudeMd' | 'mcpJson' | null>(null);
 
-  useEffect(() => {
-    loadAppSettings();
-    if (projectPath) {
-      loadSettings();
-    }
-  }, [projectPath]);
-
-  const loadAppSettings = async () => {
+  const loadAppSettings = useCallback(async () => {
     setIsPathLoading(true);
     try {
       const path = await window.appSettingsAPI.getClaudeProjectsPath();
@@ -49,9 +48,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
     } finally {
       setIsPathLoading(false);
     }
-  };
+  }, []);
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     if (!projectPath) return;
 
     setLoading(true);
@@ -63,7 +62,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectPath]);
+
+  useEffect(() => {
+    loadAppSettings();
+    if (projectPath) {
+      loadSettings();
+    }
+  }, [projectPath, loadAppSettings, loadSettings]);
 
   const handleSelectDirectory = async () => {
     const path = await window.claudeAPI.selectDirectory();
@@ -176,12 +182,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
       if (updatedPaths.length > beforeCount) {
         setMcpPathsMessage({
           type: 'success',
-          text: 'Default path added successfully'
+          text: 'Default path added successfully',
         });
       } else {
         setMcpPathsMessage({
           type: 'success',
-          text: 'Default path already configured'
+          text: 'Default path already configured',
         });
       }
       setTimeout(() => setMcpPathsMessage(null), 3000);
@@ -206,7 +212,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
               The directory path where Claude CLI stores session data (typically ~/.claude/projects)
             </div>
             <div className={styles.settingNote}>
-              💡 After changing the path, use the "Refresh" button in Claude Projects page to reload the session list.
+              💡 After changing the path, use the "Refresh" button in Claude Projects page to reload
+              the session list.
             </div>
             <div className={styles.pathInput}>
               <input
@@ -243,7 +250,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
               {isSaving ? 'Saving...' : 'Save'}
             </button>
             {saveMessage && (
-              <div className={saveMessage.type === 'success' ? styles.successMessage : styles.errorMessage}>
+              <div
+                className={
+                  saveMessage.type === 'success' ? styles.successMessage : styles.errorMessage
+                }
+              >
                 {saveMessage.text}
               </div>
             )}
@@ -253,12 +264,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
           <div className={styles.settingItem}>
             <label className={styles.settingLabel}>MCP Configuration Resource Paths</label>
             <div className={styles.settingDescription}>
-              Configuration files containing mcpServers definitions (e.g., GitHub, Memory, Database servers).
-              Each file should have a "mcpServers" section defining MCP server configurations.
-              The default location is ~/.claude.json. You can add custom MCP configuration files here.
+              Configuration files containing mcpServers definitions (e.g., GitHub, Memory, Database
+              servers). Each file should have a "mcpServers" section defining MCP server
+              configurations. The default location is ~/.claude.json. You can add custom MCP
+              configuration files here.
             </div>
             <div className={styles.settingNote}>
-              💡 After changing paths, use the "🔄 Refresh Servers" button in MCP Configs page to reload the server list.
+              💡 After changing paths, use the "🔄 Refresh Servers" button in MCP Configs page to
+              reload the server list.
             </div>
 
             {/* Configured Paths */}
@@ -320,7 +333,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
             </button>
 
             {mcpPathsMessage && (
-              <div className={mcpPathsMessage.type === 'success' ? styles.successMessage : styles.errorMessage}>
+              <div
+                className={
+                  mcpPathsMessage.type === 'success' ? styles.successMessage : styles.errorMessage
+                }
+              >
                 {mcpPathsMessage.text}
               </div>
             )}
@@ -407,7 +424,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
         )}
 
         {/* .claude/ directory info */}
-        {settings.claudeDir && settings.claudeDir.exists && (
+        {settings.claudeDir?.exists && (
           <div className={styles.fileItem}>
             <div className={styles.fileHeader}>
               <span className={styles.fileName}>{settings.claudeDir.name}/</span>

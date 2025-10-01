@@ -93,10 +93,7 @@
               "metadata": true
             },
             "not": {
-              "anyOf": [
-                {"required": ["url"]},
-                {"required": ["transport"]}
-              ]
+              "anyOf": [{ "required": ["url"] }, { "required": ["transport"] }]
             }
           }
         },
@@ -119,10 +116,7 @@
               "metadata": true
             },
             "not": {
-              "anyOf": [
-                {"required": ["command"]},
-                {"required": ["args"]}
-              ]
+              "anyOf": [{ "required": ["command"] }, { "required": ["args"] }]
             }
           }
         }

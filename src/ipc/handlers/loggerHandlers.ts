@@ -3,16 +3,16 @@
  * Handles log file operations
  */
 
-import type { IPCRouter } from '../IPCRouter';
 import {
   analyzeLogFile,
   exportLogsAsJSON,
   getLogFileForSession,
   getLogFiles,
+  type LoggerConfig,
   readLogFile,
   rotateLogFiles,
-  type LoggerConfig,
 } from '../../services/logger';
+import type { IPCRouter } from '../IPCRouter';
 
 export function registerLoggerHandlers(router: IPCRouter, loggerConfig: LoggerConfig): void {
   // Get all log files

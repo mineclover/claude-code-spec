@@ -62,8 +62,8 @@ ${errorInfo?.componentStack || 'No component stack'}
 
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback(this.state.error!, this.state.errorInfo!);
+      if (this.props.fallback && this.state.error && this.state.errorInfo) {
+        return this.props.fallback(this.state.error, this.state.errorInfo);
       }
 
       return (
@@ -71,18 +71,10 @@ ${errorInfo?.componentStack || 'No component stack'}
           <div className={styles.errorHeader}>
             <h2 className={styles.errorTitle}>⚠️ Rendering Error</h2>
             <div className={styles.errorActions}>
-              <button
-                type="button"
-                className={styles.errorButton}
-                onClick={this.handleCopyError}
-              >
+              <button type="button" className={styles.errorButton} onClick={this.handleCopyError}>
                 Copy Error
               </button>
-              <button
-                type="button"
-                className={styles.errorButton}
-                onClick={this.handleReset}
-              >
+              <button type="button" className={styles.errorButton} onClick={this.handleReset}>
                 Reset
               </button>
             </div>
@@ -101,17 +93,14 @@ ${errorInfo?.componentStack || 'No component stack'}
 
             <details className={styles.errorDetails}>
               <summary className={styles.errorDetailsSummary}>Component Stack</summary>
-              <pre className={styles.errorStack}>
-                {this.state.errorInfo?.componentStack}
-              </pre>
+              <pre className={styles.errorStack}>{this.state.errorInfo?.componentStack}</pre>
             </details>
           </div>
 
           <div className={styles.errorFooter}>
             <p className={styles.errorHint}>
-              💡 This error was caught by ErrorBoundary to prevent the entire app from
-              crashing. Click "Reset" to try rendering again or "Copy Error" to report the
-              issue.
+              💡 This error was caught by ErrorBoundary to prevent the entire app from crashing.
+              Click "Reset" to try rendering again or "Copy Error" to report the issue.
             </p>
           </div>
         </div>

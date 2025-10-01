@@ -1,17 +1,17 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import type { ClaudeProjectInfo, ClaudeSessionInfo } from '../../preload';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useProject } from '../../contexts/ProjectContext';
-import styles from './ClaudeProjectsList.module.css';
-import { SessionLogViewer } from './SessionLogViewer';
-import { Pagination } from '../common/Pagination';
+import type { ClaudeProjectInfo, ClaudeSessionInfo } from '../../preload';
 import {
+  clearSessionsPagesCache,
   getCachedSessionsPage,
   setCachedSessionsPage,
-  clearSessionsPagesCache,
 } from '../../services/cache';
+import { Pagination } from '../common/Pagination';
+import styles from './ClaudeProjectsList.module.css';
+import { SessionLogViewer } from './SessionLogViewer';
 
 type SortOption = 'recent' | 'oldest' | 'name';
 
@@ -40,7 +40,10 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
 }) => {
   const navigate = useNavigate();
   const { updateProject } = useProject();
-  const { projectDirName, sessionId } = useParams<{ projectDirName?: string; sessionId?: string }>();
+  const { projectDirName, sessionId } = useParams<{
+    projectDirName?: string;
+    sessionId?: string;
+  }>();
   const [selectedProject, setSelectedProject] = useState<ClaudeProjectInfo | null>(null);
   const [selectedSession, setSelectedSession] = useState<ClaudeSessionInfo | null>(null);
   const [viewingLogs, setViewingLogs] = useState(false);
@@ -53,11 +56,77 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const SESSIONS_PAGE_SIZE = 20;
 
+  const loadSessions = useCallback(
+    async (page: number) => {
+      if (!selectedProject) return;
+
+      setSessionsLoading(true);
+      try {
+        // Try cache first
+        const cached = await getCachedSessionsPage(
+          selectedProject.projectPath,
+          page,
+          SESSIONS_PAGE_SIZE,
+        );
+
+        if (cached) {
+          setSessions(cached.sessions);
+          setTotalSessions(cached.total);
+          setSessionsLoading(false);
+          return;
+        }
+
+        // Fetch from backend
+        const result = await window.claudeSessionsAPI.getProjectSessionsPaginated(
+          selectedProject.projectPath,
+          page,
+          SESSIONS_PAGE_SIZE,
+        );
+
+        // Get metadata for each session
+        const sessionsWithMetadata = await Promise.all(
+          result.sessions.map(async (session) => {
+            try {
+              const metadata = await window.claudeSessionsAPI.getSessionMetadata(
+                selectedProject.projectPath,
+                session.sessionId,
+              );
+              return { ...session, ...metadata };
+            } catch (error) {
+              console.error('Failed to load session metadata:', error);
+              return { ...session, hasData: false };
+            }
+          }),
+        );
+
+        setSessions(sessionsWithMetadata);
+        setTotalSessions(result.total);
+
+        // Cache the result
+        await setCachedSessionsPage(
+          selectedProject.projectPath,
+          page,
+          SESSIONS_PAGE_SIZE,
+          sessionsWithMetadata,
+          result.total,
+          result.hasMore,
+        );
+      } catch (error) {
+        console.error('Failed to load sessions:', error);
+        setSessions([]);
+        setTotalSessions(0);
+      } finally {
+        setSessionsLoading(false);
+      }
+    },
+    [selectedProject],
+  );
+
   // Initialize from URL path params on mount
   useEffect(() => {
     if (projectDirName) {
       // Find project from list by projectDirName
-      const project = projects.find(p => p.projectDirName === projectDirName);
+      const project = projects.find((p) => p.projectDirName === projectDirName);
       if (project) {
         setSelectedProject(project);
 
@@ -67,88 +136,25 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
         }
       }
     }
-  }, [projects, projectDirName, sessionId]); // Run when projects or URL params change
+  }, [projects, projectDirName, sessionId]);
 
   // Load sessions when project selected or page changes
   useEffect(() => {
     if (selectedProject) {
       loadSessions(sessionsPage);
     }
-  }, [selectedProject, sessionsPage]);
+  }, [selectedProject, sessionsPage, loadSessions]);
 
   // Load specific session from URL after sessions are loaded
   useEffect(() => {
     if (sessionId && sessions.length > 0 && !selectedSession) {
-      const session = sessions.find(s => s.sessionId === sessionId);
+      const session = sessions.find((s) => s.sessionId === sessionId);
       if (session) {
         setSelectedSession(session);
         setViewingLogs(true);
       }
     }
-  }, [sessions, sessionId]);
-
-  const loadSessions = async (page: number) => {
-    if (!selectedProject) return;
-
-    setSessionsLoading(true);
-    try {
-      // Try cache first
-      const cached = await getCachedSessionsPage(
-        selectedProject.projectPath,
-        page,
-        SESSIONS_PAGE_SIZE
-      );
-
-      if (cached) {
-        setSessions(cached.sessions);
-        setTotalSessions(cached.total);
-        setSessionsLoading(false);
-        return;
-      }
-
-      // Fetch from backend
-      const result = await window.claudeSessionsAPI.getProjectSessionsPaginated(
-        selectedProject.projectPath,
-        page,
-        SESSIONS_PAGE_SIZE
-      );
-
-      // Get metadata for each session
-      const sessionsWithMetadata = await Promise.all(
-        result.sessions.map(async (session) => {
-          try {
-            const metadata = await window.claudeSessionsAPI.getSessionMetadata(
-              selectedProject.projectPath,
-              session.sessionId
-            );
-            return { ...session, ...metadata };
-          } catch (error) {
-            console.error('Failed to load session metadata:', error);
-            return { ...session, hasData: false };
-          }
-        })
-      );
-
-      setSessions(sessionsWithMetadata);
-      setTotalSessions(result.total);
-
-      // Cache the result
-      await setCachedSessionsPage(
-        selectedProject.projectPath,
-        page,
-        SESSIONS_PAGE_SIZE,
-        sessionsWithMetadata,
-        result.total,
-        result.hasMore
-      );
-    } catch (error) {
-      console.error('Failed to load sessions:', error);
-      setSessions([]);
-      setTotalSessions(0);
-    } finally {
-      setSessionsLoading(false);
-    }
-  };
+  }, [sessions, sessionId, selectedSession]);
 
   const handleProjectClick = (project: ClaudeProjectInfo) => {
     setSelectedProject(project);
@@ -268,10 +274,12 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
           ) : sessions.length === 0 ? (
             <div className={styles.empty}>No sessions for this project</div>
           ) : (
-            <>
-              {sessions.map((session) => {
-                const isLoading = !session.hasData && session.cwd === undefined && session.firstUserMessage === undefined;
-                return (
+            sessions.map((session) => {
+              const isLoading =
+                !session.hasData &&
+                session.cwd === undefined &&
+                session.firstUserMessage === undefined;
+              return (
                 <div
                   key={session.sessionId}
                   className={`${styles.sessionCard} ${!session.hasData && !isLoading ? styles.emptySession : ''} ${isLoading ? styles.loading : ''}`}
@@ -301,7 +309,7 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
                       {session.firstUserMessage && (
                         <div className={styles.sessionPreview}>
                           {session.firstUserMessage.length > 100
-                            ? session.firstUserMessage.substring(0, 100) + '...'
+                            ? `${session.firstUserMessage.substring(0, 100)}...`
                             : session.firstUserMessage}
                         </div>
                       )}
@@ -318,9 +326,8 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
                     <span>{(session.fileSize / 1024).toFixed(1)} KB</span>
                   </div>
                 </div>
-                );
-              })}
-            </>
+              );
+            })
           )}
         </div>
 
@@ -376,7 +383,10 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
             const latestSession = project.sessions.length > 0 ? project.sessions[0] : null;
             return (
               <div key={project.projectPath} className={styles.projectCard}>
-                <div onClick={() => handleProjectClick(project)} className={styles.projectCardContent}>
+                <div
+                  onClick={() => handleProjectClick(project)}
+                  className={styles.projectCardContent}
+                >
                   <div className={styles.projectPath}>{project.projectPath}</div>
                   <div className={styles.projectInfo}>
                     <span>

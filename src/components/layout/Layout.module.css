@@ -193,7 +193,7 @@
   border-radius: 6px;
   color: #333;
   font-size: 13px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   outline: none;
   transition: all 0.2s;
 }

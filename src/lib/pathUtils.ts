@@ -13,7 +13,7 @@ export function parseProjectPath(projectDirName: string): string {
     : projectDirName;
 
   // Replace dashes with path separator
-  return '/' + withoutLeadingDash.split('-').join('/');
+  return `/${withoutLeadingDash.split('-').join('/')}`;
 }
 
 /**

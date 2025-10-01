@@ -30,7 +30,15 @@
         "status": "pending"
       }
     ],
-    "searchKeywords": ["config", "settings", "CLAUDE.md", "hierarchy", "enterprise", "project", "user"],
+    "searchKeywords": [
+      "config",
+      "settings",
+      "CLAUDE.md",
+      "hierarchy",
+      "enterprise",
+      "project",
+      "user"
+    ],
     "lastUpdated": 1234567890000,
     "rating": 4.5
   }

@@ -3,22 +3,23 @@
  * Handles project settings operations
  */
 
-import type { IPCRouter } from '../IPCRouter';
+import { settingsService } from '../../services/appSettings';
+import type { SettingsBackup } from '../../services/settings';
 import {
   createBackup,
+  createMcpConfig,
   deleteSettingsFile,
   findSettingsFiles,
+  getMcpServerList,
+  listMcpConfigs,
   loadBackupFromFile,
   readSettingsFile,
   restoreBackup,
   saveBackupToFile,
   validateMcpJson,
   writeSettingsFile,
-  listMcpConfigs,
-  getMcpServerList,
-  createMcpConfig,
 } from '../../services/settings';
-import { settingsService } from '../../services/appSettings';
+import type { IPCRouter } from '../IPCRouter';
 
 export function registerSettingsHandlers(router: IPCRouter): void {
   // Find all settings files
@@ -32,7 +33,7 @@ export function registerSettingsHandlers(router: IPCRouter): void {
   });
 
   // Save backup to file
-  router.handle('save-backup', async (_event, backup: unknown, filePath: string) => {
+  router.handle('save-backup', async (_event, backup: SettingsBackup, filePath: string) => {
     return saveBackupToFile(backup, filePath);
   });
 
@@ -42,7 +43,7 @@ export function registerSettingsHandlers(router: IPCRouter): void {
   });
 
   // Restore backup
-  router.handle('restore-backup', async (_event, backup: unknown) => {
+  router.handle('restore-backup', async (_event, backup: SettingsBackup) => {
     return restoreBackup(backup);
   });
 
@@ -82,7 +83,10 @@ export function registerSettingsHandlers(router: IPCRouter): void {
   });
 
   // Create MCP config file
-  router.handle('create-mcp-config', async (_event, projectPath: string, name: string, servers: string[]) => {
-    return createMcpConfig(projectPath, name, servers);
-  });
+  router.handle(
+    'create-mcp-config',
+    async (_event, projectPath: string, name: string, servers: string[]) => {
+      return createMcpConfig(projectPath, name, servers);
+    },
+  );
 }

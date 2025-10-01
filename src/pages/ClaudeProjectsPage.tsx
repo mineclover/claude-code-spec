@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ClaudeProjectsList } from '../components/sessions/ClaudeProjectsList';
 import type { ClaudeProjectInfo } from '../preload';
 import {
@@ -17,21 +17,11 @@ export const ClaudeProjectsPage: React.FC = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalProjects, setTotalProjects] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
+  const [_hasMore, setHasMore] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const PAGE_SIZE = 10;
 
-  // Load total count first (fast, cached)
-  useEffect(() => {
-    loadTotalCount();
-  }, []);
-
-  // Load projects when page changes
-  useEffect(() => {
-    loadClaudeProjects(currentPage);
-  }, [currentPage]);
-
-  const loadTotalCount = async () => {
+  const loadTotalCount = useCallback(async () => {
     try {
       // Try to get from cache first
       const cachedCount = await getCachedTotalCount();
@@ -49,9 +39,9 @@ export const ClaudeProjectsPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to load total count:', error);
     }
-  };
+  }, []);
 
-  const loadClaudeProjects = async (page: number) => {
+  const loadClaudeProjects = useCallback(async (page: number) => {
     setLoading(true);
     try {
       // Try to get from cache first
@@ -80,7 +70,17 @@ export const ClaudeProjectsPage: React.FC = () => {
       setLoading(false);
       setInitialLoading(false);
     }
-  };
+  }, []);
+
+  // Load total count first (fast, cached)
+  useEffect(() => {
+    loadTotalCount();
+  }, [loadTotalCount]);
+
+  // Load projects when page changes
+  useEffect(() => {
+    loadClaudeProjects(currentPage);
+  }, [currentPage, loadClaudeProjects]);
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);

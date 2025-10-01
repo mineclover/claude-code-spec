@@ -115,13 +115,10 @@ export const CATEGORY_INFO = {
 // Search function
 export function searchPages(query: string): PageIndex[] {
   const lowerQuery = query.toLowerCase();
-  return PAGE_INDEX.filter(page => {
-    const searchString = [
-      page.name,
-      page.displayName,
-      page.description,
-      ...page.keywords,
-    ].join(' ').toLowerCase();
+  return PAGE_INDEX.filter((page) => {
+    const searchString = [page.name, page.displayName, page.description, ...page.keywords]
+      .join(' ')
+      .toLowerCase();
 
     return searchString.includes(lowerQuery);
   });
@@ -129,10 +126,10 @@ export function searchPages(query: string): PageIndex[] {
 
 // Get page by ID
 export function getPageById(id: string): PageIndex | undefined {
-  return PAGE_INDEX.find(page => page.id === id);
+  return PAGE_INDEX.find((page) => page.id === id);
 }
 
 // Get pages by category
 export function getPagesByCategory(category: PageIndex['category']): PageIndex[] {
-  return PAGE_INDEX.filter(page => page.category === category);
+  return PAGE_INDEX.filter((page) => page.category === category);
 }

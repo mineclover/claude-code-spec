@@ -95,8 +95,12 @@ export interface SettingsAPI {
 
   // MCP Configuration Management
   listMcpConfigs: (projectPath: string) => Promise<McpConfigFile[]>;
-  getMcpServers: () => Promise<{ servers: McpServer[], error?: string, sourcePaths: string[] }>;
-  createMcpConfig: (projectPath: string, name: string, servers: string[]) => Promise<{ success: boolean; path?: string; error?: string }>;
+  getMcpServers: () => Promise<{ servers: McpServer[]; error?: string; sourcePaths: string[] }>;
+  createMcpConfig: (
+    projectPath: string,
+    name: string,
+    servers: string[],
+  ) => Promise<{ success: boolean; path?: string; error?: string }>;
 }
 
 export interface BookmarksAPI {
@@ -171,16 +175,25 @@ export interface ClaudeSessionsAPI {
   getProjectSessions: (projectPath: string) => Promise<ClaudeSessionInfo[]>;
 
   // Get basic session info (fast, without metadata)
-  getProjectSessionsBasic: (projectPath: string) => Promise<Omit<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>[]>;
+  getProjectSessionsBasic: (
+    projectPath: string,
+  ) => Promise<Omit<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>[]>;
 
   // Get paginated sessions
-  getProjectSessionsPaginated: (projectPath: string, page: number, pageSize: number) => Promise<PaginatedSessionsResult>;
+  getProjectSessionsPaginated: (
+    projectPath: string,
+    page: number,
+    pageSize: number,
+  ) => Promise<PaginatedSessionsResult>;
 
   // Get total session count
   getProjectSessionCount: (projectPath: string) => Promise<number>;
 
   // Get metadata for a single session
-  getSessionMetadata: (projectPath: string, sessionId: string) => Promise<Pick<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>>;
+  getSessionMetadata: (
+    projectPath: string,
+    sessionId: string,
+  ) => Promise<Pick<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>>;
 
   // Read session log
   readLog: (projectPath: string, sessionId: string) => Promise<ClaudeSessionEntry[]>;
@@ -316,7 +329,8 @@ contextBridge.exposeInMainWorld('settingsAPI', {
   validateMcpJson: (content: string) => ipcRenderer.invoke('settings:validate-mcp-json', content),
 
   // MCP Configuration Management
-  listMcpConfigs: (projectPath: string) => ipcRenderer.invoke('settings:list-mcp-configs', projectPath),
+  listMcpConfigs: (projectPath: string) =>
+    ipcRenderer.invoke('settings:list-mcp-configs', projectPath),
 
   getMcpServers: () => ipcRenderer.invoke('settings:get-mcp-servers'),
 
@@ -434,7 +448,8 @@ contextBridge.exposeInMainWorld('appSettingsAPI', {
   removeMcpResourcePath: (path: string) =>
     ipcRenderer.invoke('app-settings:remove-mcp-resource-path', path),
   getDefaultPaths: () => ipcRenderer.invoke('app-settings:get-default-paths'),
-  getDefaultMcpResourcePaths: () => ipcRenderer.invoke('app-settings:get-default-mcp-resource-paths'),
+  getDefaultMcpResourcePaths: () =>
+    ipcRenderer.invoke('app-settings:get-default-mcp-resource-paths'),
 } as AppSettingsAPI);
 
 // Docs API
@@ -484,11 +499,24 @@ export interface DocumentMetadata {
 export interface MetadataAPI {
   get: (filePath: string) => Promise<DocumentMetadata>;
   save: (metadata: DocumentMetadata) => Promise<{ success: boolean; error?: string }>;
-  addReview: (filePath: string, review: Omit<DocumentReview, 'id' | 'timestamp'>) => Promise<{ success: boolean; review?: DocumentReview; error?: string }>;
-  addImprovement: (filePath: string, improvement: Omit<DocumentImprovement, 'id' | 'timestamp'>) => Promise<{ success: boolean; improvement?: DocumentImprovement; error?: string }>;
+  addReview: (
+    filePath: string,
+    review: Omit<DocumentReview, 'id' | 'timestamp'>,
+  ) => Promise<{ success: boolean; review?: DocumentReview; error?: string }>;
+  addImprovement: (
+    filePath: string,
+    improvement: Omit<DocumentImprovement, 'id' | 'timestamp'>,
+  ) => Promise<{ success: boolean; improvement?: DocumentImprovement; error?: string }>;
   updateTags: (filePath: string, tags: string[]) => Promise<{ success: boolean; error?: string }>;
-  updateKeywords: (filePath: string, keywords: string[]) => Promise<{ success: boolean; error?: string }>;
-  updateImprovementStatus: (filePath: string, improvementId: string, status: 'pending' | 'in-progress' | 'completed') => Promise<{ success: boolean; error?: string }>;
+  updateKeywords: (
+    filePath: string,
+    keywords: string[],
+  ) => Promise<{ success: boolean; error?: string }>;
+  updateImprovementStatus: (
+    filePath: string,
+    improvementId: string,
+    status: 'pending' | 'in-progress' | 'completed',
+  ) => Promise<{ success: boolean; error?: string }>;
   search: (query: string) => Promise<Array<{ filePath: string; metadata: DocumentMetadata }>>;
 }
 
@@ -503,7 +531,10 @@ contextBridge.exposeInMainWorld('metadataAPI', {
     ipcRenderer.invoke('metadata:update-tags', filePath, tags),
   updateKeywords: (filePath: string, keywords: string[]) =>
     ipcRenderer.invoke('metadata:update-keywords', filePath, keywords),
-  updateImprovementStatus: (filePath: string, improvementId: string, status: 'pending' | 'in-progress' | 'completed') =>
-    ipcRenderer.invoke('metadata:update-improvement-status', filePath, improvementId, status),
+  updateImprovementStatus: (
+    filePath: string,
+    improvementId: string,
+    status: 'pending' | 'in-progress' | 'completed',
+  ) => ipcRenderer.invoke('metadata:update-improvement-status', filePath, improvementId, status),
   search: (query: string) => ipcRenderer.invoke('metadata:search', query),
 } as MetadataAPI);

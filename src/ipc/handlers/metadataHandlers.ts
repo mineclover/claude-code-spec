@@ -3,11 +3,11 @@
  * Handles document metadata operations (reviews, improvements, tags)
  */
 
+import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import crypto from 'node:crypto';
+import type { DocumentImprovement, DocumentMetadata, DocumentReview } from '../../types/metadata';
 import type { IPCRouter } from '../IPCRouter';
-import type { DocumentMetadata, DocumentReview, DocumentImprovement } from '../../types/metadata';
 
 const META_DIR = '/Users/junwoobang/project/claude-code-spec/docs/claude-context-meta';
 
@@ -27,7 +27,7 @@ async function loadMetadata(filePath: string): Promise<DocumentMetadata | null> 
     const metaFilePath = await getMetaFilePath(filePath);
     const content = await fs.readFile(metaFilePath, 'utf-8');
     return JSON.parse(content);
-  } catch (error) {
+  } catch (_error) {
     // File doesn't exist, return default metadata
     return null;
   }
@@ -75,54 +75,64 @@ export function registerMetadataHandlers(router: IPCRouter): void {
   });
 
   // Add a review
-  router.handle('add-review', async (_event, filePath: string, review: Omit<DocumentReview, 'id' | 'timestamp'>) => {
-    try {
-      let metadata = await loadMetadata(filePath) || createDefaultMetadata(filePath);
+  router.handle(
+    'add-review',
+    async (_event, filePath: string, review: Omit<DocumentReview, 'id' | 'timestamp'>) => {
+      try {
+        const metadata = (await loadMetadata(filePath)) || createDefaultMetadata(filePath);
 
-      const newReview: DocumentReview = {
-        ...review,
-        id: `review-${Date.now()}`,
-        timestamp: Date.now(),
-      };
+        const newReview: DocumentReview = {
+          ...review,
+          id: `review-${Date.now()}`,
+          timestamp: Date.now(),
+        };
 
-      metadata.reviews.push(newReview);
+        metadata.reviews.push(newReview);
 
-      // Recalculate average rating
-      const totalRating = metadata.reviews.reduce((sum, r) => sum + r.rating, 0);
-      metadata.rating = totalRating / metadata.reviews.length;
+        // Recalculate average rating
+        const totalRating = metadata.reviews.reduce((sum, r) => sum + r.rating, 0);
+        metadata.rating = totalRating / metadata.reviews.length;
 
-      await saveMetadata(metadata);
-      return { success: true, review: newReview };
-    } catch (error) {
-      console.error(`Error adding review:`, error);
-      return { success: false, error: String(error) };
-    }
-  });
+        await saveMetadata(metadata);
+        return { success: true, review: newReview };
+      } catch (error) {
+        console.error(`Error adding review:`, error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
 
   // Add an improvement
-  router.handle('add-improvement', async (_event, filePath: string, improvement: Omit<DocumentImprovement, 'id' | 'timestamp'>) => {
-    try {
-      let metadata = await loadMetadata(filePath) || createDefaultMetadata(filePath);
+  router.handle(
+    'add-improvement',
+    async (
+      _event,
+      filePath: string,
+      improvement: Omit<DocumentImprovement, 'id' | 'timestamp'>,
+    ) => {
+      try {
+        const metadata = (await loadMetadata(filePath)) || createDefaultMetadata(filePath);
 
-      const newImprovement: DocumentImprovement = {
-        ...improvement,
-        id: `improve-${Date.now()}`,
-        timestamp: Date.now(),
-      };
+        const newImprovement: DocumentImprovement = {
+          ...improvement,
+          id: `improve-${Date.now()}`,
+          timestamp: Date.now(),
+        };
 
-      metadata.improvements.push(newImprovement);
-      await saveMetadata(metadata);
-      return { success: true, improvement: newImprovement };
-    } catch (error) {
-      console.error(`Error adding improvement:`, error);
-      return { success: false, error: String(error) };
-    }
-  });
+        metadata.improvements.push(newImprovement);
+        await saveMetadata(metadata);
+        return { success: true, improvement: newImprovement };
+      } catch (error) {
+        console.error(`Error adding improvement:`, error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
 
   // Update tags
   router.handle('update-tags', async (_event, filePath: string, tags: string[]) => {
     try {
-      let metadata = await loadMetadata(filePath) || createDefaultMetadata(filePath);
+      const metadata = (await loadMetadata(filePath)) || createDefaultMetadata(filePath);
       metadata.tags = tags;
       await saveMetadata(metadata);
       return { success: true };
@@ -135,7 +145,7 @@ export function registerMetadataHandlers(router: IPCRouter): void {
   // Update search keywords
   router.handle('update-keywords', async (_event, filePath: string, keywords: string[]) => {
     try {
-      let metadata = await loadMetadata(filePath) || createDefaultMetadata(filePath);
+      const metadata = (await loadMetadata(filePath)) || createDefaultMetadata(filePath);
       metadata.searchKeywords = keywords;
       await saveMetadata(metadata);
       return { success: true };
@@ -146,26 +156,34 @@ export function registerMetadataHandlers(router: IPCRouter): void {
   });
 
   // Update improvement status
-  router.handle('update-improvement-status', async (_event, filePath: string, improvementId: string, status: 'pending' | 'in-progress' | 'completed') => {
-    try {
-      let metadata = await loadMetadata(filePath);
-      if (!metadata) {
-        return { success: false, error: 'Metadata not found' };
-      }
+  router.handle(
+    'update-improvement-status',
+    async (
+      _event,
+      filePath: string,
+      improvementId: string,
+      status: 'pending' | 'in-progress' | 'completed',
+    ) => {
+      try {
+        const metadata = await loadMetadata(filePath);
+        if (!metadata) {
+          return { success: false, error: 'Metadata not found' };
+        }
 
-      const improvement = metadata.improvements.find(i => i.id === improvementId);
-      if (!improvement) {
-        return { success: false, error: 'Improvement not found' };
-      }
+        const improvement = metadata.improvements.find((i) => i.id === improvementId);
+        if (!improvement) {
+          return { success: false, error: 'Improvement not found' };
+        }
 
-      improvement.status = status;
-      await saveMetadata(metadata);
-      return { success: true };
-    } catch (error) {
-      console.error(`Error updating improvement status:`, error);
-      return { success: false, error: String(error) };
-    }
-  });
+        improvement.status = status;
+        await saveMetadata(metadata);
+        return { success: true };
+      } catch (error) {
+        console.error(`Error updating improvement status:`, error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
 
   // Search documents by tags or keywords
   router.handle('search', async (_event, query: string) => {
@@ -179,11 +197,9 @@ export function registerMetadataHandlers(router: IPCRouter): void {
         const content = await fs.readFile(path.join(META_DIR, file), 'utf-8');
         const metadata: DocumentMetadata = JSON.parse(content);
 
-        const searchString = [
-          ...metadata.tags,
-          ...metadata.searchKeywords,
-          metadata.filePath,
-        ].join(' ').toLowerCase();
+        const searchString = [...metadata.tags, ...metadata.searchKeywords, metadata.filePath]
+          .join(' ')
+          .toLowerCase();
 
         if (searchString.includes(query.toLowerCase())) {
           results.push({ filePath: metadata.filePath, metadata });

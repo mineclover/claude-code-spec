@@ -3,7 +3,7 @@
  * Manages the currently selected project path across the application
  */
 
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import React, { createContext, type ReactNode, useCallback, useContext, useState } from 'react';
 
 interface ProjectContextValue {
   // Current project path
@@ -56,7 +56,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       setProjectPath(path);
       setProjectDirName(dirName);
     },
-    [setProjectPath, setProjectDirName]
+    [setProjectPath, setProjectDirName],
   );
 
   const clearProject = useCallback(() => {

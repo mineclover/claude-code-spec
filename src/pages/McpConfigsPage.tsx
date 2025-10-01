@@ -3,7 +3,7 @@
  * Manage MCP configuration files for the selected project
  */
 
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useProject } from '../contexts/ProjectContext';
@@ -23,18 +23,7 @@ export function McpConfigsPage() {
   const [selectedServers, setSelectedServers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load MCP configs and available servers
-  useEffect(() => {
-    if (!projectPath) {
-      setLoading(false);
-      return;
-    }
-
-    loadConfigs();
-    loadAvailableServers();
-  }, [projectPath]);
-
-  const loadConfigs = async () => {
+  const loadConfigs = useCallback(async () => {
     if (!projectPath) return;
 
     try {
@@ -47,9 +36,9 @@ export function McpConfigsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectPath]);
 
-  const loadAvailableServers = async () => {
+  const loadAvailableServers = useCallback(async () => {
     try {
       const result = await window.settingsAPI.getMcpServers();
       if (result.error) {
@@ -62,7 +51,18 @@ export function McpConfigsPage() {
       console.error('Failed to load available servers:', error);
       toast.error('Failed to load available MCP servers');
     }
-  };
+  }, []);
+
+  // Load MCP configs and available servers
+  useEffect(() => {
+    if (!projectPath) {
+      setLoading(false);
+      return;
+    }
+
+    loadConfigs();
+    loadAvailableServers();
+  }, [projectPath, loadAvailableServers, loadConfigs]);
 
   const handleSelectConfig = (config: McpConfigFile) => {
     setSelectedConfig(config);
@@ -134,7 +134,7 @@ export function McpConfigsPage() {
       ? newConfigName
       : `.mcp-${newConfigName}.json`;
 
-    const isDuplicate = configs.some(config => config.name === configFileName);
+    const isDuplicate = configs.some((config) => config.name === configFileName);
     if (isDuplicate) {
       toast.error(`Configuration "${configFileName}" already exists`);
       return;
@@ -149,7 +149,7 @@ export function McpConfigsPage() {
       const result = await window.settingsAPI.createMcpConfig(
         projectPath,
         newConfigName,
-        selectedServers
+        selectedServers,
       );
 
       if (result.success) {
@@ -169,7 +169,7 @@ export function McpConfigsPage() {
 
   const toggleServerSelection = (serverName: string) => {
     setSelectedServers((prev) =>
-      prev.includes(serverName) ? prev.filter((s) => s !== serverName) : [...prev, serverName]
+      prev.includes(serverName) ? prev.filter((s) => s !== serverName) : [...prev, serverName],
     );
   };
 
@@ -177,7 +177,7 @@ export function McpConfigsPage() {
     const path = await window.claudeAPI.selectDirectory();
     if (path) {
       console.log('[McpConfigsPage] Selected project:', path);
-      const dirName = path.split('/').filter(Boolean).pop() || path;
+      const _dirName = path.split('/').filter(Boolean).pop() || path;
 
       // Update ProjectContext
       const { updateProject } = require('../contexts/ProjectContext');
@@ -230,10 +230,7 @@ export function McpConfigsPage() {
               {projectDirName || projectPath.split('/').filter(Boolean).pop()}
             </span>
           </div>
-          <button
-            onClick={() => setIsCreating(true)}
-            className={styles.newConfigButton}
-          >
+          <button onClick={() => setIsCreating(true)} className={styles.newConfigButton}>
             + New Configuration
           </button>
         </div>
@@ -280,9 +277,7 @@ export function McpConfigsPage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>
-                  Configuration Name
-                </label>
+                <label className={styles.formLabel}>Configuration Name</label>
                 <input
                   type="text"
                   value={newConfigName}
@@ -296,7 +291,14 @@ export function McpConfigsPage() {
               </div>
 
               <div className={styles.formGroup}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '12px',
+                  }}
+                >
                   <label className={styles.formLabel} style={{ margin: 0 }}>
                     Select MCP Servers ({selectedServers.length} selected)
                   </label>
@@ -313,7 +315,9 @@ export function McpConfigsPage() {
                   <div className={styles.sourcePathsInfo}>
                     <span className={styles.sourcePathsLabel}>Loading from:</span>
                     {sourcePaths.map((path, idx) => (
-                      <span key={idx} className={styles.sourcePathItem}>{path}</span>
+                      <span key={idx} className={styles.sourcePathItem}>
+                        {path}
+                      </span>
                     ))}
                   </div>
                 )}
@@ -324,10 +328,7 @@ export function McpConfigsPage() {
                     </p>
                   ) : (
                     availableServers.map((server) => (
-                      <div
-                        key={server.name}
-                        className={styles.serverItem}
-                      >
+                      <div key={server.name} className={styles.serverItem}>
                         <label className={styles.serverItemLabel}>
                           <input
                             type="checkbox"
@@ -359,7 +360,7 @@ export function McpConfigsPage() {
                   disabled={
                     !newConfigName.trim() ||
                     selectedServers.length === 0 ||
-                    configs.some(config => {
+                    configs.some((config) => {
                       const configFileName = newConfigName.startsWith('.mcp-')
                         ? newConfigName
                         : `.mcp-${newConfigName}.json`;
@@ -368,12 +369,14 @@ export function McpConfigsPage() {
                   }
                   className={styles.saveButton}
                 >
-                  {configs.some(config => {
+                  {configs.some((config) => {
                     const configFileName = newConfigName.startsWith('.mcp-')
                       ? newConfigName
                       : `.mcp-${newConfigName}.json`;
                     return config.name === configFileName;
-                  }) ? 'Name Already Exists' : 'Create Configuration'}
+                  })
+                    ? 'Name Already Exists'
+                    : 'Create Configuration'}
                 </button>
                 <button
                   onClick={() => {
@@ -397,9 +400,7 @@ export function McpConfigsPage() {
 
               {/* Usage Scripts */}
               <div className={styles.usageSection}>
-                <label className={styles.formLabel}>
-                  Usage Scripts
-                </label>
+                <label className={styles.formLabel}>Usage Scripts</label>
 
                 {/* Interactive Mode */}
                 <div className={styles.scriptVariant}>
@@ -419,7 +420,8 @@ export function McpConfigsPage() {
                   </div>
                   <div className={styles.scriptBox}>
                     <code className={styles.scriptCode}>
-                      claude --mcp-config .claude/{selectedConfig.name} --strict-mcp-config --dangerously-skip-permissions
+                      claude --mcp-config .claude/{selectedConfig.name} --strict-mcp-config
+                      --dangerously-skip-permissions
                     </code>
                   </div>
                   <div className={styles.scriptHint}>
@@ -445,19 +447,16 @@ export function McpConfigsPage() {
                   </div>
                   <div className={styles.scriptBox}>
                     <code className={styles.scriptCode}>
-                      claude -p "your query here" --mcp-config .claude/{selectedConfig.name} --strict-mcp-config --dangerously-skip-permissions
+                      claude -p "your query here" --mcp-config .claude/{selectedConfig.name}{' '}
+                      --strict-mcp-config --dangerously-skip-permissions
                     </code>
                   </div>
-                  <div className={styles.scriptHint}>
-                    Executes a single query and exits
-                  </div>
+                  <div className={styles.scriptHint}>Executes a single query and exits</div>
                 </div>
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>
-                  Configuration Content
-                </label>
+                <label className={styles.formLabel}>Configuration Content</label>
                 <textarea
                   value={editingContent}
                   onChange={(e) => setEditingContent(e.target.value)}
@@ -467,10 +466,7 @@ export function McpConfigsPage() {
               </div>
 
               <div className={styles.buttonGroup}>
-                <button
-                  onClick={handleSaveConfig}
-                  className={styles.saveButton}
-                >
+                <button onClick={handleSaveConfig} className={styles.saveButton}>
                   Save Changes
                 </button>
                 <button

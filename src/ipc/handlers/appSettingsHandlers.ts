@@ -3,8 +3,8 @@
  * Handles application settings operations
  */
 
-import type { IPCRouter } from '../IPCRouter';
 import type { SettingsService } from '../../services/appSettings';
+import type { IPCRouter } from '../IPCRouter';
 
 export function registerAppSettingsHandlers(
   router: IPCRouter,
@@ -37,10 +37,13 @@ export function registerAppSettingsHandlers(
   });
 
   // Set current project
-  router.handle('set-current-project', async (_event, projectPath: string, projectDirName: string) => {
-    settingsService.setCurrentProject(projectPath, projectDirName);
-    return { success: true };
-  });
+  router.handle(
+    'set-current-project',
+    async (_event, projectPath: string, projectDirName: string) => {
+      settingsService.setCurrentProject(projectPath, projectDirName);
+      return { success: true };
+    },
+  );
 
   // Clear current project
   router.handle('clear-current-project', async () => {

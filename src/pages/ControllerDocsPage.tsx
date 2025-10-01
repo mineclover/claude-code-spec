@@ -1,18 +1,15 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import styles from './ControllerDocsPage.module.css';
 
 export const ControllerDocsPage: React.FC = () => {
   const [glossary, setGlossary] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
-  const GLOSSARY_PATH = '/Users/junwoobang/project/claude-code-spec/docs/controller-docs/glossary.md';
+  const GLOSSARY_PATH =
+    '/Users/junwoobang/project/claude-code-spec/docs/controller-docs/glossary.md';
 
-  useEffect(() => {
-    loadGlossary();
-  }, []);
-
-  const loadGlossary = async () => {
+  const loadGlossary = useCallback(async () => {
     setLoading(true);
     try {
       const content = await window.docsAPI.readDocsFile(GLOSSARY_PATH);
@@ -23,7 +20,11 @@ export const ControllerDocsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [GLOSSARY_PATH]);
+
+  useEffect(() => {
+    loadGlossary();
+  }, [loadGlossary]);
 
   return (
     <div className={styles.container}>

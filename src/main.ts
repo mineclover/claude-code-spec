@@ -1,20 +1,20 @@
 import path from 'node:path';
 import { app, BrowserWindow } from 'electron';
 import started from 'electron-squirrel-startup';
-import { ClaudeClient } from './lib/ClaudeClient';
-import { SessionManager } from './lib/SessionManager';
-import { createConfig, createSessionLogger } from './services/logger';
-import { settingsService } from './services/appSettings';
-import { ipcRegistry } from './ipc/IPCRouter';
-import { registerDialogHandlers } from './ipc/handlers/dialogHandlers';
-import { registerClaudeHandlers } from './ipc/handlers/claudeHandlers';
-import { registerLoggerHandlers } from './ipc/handlers/loggerHandlers';
-import { registerSettingsHandlers } from './ipc/handlers/settingsHandlers';
-import { registerBookmarksHandlers } from './ipc/handlers/bookmarksHandlers';
-import { registerClaudeSessionsHandlers } from './ipc/handlers/claudeSessionsHandlers';
 import { registerAppSettingsHandlers } from './ipc/handlers/appSettingsHandlers';
+import { registerBookmarksHandlers } from './ipc/handlers/bookmarksHandlers';
+import { registerClaudeHandlers } from './ipc/handlers/claudeHandlers';
+import { registerClaudeSessionsHandlers } from './ipc/handlers/claudeSessionsHandlers';
+import { registerDialogHandlers } from './ipc/handlers/dialogHandlers';
 import { registerDocsHandlers } from './ipc/handlers/docsHandlers';
+import { registerLoggerHandlers } from './ipc/handlers/loggerHandlers';
 import { registerMetadataHandlers } from './ipc/handlers/metadataHandlers';
+import { registerSettingsHandlers } from './ipc/handlers/settingsHandlers';
+import { ipcRegistry } from './ipc/IPCRouter';
+import type { ClaudeClient } from './lib/ClaudeClient';
+import { SessionManager } from './lib/SessionManager';
+import { settingsService } from './services/appSettings';
+import { createConfig, createSessionLogger } from './services/logger';
 
 if (started) {
   app.quit();

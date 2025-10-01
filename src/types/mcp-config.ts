@@ -184,12 +184,7 @@ export const EXAMPLE_CONFIGS: Record<string, McpServer> = {
   database: {
     type: 'stdio',
     command: 'npx',
-    args: [
-      '-y',
-      '@bytebase/dbhub',
-      '--dsn',
-      '${DATABASE_URL:-postgresql://localhost:5432/dev}',
-    ],
+    args: ['-y', '@bytebase/dbhub', '--dsn', '${DATABASE_URL:-postgresql://localhost:5432/dev}'],
     env: {
       DATABASE_URL: '${DATABASE_URL}',
     },

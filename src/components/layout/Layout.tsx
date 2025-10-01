@@ -1,8 +1,8 @@
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { PAGE_INDEX, getPageById } from '../../data/pageIndex';
 import { useProject } from '../../contexts/ProjectContext';
+import { PAGE_INDEX } from '../../data/pageIndex';
 import styles from './Layout.module.css';
 
 interface LayoutProps {
@@ -13,7 +13,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [addressInput, setAddressInput] = useState('');
-  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [_isEditingAddress, setIsEditingAddress] = useState(false);
   const { projectPath, projectDirName } = useProject();
 
   console.log('[Layout] Render - projectPath:', projectPath, 'projectDirName:', projectDirName);
@@ -22,13 +22,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const getCurrentPageInfo = () => {
     // Find page by route
-    const page = PAGE_INDEX.find(p => p.route === location.pathname);
+    const page = PAGE_INDEX.find((p) => p.route === location.pathname);
     return page;
   };
 
-  const getDetailedPath = () => {
+  const getDetailedPath = useCallback(() => {
     return location.pathname;
-  };
+  }, [location.pathname]);
 
   const getDisplayName = () => {
     const pageInfo = getCurrentPageInfo();
@@ -53,7 +53,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   useEffect(() => {
     setAddressInput(getDetailedPath());
-  }, [location.pathname, location.search]);
+  }, [getDetailedPath]);
 
   const handleAddressKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -76,7 +76,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
 
         <div className={styles.nav}>
-          <Link to="/index" className={`${styles.navItem} ${isActive('/index') ? styles.active : ''}`}>
+          <Link
+            to="/index"
+            className={`${styles.navItem} ${isActive('/index') ? styles.active : ''}`}
+          >
             <span className={styles.icon}>📇</span>
             <span>Index</span>
           </Link>
