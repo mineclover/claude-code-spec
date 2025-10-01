@@ -293,10 +293,10 @@ export const ExecutePage: React.FC = () => {
                     <div
                       key={session.sessionId}
                       className={`${styles.sessionItem} ${selectedSessionId === session.sessionId ? styles.selected : ''}`}
+                      onClick={() => setSelectedSessionId(session.sessionId)}
                     >
                       <div
                         className={styles.sessionItemContent}
-                        onClick={() => setSelectedSessionId(session.sessionId)}
                         onDoubleClick={() => handleLoadSessionToOutput(session.sessionId)}
                       >
                         <div className={styles.sessionItemId} title={session.sessionId}>
@@ -311,25 +311,29 @@ export const ExecutePage: React.FC = () => {
                           {new Date(session.lastModified).toLocaleString()}
                         </div>
                       </div>
-                      {selectedSessionId === session.sessionId && (
-                        <div className={styles.sessionItemActions}>
-                          <button
-                            type="button"
-                            className={styles.loadButton}
-                            onClick={() => handleLoadSessionToOutput(session.sessionId)}
-                          >
-                            Load to Output
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.resumeButton}
-                            onClick={() => handleResumeSession(session.sessionId)}
-                            disabled={isRunning}
-                          >
-                            Resume
-                          </button>
-                        </div>
-                      )}
+                      <div className={styles.sessionItemActions}>
+                        <button
+                          type="button"
+                          className={styles.loadButton}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLoadSessionToOutput(session.sessionId);
+                          }}
+                        >
+                          Load to Output
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.resumeButton}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleResumeSession(session.sessionId);
+                          }}
+                          disabled={isRunning}
+                        >
+                          Resume
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
