@@ -31,6 +31,7 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
         // Create Claude client
         const client = new ClaudeClientClass({
           cwd: projectPath,
+          model: 'sonnet', // Use Sonnet by default for better speed/cost balance  
           sessionId: sessionId || undefined,
           onStream: (streamEvent: StreamEvent) => {
             // Forward stream event to renderer

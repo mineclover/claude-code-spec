@@ -51,8 +51,11 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
 
   if (isLocalCommand) {
     // Extract content between tags
-    const match = content.match(/<local-command-stdout>\s*([\s\S]*?)\s*<\/local-command-stdout>/);
-    const commandOutput = match ? match[1] : content;
+    const match = content.match(/<local-command-stdout>([\s\S]*?)<\/local-command-stdout>/);
+    let commandOutput = match ? match[1] : content;
+    
+    // Remove ANSI escape sequences but preserve newlines
+    commandOutput = commandOutput.replace(/\u001b\[[0-9;]*m/g, '');
 
     return (
       <EventBox type="user" icon="💻" title="Local Command Output" rawData={event}>

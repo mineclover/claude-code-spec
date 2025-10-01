@@ -7,7 +7,7 @@ import type {
   LoggerAPI,
   MetadataAPI,
   SettingsAPI,
-} from './preload';
+} from './types/api';
 
 declare global {
   interface Window {

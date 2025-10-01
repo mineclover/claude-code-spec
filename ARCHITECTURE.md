@@ -1,5 +1,18 @@
 # Architecture Documentation
 
+> **📢 2025-10-02 업데이트**: 프로젝트 구조가 대폭 개선되었습니다. 자세한 내용은 [리팩토링 요약](./docs/REFACTORING_SUMMARY.md)을 참고하세요.
+
+## 목차
+1. [개요](#overview)
+2. [아키텍처 구성](#아키텍처-구성)
+   - [모듈 구조](#1-모듈-구조)
+   - [핵심 모듈](#2-핵심-모듈)
+   - [IPC 통신](#3-ipc-통신)
+   - [Stream JSON 처리](#4-stream-json-처리-흐름)
+3. [사용 방법](#사용-방법)
+4. [재사용 가능한 설계](#재사용-가능한-설계)
+5. [결론](#결론)
+
 ## Overview
 
 Claude Code Headless Controller는 Claude CLI를 Electron 앱에서 headless 모드로 실행하고, stream-json 형식으로 실시간 출력을 표시하는 데스크톱 애플리케이션입니다.
@@ -10,14 +23,82 @@ Claude Code Headless Controller는 Claude CLI를 Electron 앱에서 headless 모
 
 ```
 src/
-├── lib/
-│   ├── StreamParser.ts      # JSON 스트림 파싱
-│   ├── ClaudeClient.ts       # Claude CLI 실행 관리
-│   └── SessionManager.ts     # 세션 이력 관리
-├── main.ts                   # Electron Main Process
-├── preload.ts                # IPC Bridge
-├── App.tsx                   # React UI
-└── global.d.ts               # TypeScript 타입 정의
+├── types/api/               # API 타입 정의 (도메인별 분리)
+│   ├── claude.ts           # Claude CLI 관련 타입
+│   ├── settings.ts         # 설정 파일 관련 타입
+│   ├── logger.ts           # 로깅 관련 타입
+│   ├── bookmarks.ts        # 북마크 관련 타입
+│   ├── sessions.ts         # 세션 관리 타입
+│   ├── app-settings.ts     # 앱 설정 타입
+│   ├── docs.ts             # 문서 관련 타입
+│   ├── metadata.ts         # 메타데이터 타입
+│   └── index.ts            # 통합 export
+│
+├── preload/                 # Preload 스크립트 (모듈화)
+│   ├── apis/               # contextBridge API 노출 (도메인별)
+│   │   ├── claude.ts
+│   │   ├── settings.ts
+│   │   ├── logger.ts
+│   │   ├── bookmarks.ts
+│   │   ├── sessions.ts
+│   │   ├── app-settings.ts
+│   │   ├── docs.ts
+│   │   └── metadata.ts
+│   └── index.ts            # 통합 API 노출
+│
+├── main/                    # Main 프로세스 모듈
+│   ├── window.ts           # 윈도우 생성 로직
+│   ├── app-context.ts      # 전역 상태 관리
+│   └── ipc-setup.ts        # IPC 핸들러 등록
+│
+├── ipc/                     # IPC 통신 레이어
+│   ├── IPCRouter.ts        # 라우터 기반 IPC 시스템
+│   └── handlers/           # 도메인별 IPC 핸들러
+│       ├── claudeHandlers.ts
+│       ├── settingsHandlers.ts
+│       ├── loggerHandlers.ts
+│       ├── bookmarksHandlers.ts
+│       ├── claudeSessionsHandlers.ts
+│       ├── appSettingsHandlers.ts
+│       ├── docsHandlers.ts
+│       ├── metadataHandlers.ts
+│       └── dialogHandlers.ts
+│
+├── lib/                     # 핵심 라이브러리
+│   ├── StreamParser.ts     # JSON 스트림 파싱
+│   ├── ClaudeClient.ts     # Claude CLI 실행 관리
+│   └── SessionManager.ts   # 세션 이력 관리
+│
+├── services/                # 비즈니스 로직
+│   ├── appSettings.ts      # 앱 설정 서비스
+│   ├── settings.ts         # 프로젝트 설정 서비스
+│   ├── logger.ts           # 로깅 서비스
+│   ├── bookmarks.ts        # 북마크 서비스
+│   ├── claudeSessions.ts   # Claude 세션 서비스
+│   └── cache.ts            # 캐시 서비스
+│
+├── components/              # React 컴포넌트
+│   ├── ui/                 # 공통 UI 컴포넌트
+│   ├── settings/           # 설정 컴포넌트
+│   ├── layout/             # 레이아웃 컴포넌트
+│   ├── stream/             # 스트림 출력 컴포넌트
+│   ├── sessions/           # 세션 관리 컴포넌트
+│   ├── bookmarks/          # 북마크 컴포넌트
+│   └── common/             # 공통 컴포넌트
+│
+├── pages/                   # 페이지 컴포넌트
+│   ├── ExecutePage.tsx     # Claude 실행 페이지
+│   ├── ClaudeProjectsPage.tsx  # 프로젝트 관리 페이지
+│   ├── McpConfigsPage.tsx  # MCP 설정 페이지
+│   ├── SettingsPage.tsx    # 설정 페이지
+│   ├── ClaudeDocsPage.tsx  # Claude 문서 페이지
+│   ├── ControllerDocsPage.tsx  # 컨트롤러 문서 페이지
+│   ├── BookmarksPage.tsx   # 북마크 페이지
+│   └── IndexPage.tsx       # 인덱스 페이지
+│
+├── main.ts                  # Electron Main Process 진입점
+├── App.tsx                  # React UI 진입점
+└── window.d.ts             # Window API 타입 정의
 ```
 
 ### 2. 핵심 모듈
@@ -82,19 +163,87 @@ const current = sessionManager.getCurrentSessionId();
 
 ### 3. IPC 통신
 
-#### Main → Renderer 이벤트
-- `claude:started` - 프로세스 시작 (PID 포함)
-- `claude:stream` - Stream JSON 이벤트
-- `claude:error` - 에러 메시지
-- `claude:complete` - 프로세스 종료
+#### 라우터 기반 IPC 시스템
 
-#### Renderer → Main 핸들러
-- `claude:execute` - Claude CLI 실행
-- `claude:get-sessions` - 세션 리스트 조회
-- `claude:get-current-session` - 현재 세션 ID 조회
-- `claude:resume-session` - 세션 이어가기
-- `claude:clear-sessions` - 세션 초기화
-- `dialog:selectDirectory` - 디렉토리 선택
+프로젝트는 도메인별로 IPC 통신을 조직화하는 **IPCRouter** 시스템을 사용합니다.
+
+**구조:**
+```typescript
+// IPC Router 생성
+const claudeRouter = ipcRegistry.router('claude');
+
+// 핸들러 등록
+claudeRouter.handle('execute', async (event, projectPath, query) => {
+  // 로직 처리
+});
+
+// 채널명: domain:action (예: "claude:execute")
+```
+
+**장점:**
+- ✅ 도메인별 핸들러 그룹화
+- ✅ 자동 에러 핸들링 및 로깅
+- ✅ 채널명 자동 생성 (`domain:action`)
+- ✅ 타입 안전성
+
+#### 도메인별 IPC 채널
+
+**Claude 도메인** (`claude:*`)
+- `execute` - Claude CLI 실행
+- `get-sessions` - 세션 리스트 조회
+- `get-current-session` - 현재 세션 ID 조회
+- `resume-session` - 세션 이어가기
+- `clear-sessions` - 세션 초기화
+- 이벤트: `started`, `stream`, `error`, `complete`
+
+**Settings 도메인** (`settings:*`)
+- `find-files` - 설정 파일 검색
+- `create-backup` - 백업 생성
+- `restore-backup` - 백업 복원
+- `list-mcp-configs` - MCP 설정 목록
+- `get-mcp-servers` - MCP 서버 목록
+
+**Logger 도메인** (`logger:*`)
+- `get-files` - 로그 파일 목록
+- `read-file` - 로그 파일 읽기
+- `analyze-patterns` - 패턴 분석
+- `rotate` - 로그 로테이션
+
+**Bookmarks 도메인** (`bookmarks:*`)
+- `get-all` - 모든 북마크
+- `add` - 북마크 추가
+- `update` - 북마크 수정
+- `delete` - 북마크 삭제
+- `search` - 북마크 검색
+
+**Sessions 도메인** (`claude-sessions:*`)
+- `get-all-projects` - 모든 프로젝트
+- `get-project-sessions` - 프로젝트 세션 목록
+- `read-log` - 세션 로그 읽기
+- `get-summary` - 세션 요약
+
+**Dialog 도메인** (`dialog:*`)
+- `selectDirectory` - 디렉토리 선택
+
+#### Preload API 노출
+
+각 도메인은 독립적인 API 모듈로 노출됩니다:
+
+```typescript
+// src/preload/apis/claude.ts
+export function exposeClaudeAPI() {
+  contextBridge.exposeInMainWorld('claudeAPI', {
+    executeClaudeCommand: (...) => ipcRenderer.invoke('claude:execute', ...),
+    // ...
+  });
+}
+
+// src/preload/index.ts (통합)
+exposeClaudeAPI();
+exposeSettingsAPI();
+exposeLoggerAPI();
+// ...
+```
 
 ### 4. Stream JSON 처리 흐름
 
@@ -187,6 +336,8 @@ const session = sessionManager.getSession(sessionId);
 2. 후속 요청 → 이전 세션 ID 전달 → 대화 이어가기
 
 ### 모듈 재사용
+
+#### 핵심 라이브러리
 각 모듈은 독립적으로 사용 가능:
 
 ```typescript
@@ -200,6 +351,37 @@ import { ClaudeClient } from './lib/ClaudeClient';
 import { SessionManager } from './lib/SessionManager';
 ```
 
+#### 타입 시스템
+중앙화된 타입 시스템으로 일관성 보장:
+
+```typescript
+// 통합 import (권장)
+import type { ClaudeAPI, SettingsAPI, LoggerAPI } from './types/api';
+
+// 개별 도메인 import
+import type { ClaudeAPI } from './types/api/claude';
+import type { SettingsAPI } from './types/api/settings';
+
+// Window 타입 (자동 완성 지원)
+// window.d.ts에서 전역 타입 정의
+window.claudeAPI.executeClaudeCommand(...)
+window.settingsAPI.findFiles(...)
+```
+
+#### 서비스 레이어
+각 서비스는 독립적인 비즈니스 로직을 담당:
+
+```typescript
+// 앱 설정 서비스
+import { settingsService } from './services/appSettings';
+
+// 프로젝트 설정 서비스
+import { findSettingsFiles } from './services/settings';
+
+// 로거 서비스
+import { createSessionLogger } from './services/logger';
+```
+
 ## 파서의 중요성
 
 StreamParser는 이 시스템의 핵심 컴포넌트입니다:
@@ -211,8 +393,29 @@ StreamParser는 이 시스템의 핵심 컴포넌트입니다:
 ## 결론
 
 이 아키텍처는:
+
+### 핵심 원칙
 - ✅ **모듈화**: 각 기능이 독립된 모듈로 분리
+- ✅ **도메인 분리**: IPC 통신과 타입이 도메인별로 조직화
+- ✅ **타입 안전성**: 중앙화된 타입 시스템으로 일관성 보장
 - ✅ **재사용성**: 모듈을 다른 프로젝트에서 쉽게 재사용 가능
 - ✅ **확장성**: 새로운 기능 추가 용이
 - ✅ **유지보수성**: 명확한 책임 분리로 디버깅 쉬움
 - ✅ **세션 관리**: 대화 이력 추적 및 이어가기 지원
+
+### 리팩토링 결과 (2025-10-02)
+
+**구조 개선:**
+- `preload.ts`: 540+ 줄 → 27 줄 (95% 감소)
+- `main.ts`: 103 줄 → 39 줄 (62% 감소)
+- 타입 정의: 도메인별 8개 모듈로 분리
+- Preload API: 도메인별 8개 모듈로 분리
+- Main Process: 3개 책임별 모듈로 분리
+
+**장점:**
+1. **가독성**: 파일 크기가 관리 가능한 수준으로 축소
+2. **확장성**: 새 API 추가 시 기존 코드 영향 최소화
+3. **타입 일관성**: 중복 타입 제거 및 단일 진실 공급원
+4. **테스트 용이성**: 각 모듈 독립 테스트 가능
+
+상세 내용: [docs/REFACTORING_SUMMARY.md](./docs/REFACTORING_SUMMARY.md)

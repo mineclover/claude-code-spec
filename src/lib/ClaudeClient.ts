@@ -9,6 +9,7 @@ import { isSystemInitEvent } from './types';
 
 export interface ClaudeClientOptions {
   cwd: string;
+  model?: 'sonnet' | 'opus' | 'haiku';  // Add model option
   onStream: StreamCallback;
   onError?: ErrorCallback;
   onClose?: (code: number) => void;
@@ -62,6 +63,14 @@ export class ClaudeClient {
       '--verbose',
       '--dangerously-skip-permissions',
     ];
+
+    // Add model if specified (defaults to sonnet for better performance)
+    if (this.options.model) {
+      args.push('--model', this.options.model);
+    } else {
+      // Default to sonnet instead of opus for better speed/cost balance
+      args.push('--model', 'sonnet');
+    }
 
     // Add session resume if available
     if (this.currentSessionId) {
