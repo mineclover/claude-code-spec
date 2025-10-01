@@ -25,6 +25,15 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
     text: string;
   } | null>(null);
 
+  // Document Paths state
+  const [claudeDocsPath, setClaudeDocsPath] = useState('');
+  const [controllerDocsPath, setControllerDocsPath] = useState('');
+  const [metadataPath, setMetadataPath] = useState('');
+  const [docsPathsMessage, setDocsPathsMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+
   // Legacy project settings states (only used if projectPath is provided)
   const [settings, setSettings] = useState<ProjectSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +52,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
       // Get default paths from backend (OS-specific)
       const defaultPaths = await window.appSettingsAPI.getDefaultPaths();
       setDefaultProjectsPath(defaultPaths.claudeProjectsPath);
+
+      // Load document paths
+      const claudeDocs = await window.appSettingsAPI.getClaudeDocsPath();
+      const controllerDocs = await window.appSettingsAPI.getControllerDocsPath();
+      const metadata = await window.appSettingsAPI.getMetadataPath();
+      setClaudeDocsPath(claudeDocs || '');
+      setControllerDocsPath(controllerDocs || '');
+      setMetadataPath(metadata || '');
     } catch (error) {
       console.error('Failed to load app settings:', error);
     } finally {
@@ -197,6 +214,69 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
     }
   };
 
+  // Document Paths handlers
+  const handleSaveClaudeDocsPath = async () => {
+    if (!claudeDocsPath.trim()) {
+      setDocsPathsMessage({ type: 'error', text: 'Please enter a valid path' });
+      return;
+    }
+
+    try {
+      await window.appSettingsAPI.setClaudeDocsPath(claudeDocsPath);
+      setDocsPathsMessage({ type: 'success', text: 'Claude Docs path saved!' });
+      setTimeout(() => setDocsPathsMessage(null), 3000);
+    } catch (error) {
+      console.error('Failed to save Claude Docs path:', error);
+      setDocsPathsMessage({ type: 'error', text: 'Failed to save path' });
+    }
+  };
+
+  const handleSaveControllerDocsPath = async () => {
+    if (!controllerDocsPath.trim()) {
+      setDocsPathsMessage({ type: 'error', text: 'Please enter a valid path' });
+      return;
+    }
+
+    try {
+      await window.appSettingsAPI.setControllerDocsPath(controllerDocsPath);
+      setDocsPathsMessage({ type: 'success', text: 'Controller Docs path saved!' });
+      setTimeout(() => setDocsPathsMessage(null), 3000);
+    } catch (error) {
+      console.error('Failed to save Controller Docs path:', error);
+      setDocsPathsMessage({ type: 'error', text: 'Failed to save path' });
+    }
+  };
+
+  const handleSaveMetadataPath = async () => {
+    if (!metadataPath.trim()) {
+      setDocsPathsMessage({ type: 'error', text: 'Please enter a valid path' });
+      return;
+    }
+
+    try {
+      await window.appSettingsAPI.setMetadataPath(metadataPath);
+      setDocsPathsMessage({ type: 'success', text: 'Metadata path saved!' });
+      setTimeout(() => setDocsPathsMessage(null), 3000);
+    } catch (error) {
+      console.error('Failed to save Metadata path:', error);
+      setDocsPathsMessage({ type: 'error', text: 'Failed to save path' });
+    }
+  };
+
+  const handleSetDefaultDocsPaths = async () => {
+    try {
+      const defaultPaths = await window.appSettingsAPI.getDefaultPaths();
+      setClaudeDocsPath(defaultPaths.claudeDocsPath);
+      setControllerDocsPath(defaultPaths.controllerDocsPath);
+      setMetadataPath(defaultPaths.metadataPath);
+      setDocsPathsMessage({ type: 'success', text: 'Default paths set!' });
+      setTimeout(() => setDocsPathsMessage(null), 3000);
+    } catch (error) {
+      console.error('Failed to set default paths:', error);
+      setDocsPathsMessage({ type: 'error', text: 'Failed to set default paths' });
+    }
+  };
+
   // If no projectPath, show app settings UI
   if (!projectPath) {
     return (
@@ -339,6 +419,103 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
                 }
               >
                 {mcpPathsMessage.text}
+              </div>
+            )}
+          </div>
+
+          {/* Document Paths Section */}
+          <div className={styles.settingItem}>
+            <label className={styles.settingLabel}>Document Paths</label>
+            <div className={styles.settingDescription}>
+              Configure paths to documentation and metadata directories used by the application.
+            </div>
+
+            {/* Claude Docs Path */}
+            <div className={styles.docPathSection}>
+              <label className={styles.docPathLabel}>Claude Cookbooks Path</label>
+              <div className={styles.pathInput}>
+                <input
+                  type="text"
+                  value={claudeDocsPath}
+                  onChange={(e) => setClaudeDocsPath(e.target.value)}
+                  placeholder="Path to Claude documentation files"
+                  className={styles.input}
+                  disabled={isPathLoading}
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveClaudeDocsPath}
+                  className={styles.browseButton}
+                  disabled={!claudeDocsPath.trim() || isPathLoading}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+
+            {/* Controller Docs Path */}
+            <div className={styles.docPathSection}>
+              <label className={styles.docPathLabel}>Controller Docs Path</label>
+              <div className={styles.pathInput}>
+                <input
+                  type="text"
+                  value={controllerDocsPath}
+                  onChange={(e) => setControllerDocsPath(e.target.value)}
+                  placeholder="Path to controller documentation files"
+                  className={styles.input}
+                  disabled={isPathLoading}
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveControllerDocsPath}
+                  className={styles.browseButton}
+                  disabled={!controllerDocsPath.trim() || isPathLoading}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+
+            {/* Metadata Path */}
+            <div className={styles.docPathSection}>
+              <label className={styles.docPathLabel}>Metadata Path</label>
+              <div className={styles.pathInput}>
+                <input
+                  type="text"
+                  value={metadataPath}
+                  onChange={(e) => setMetadataPath(e.target.value)}
+                  placeholder="Path to metadata storage directory"
+                  className={styles.input}
+                  disabled={isPathLoading}
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveMetadataPath}
+                  className={styles.browseButton}
+                  disabled={!metadataPath.trim() || isPathLoading}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+
+            {/* Set Default Button */}
+            <button
+              type="button"
+              onClick={handleSetDefaultDocsPaths}
+              className={styles.addPathButton}
+              disabled={isPathLoading}
+            >
+              Set Default Paths
+            </button>
+
+            {docsPathsMessage && (
+              <div
+                className={
+                  docsPathsMessage.type === 'success' ? styles.successMessage : styles.errorMessage
+                }
+              >
+                {docsPathsMessage.text}
               </div>
             )}
           </div>

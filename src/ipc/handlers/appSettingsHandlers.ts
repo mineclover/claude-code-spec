@@ -83,4 +83,32 @@ export function registerAppSettingsHandlers(
   router.handle('get-default-mcp-resource-paths', async () => {
     return settingsService.getDefaultMcpResourcePaths();
   });
+
+  // Document paths handlers
+  router.handle('get-claude-docs-path', async () => {
+    return settingsService.getClaudeDocsPath();
+  });
+
+  router.handle('set-claude-docs-path', async (_event, docsPath: string) => {
+    settingsService.setClaudeDocsPath(docsPath);
+    return { success: true };
+  });
+
+  router.handle('get-controller-docs-path', async () => {
+    return settingsService.getControllerDocsPath();
+  });
+
+  router.handle('set-controller-docs-path', async (_event, docsPath: string) => {
+    settingsService.setControllerDocsPath(docsPath);
+    return { success: true };
+  });
+
+  router.handle('get-metadata-path', async () => {
+    return settingsService.getMetadataPath();
+  });
+
+  router.handle('set-metadata-path', async (_event, metadataPath: string) => {
+    settingsService.setMetadataPath(metadataPath);
+    return { success: true };
+  });
 }

@@ -18,19 +18,35 @@ export const ClaudeDocsPage: React.FC = () => {
   const [content, setContent] = useState<string>('');
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [docsRoot, setDocsRoot] = useState<string>('');
 
-  const DOCS_ROOT = '/Users/junwoobang/project/claude-code-spec/docs/claude-context';
+  // Load docs path from settings
+  useEffect(() => {
+    const loadDocsPath = async () => {
+      try {
+        const savedPath = await window.appSettingsAPI.getClaudeDocsPath();
+        const defaultPaths = await window.appSettingsAPI.getDefaultPaths();
+        const pathToUse = savedPath || defaultPaths.claudeDocsPath;
+        setDocsRoot(pathToUse);
+      } catch (error) {
+        console.error('Failed to load docs path:', error);
+      }
+    };
+    loadDocsPath();
+  }, []);
 
   const loadFileTree = useCallback(async () => {
+    if (!docsRoot) return;
+
     try {
-      const tree = await window.docsAPI.readDocsStructure(DOCS_ROOT);
+      const tree = await window.docsAPI.readDocsStructure(docsRoot);
       setFileTree(tree);
       // Expand root level by default
-      setExpandedDirs(new Set([DOCS_ROOT]));
+      setExpandedDirs(new Set([docsRoot]));
     } catch (error) {
       console.error('Failed to load docs structure:', error);
     }
-  }, [DOCS_ROOT]);
+  }, [docsRoot]);
 
   useEffect(() => {
     loadFileTree();

@@ -23,5 +23,16 @@ export function exposeAppSettingsAPI(): void {
     getDefaultPaths: () => ipcRenderer.invoke('app-settings:get-default-paths'),
     getDefaultMcpResourcePaths: () =>
       ipcRenderer.invoke('app-settings:get-default-mcp-resource-paths'),
+
+    // Document paths
+    getClaudeDocsPath: () => ipcRenderer.invoke('app-settings:get-claude-docs-path'),
+    setClaudeDocsPath: (path: string) =>
+      ipcRenderer.invoke('app-settings:set-claude-docs-path', path),
+    getControllerDocsPath: () => ipcRenderer.invoke('app-settings:get-controller-docs-path'),
+    setControllerDocsPath: (path: string) =>
+      ipcRenderer.invoke('app-settings:set-controller-docs-path', path),
+    getMetadataPath: () => ipcRenderer.invoke('app-settings:get-metadata-path'),
+    setMetadataPath: (path: string) =>
+      ipcRenderer.invoke('app-settings:set-metadata-path', path),
   } as AppSettingsAPI);
 }

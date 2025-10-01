@@ -3,11 +3,19 @@ export interface AppSettings {
   currentProjectPath?: string;
   currentProjectDirName?: string;
   mcpResourcePaths?: string[]; // Additional MCP config file paths
+
+  // Document paths
+  claudeDocsPath?: string; // Claude documentation root path
+  controllerDocsPath?: string; // Controller documentation root path
+  metadataPath?: string; // Metadata directory path
 }
 
 export interface DefaultPaths {
   claudeProjectsPath: string;
   mcpConfigPath: string;
+  claudeDocsPath: string;
+  controllerDocsPath: string;
+  metadataPath: string;
 }
 
 export interface AppSettingsAPI {
@@ -24,4 +32,12 @@ export interface AppSettingsAPI {
   removeMcpResourcePath: (path: string) => Promise<{ success: boolean }>;
   getDefaultPaths: () => Promise<DefaultPaths>;
   getDefaultMcpResourcePaths: () => Promise<string[]>;
+
+  // Document paths
+  getClaudeDocsPath: () => Promise<string | undefined>;
+  setClaudeDocsPath: (path: string) => Promise<{ success: boolean }>;
+  getControllerDocsPath: () => Promise<string | undefined>;
+  setControllerDocsPath: (path: string) => Promise<{ success: boolean }>;
+  getMetadataPath: () => Promise<string | undefined>;
+  setMetadataPath: (path: string) => Promise<{ success: boolean }>;
 }

@@ -12,6 +12,11 @@ interface AppSettings {
   currentProjectPath?: string;
   currentProjectDirName?: string;
   mcpResourcePaths?: string[]; // Additional MCP config file paths
+
+  // Document paths
+  claudeDocsPath?: string;
+  controllerDocsPath?: string;
+  metadataPath?: string;
 }
 
 export class SettingsService {
@@ -112,9 +117,20 @@ export class SettingsService {
   }
 
   // Get OS-specific default paths
-  getDefaultPaths(): { claudeProjectsPath: string; mcpConfigPath: string } {
+  getDefaultPaths(): {
+    claudeProjectsPath: string;
+    mcpConfigPath: string;
+    claudeDocsPath: string;
+    controllerDocsPath: string;
+    metadataPath: string;
+  } {
     const homeDir = app.getPath('home');
     const platform = process.platform;
+
+    // Get project root - use app path in development, user's home in production
+    const isDev = !app.isPackaged;
+    const appPath = app.getAppPath();
+    const projectRoot = isDev ? appPath : path.join(homeDir, 'Documents', 'claude-code-spec');
 
     let claudeProjectsPath: string;
     let mcpConfigPath: string;
@@ -129,7 +145,18 @@ export class SettingsService {
       mcpConfigPath = `${homeDir}/.claude.json`;
     }
 
-    return { claudeProjectsPath, mcpConfigPath };
+    // Document paths (relative to project root)
+    const claudeDocsPath = path.join(projectRoot, 'docs', 'claude-context');
+    const controllerDocsPath = path.join(projectRoot, 'docs', 'controller-docs');
+    const metadataPath = path.join(projectRoot, 'docs', 'claude-context-meta');
+
+    return {
+      claudeProjectsPath,
+      mcpConfigPath,
+      claudeDocsPath,
+      controllerDocsPath,
+      metadataPath,
+    };
   }
 
   // Get default MCP resource path (the standard ~/.claude.json location)
@@ -144,6 +171,34 @@ export class SettingsService {
       // macOS/Linux: ~/.claude.json
       return [`${homeDir}/.claude.json`];
     }
+  }
+
+  // Document paths methods
+  getClaudeDocsPath(): string | undefined {
+    return this.settings.claudeDocsPath;
+  }
+
+  setClaudeDocsPath(docsPath: string): void {
+    this.settings.claudeDocsPath = docsPath;
+    this.saveSettings();
+  }
+
+  getControllerDocsPath(): string | undefined {
+    return this.settings.controllerDocsPath;
+  }
+
+  setControllerDocsPath(docsPath: string): void {
+    this.settings.controllerDocsPath = docsPath;
+    this.saveSettings();
+  }
+
+  getMetadataPath(): string | undefined {
+    return this.settings.metadataPath;
+  }
+
+  setMetadataPath(metadataPath: string): void {
+    this.settings.metadataPath = metadataPath;
+    this.saveSettings();
   }
 }
 

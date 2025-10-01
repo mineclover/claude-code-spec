@@ -6,10 +6,9 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import type { SettingsService } from '../../services/appSettings';
 import type { DocumentImprovement, DocumentMetadata, DocumentReview } from '../../types/metadata';
 import type { IPCRouter } from '../IPCRouter';
-
-const META_DIR = '/Users/junwoobang/project/claude-code-spec/docs/claude-context-meta';
 
 // Convert file path to metadata file name
 function getMetaFileName(filePath: string): string {
@@ -17,14 +16,14 @@ function getMetaFileName(filePath: string): string {
   return `${hash}.json`;
 }
 
-async function getMetaFilePath(filePath: string): Promise<string> {
-  await fs.mkdir(META_DIR, { recursive: true });
-  return path.join(META_DIR, getMetaFileName(filePath));
+async function getMetaFilePath(metaDir: string, filePath: string): Promise<string> {
+  await fs.mkdir(metaDir, { recursive: true });
+  return path.join(metaDir, getMetaFileName(filePath));
 }
 
-async function loadMetadata(filePath: string): Promise<DocumentMetadata | null> {
+async function loadMetadata(metaDir: string, filePath: string): Promise<DocumentMetadata | null> {
   try {
-    const metaFilePath = await getMetaFilePath(filePath);
+    const metaFilePath = await getMetaFilePath(metaDir, filePath);
     const content = await fs.readFile(metaFilePath, 'utf-8');
     return JSON.parse(content);
   } catch (_error) {
@@ -33,8 +32,8 @@ async function loadMetadata(filePath: string): Promise<DocumentMetadata | null> 
   }
 }
 
-async function saveMetadata(metadata: DocumentMetadata): Promise<void> {
-  const metaFilePath = await getMetaFilePath(metadata.filePath);
+async function saveMetadata(metaDir: string, metadata: DocumentMetadata): Promise<void> {
+  const metaFilePath = await getMetaFilePath(metaDir, metadata.filePath);
   await fs.writeFile(metaFilePath, JSON.stringify(metadata, null, 2), 'utf-8');
 }
 
@@ -50,11 +49,21 @@ function createDefaultMetadata(filePath: string): DocumentMetadata {
   };
 }
 
-export function registerMetadataHandlers(router: IPCRouter): void {
+export function registerMetadataHandlers(router: IPCRouter, settingsService: SettingsService): void {
+  // Helper to get metadata path from settings
+  const getMetaDir = (): string => {
+    const savedPath = settingsService.getMetadataPath();
+    if (savedPath) return savedPath;
+
+    const defaultPaths = settingsService.getDefaultPaths();
+    return defaultPaths.metadataPath;
+  };
+
   // Get metadata for a document
   router.handle('get', async (_event, filePath: string) => {
     try {
-      const metadata = await loadMetadata(filePath);
+      const metaDir = getMetaDir();
+      const metadata = await loadMetadata(metaDir, filePath);
       return metadata || createDefaultMetadata(filePath);
     } catch (error) {
       console.error(`Error loading metadata for ${filePath}:`, error);
@@ -65,8 +74,9 @@ export function registerMetadataHandlers(router: IPCRouter): void {
   // Save complete metadata
   router.handle('save', async (_event, metadata: DocumentMetadata) => {
     try {
+      const metaDir = getMetaDir();
       metadata.lastUpdated = Date.now();
-      await saveMetadata(metadata);
+      await saveMetadata(metaDir, metadata);
       return { success: true };
     } catch (error) {
       console.error(`Error saving metadata:`, error);
@@ -79,7 +89,8 @@ export function registerMetadataHandlers(router: IPCRouter): void {
     'add-review',
     async (_event, filePath: string, review: Omit<DocumentReview, 'id' | 'timestamp'>) => {
       try {
-        const metadata = (await loadMetadata(filePath)) || createDefaultMetadata(filePath);
+        const metaDir = getMetaDir();
+        const metadata = (await loadMetadata(metaDir, filePath)) || createDefaultMetadata(filePath);
 
         const newReview: DocumentReview = {
           ...review,
@@ -93,7 +104,7 @@ export function registerMetadataHandlers(router: IPCRouter): void {
         const totalRating = metadata.reviews.reduce((sum, r) => sum + r.rating, 0);
         metadata.rating = totalRating / metadata.reviews.length;
 
-        await saveMetadata(metadata);
+        await saveMetadata(metaDir, metadata);
         return { success: true, review: newReview };
       } catch (error) {
         console.error(`Error adding review:`, error);
@@ -111,7 +122,8 @@ export function registerMetadataHandlers(router: IPCRouter): void {
       improvement: Omit<DocumentImprovement, 'id' | 'timestamp'>,
     ) => {
       try {
-        const metadata = (await loadMetadata(filePath)) || createDefaultMetadata(filePath);
+        const metaDir = getMetaDir();
+        const metadata = (await loadMetadata(metaDir, filePath)) || createDefaultMetadata(filePath);
 
         const newImprovement: DocumentImprovement = {
           ...improvement,
@@ -120,7 +132,7 @@ export function registerMetadataHandlers(router: IPCRouter): void {
         };
 
         metadata.improvements.push(newImprovement);
-        await saveMetadata(metadata);
+        await saveMetadata(metaDir, metadata);
         return { success: true, improvement: newImprovement };
       } catch (error) {
         console.error(`Error adding improvement:`, error);
@@ -132,9 +144,10 @@ export function registerMetadataHandlers(router: IPCRouter): void {
   // Update tags
   router.handle('update-tags', async (_event, filePath: string, tags: string[]) => {
     try {
-      const metadata = (await loadMetadata(filePath)) || createDefaultMetadata(filePath);
+      const metaDir = getMetaDir();
+      const metadata = (await loadMetadata(metaDir, filePath)) || createDefaultMetadata(filePath);
       metadata.tags = tags;
-      await saveMetadata(metadata);
+      await saveMetadata(metaDir, metadata);
       return { success: true };
     } catch (error) {
       console.error(`Error updating tags:`, error);
@@ -145,9 +158,10 @@ export function registerMetadataHandlers(router: IPCRouter): void {
   // Update search keywords
   router.handle('update-keywords', async (_event, filePath: string, keywords: string[]) => {
     try {
-      const metadata = (await loadMetadata(filePath)) || createDefaultMetadata(filePath);
+      const metaDir = getMetaDir();
+      const metadata = (await loadMetadata(metaDir, filePath)) || createDefaultMetadata(filePath);
       metadata.searchKeywords = keywords;
-      await saveMetadata(metadata);
+      await saveMetadata(metaDir, metadata);
       return { success: true };
     } catch (error) {
       console.error(`Error updating keywords:`, error);
@@ -165,7 +179,8 @@ export function registerMetadataHandlers(router: IPCRouter): void {
       status: 'pending' | 'in-progress' | 'completed',
     ) => {
       try {
-        const metadata = await loadMetadata(filePath);
+        const metaDir = getMetaDir();
+        const metadata = await loadMetadata(metaDir, filePath);
         if (!metadata) {
           return { success: false, error: 'Metadata not found' };
         }
@@ -176,7 +191,7 @@ export function registerMetadataHandlers(router: IPCRouter): void {
         }
 
         improvement.status = status;
-        await saveMetadata(metadata);
+        await saveMetadata(metaDir, metadata);
         return { success: true };
       } catch (error) {
         console.error(`Error updating improvement status:`, error);
@@ -188,13 +203,14 @@ export function registerMetadataHandlers(router: IPCRouter): void {
   // Search documents by tags or keywords
   router.handle('search', async (_event, query: string) => {
     try {
-      const files = await fs.readdir(META_DIR);
+      const metaDir = getMetaDir();
+      const files = await fs.readdir(metaDir);
       const results: Array<{ filePath: string; metadata: DocumentMetadata }> = [];
 
       for (const file of files) {
         if (!file.endsWith('.json') || file.startsWith('.')) continue;
 
-        const content = await fs.readFile(path.join(META_DIR, file), 'utf-8');
+        const content = await fs.readFile(path.join(metaDir, file), 'utf-8');
         const metadata: DocumentMetadata = JSON.parse(content);
 
         const searchString = [...metadata.tags, ...metadata.searchKeywords, metadata.filePath]

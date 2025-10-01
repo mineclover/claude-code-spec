@@ -56,7 +56,7 @@ export function setupIPCHandlers(): void {
 
   // Metadata handlers
   const metadataRouter = ipcRegistry.router('metadata');
-  registerMetadataHandlers(metadataRouter);
+  registerMetadataHandlers(metadataRouter, settingsService);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }

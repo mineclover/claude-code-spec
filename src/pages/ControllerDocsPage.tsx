@@ -5,14 +5,31 @@ import styles from './ControllerDocsPage.module.css';
 export const ControllerDocsPage: React.FC = () => {
   const [glossary, setGlossary] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [docsPath, setDocsPath] = useState<string>('');
 
-  const GLOSSARY_PATH =
-    '/Users/junwoobang/project/claude-code-spec/docs/controller-docs/glossary.md';
+  // Load docs path from settings
+  useEffect(() => {
+    const loadDocsPath = async () => {
+      try {
+        const savedPath = await window.appSettingsAPI.getControllerDocsPath();
+        const defaultPaths = await window.appSettingsAPI.getDefaultPaths();
+        const pathToUse = savedPath || defaultPaths.controllerDocsPath;
+        setDocsPath(pathToUse);
+      } catch (error) {
+        console.error('Failed to load docs path:', error);
+      }
+    };
+    loadDocsPath();
+  }, []);
 
   const loadGlossary = useCallback(async () => {
+    if (!docsPath) return;
+
     setLoading(true);
     try {
-      const content = await window.docsAPI.readDocsFile(GLOSSARY_PATH);
+      // Construct glossary path: docsPath + '/glossary.md'
+      const glossaryPath = `${docsPath}/glossary.md`;
+      const content = await window.docsAPI.readDocsFile(glossaryPath);
       setGlossary(content);
     } catch (error) {
       console.error('Failed to load glossary:', error);
@@ -20,7 +37,7 @@ export const ControllerDocsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [GLOSSARY_PATH]);
+  }, [docsPath]);
 
   useEffect(() => {
     loadGlossary();
