@@ -165,6 +165,14 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
     }
   };
 
+  const handleRefreshSessions = async () => {
+    if (!selectedProject) return;
+
+    // Clear cache for this project's sessions and reload
+    await clearSessionsPagesCache(selectedProject.projectPath);
+    await loadSessions(sessionsPage);
+  };
+
   // Show log viewer if viewing logs
   if (viewingLogs && selectedSession && selectedProject) {
     return (
@@ -181,10 +189,17 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
     return (
       <div className={styles.container}>
         <div className={styles.header}>
-          <button type="button" onClick={handleBackToProjects} className={styles.backButton}>
-            ← Back to Projects
-          </button>
+          <div className={styles.headerLeft}>
+            <button type="button" onClick={handleBackToProjects} className={styles.backButton}>
+              ← Back to Projects
+            </button>
+          </div>
           <h3>{selectedProject.projectPath}</h3>
+          <div className={styles.headerRight}>
+            <button type="button" onClick={handleRefreshSessions} className={styles.button}>
+              Refresh
+            </button>
+          </div>
         </div>
 
         <div className={styles.sessionsGrid}>

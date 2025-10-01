@@ -19,6 +19,23 @@
   margin: 0;
   font-size: 18px;
   color: #212529;
+  flex: 1;
+  text-align: center;
+}
+
+.headerLeft,
+.headerRight {
+  min-width: 120px;
+}
+
+.headerLeft {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.headerRight {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .headerControls {
