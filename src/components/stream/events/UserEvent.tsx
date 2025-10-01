@@ -14,12 +14,32 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
   if (Array.isArray(content)) {
     return (
       <EventBox type="user" icon="🔧" title="Tool Result" rawData={event}>
-        {content.map((item, idx) => (
-          <div key={idx} className={styles.toolResult}>
-            <div className={styles.toolId}>Tool: {item.tool_use_id}</div>
-            <pre className={styles.toolContent}>{item.content}</pre>
-          </div>
-        ))}
+        {content.map((item, idx) => {
+          // Safely extract text from content that might be a string or object
+          const extractContent = (content: any): string => {
+            if (typeof content === 'string') {
+              return content;
+            }
+            if (typeof content === 'object' && content !== null) {
+              // Handle text block objects like {type: 'text', text: '...'}
+              if (content.type === 'text' && typeof content.text === 'string') {
+                return content.text;
+              }
+              // Otherwise stringify the object
+              return JSON.stringify(content, null, 2);
+            }
+            return String(content);
+          };
+
+          const displayContent = extractContent(item.content);
+
+          return (
+            <div key={idx} className={styles.toolResult}>
+              <div className={styles.toolId}>Tool: {item.tool_use_id}</div>
+              <pre className={styles.toolContent}>{displayContent}</pre>
+            </div>
+          );
+        })}
       </EventBox>
     );
   }
