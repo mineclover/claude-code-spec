@@ -34,6 +34,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
     text: string;
   } | null>(null);
 
+  // Settings file location
+  const [settingsFilePath, setSettingsFilePath] = useState<string>('');
+
   // Legacy project settings states (only used if projectPath is provided)
   const [settings, setSettings] = useState<ProjectSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +63,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
       setClaudeDocsPath(claudeDocs || '');
       setControllerDocsPath(controllerDocs || '');
       setMetadataPath(metadata || '');
+
+      // Load settings file path
+      const settingsPath = await window.appSettingsAPI.getSettingsPath();
+      setSettingsFilePath(settingsPath);
     } catch (error) {
       console.error('Failed to load app settings:', error);
     } finally {
@@ -284,6 +291,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
         <div className={styles.header}>
           <h2>Application Settings</h2>
         </div>
+
+        {/* Settings File Location Info */}
+        {settingsFilePath && (
+          <div className={styles.settingsInfo}>
+            <div className={styles.infoLabel}>Settings File Location:</div>
+            <div className={styles.infoValue}>{settingsFilePath}</div>
+          </div>
+        )}
 
         <div className={styles.settingsSection}>
           <div className={styles.settingItem}>

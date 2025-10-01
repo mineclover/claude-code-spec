@@ -26,7 +26,16 @@ export class SettingsService {
   constructor() {
     const userDataPath = app.getPath('userData');
     this.settingsPath = path.join(userDataPath, 'app-settings.json');
+    this.ensureDirectoryExists();
     this.loadSettings();
+  }
+
+  private ensureDirectoryExists(): void {
+    const dir = path.dirname(this.settingsPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      console.log(`[SettingsService] Created settings directory: ${dir}`);
+    }
   }
 
   private loadSettings(): void {
@@ -43,10 +52,15 @@ export class SettingsService {
 
   private saveSettings(): void {
     try {
+      this.ensureDirectoryExists();
       fs.writeFileSync(this.settingsPath, JSON.stringify(this.settings, null, 2), 'utf-8');
     } catch (error) {
       console.error('Failed to save settings:', error);
     }
+  }
+
+  getSettingsPath(): string {
+    return this.settingsPath;
   }
 
   getClaudeProjectsPath(): string | undefined {

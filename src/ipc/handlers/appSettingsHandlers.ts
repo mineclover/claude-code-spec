@@ -15,6 +15,11 @@ export function registerAppSettingsHandlers(
     return settingsService.getAllSettings();
   });
 
+  // Get settings file path
+  router.handle('get-settings-path', async () => {
+    return settingsService.getSettingsPath();
+  });
+
   // Get Claude projects path
   router.handle('get-claude-projects-path', async () => {
     return settingsService.getClaudeProjectsPath();

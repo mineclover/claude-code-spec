@@ -20,6 +20,7 @@ export interface DefaultPaths {
 
 export interface AppSettingsAPI {
   getAllSettings: () => Promise<AppSettings>;
+  getSettingsPath: () => Promise<string>;
   getClaudeProjectsPath: () => Promise<string | undefined>;
   setClaudeProjectsPath: (path: string) => Promise<{ success: boolean }>;
   getCurrentProjectPath: () => Promise<string | undefined>;

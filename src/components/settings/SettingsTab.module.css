@@ -304,3 +304,42 @@
   font-size: 13px;
   font-style: italic;
 }
+
+/* Settings File Location Info */
+.settingsInfo {
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: #252525;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.infoLabel {
+  font-weight: 600;
+  color: #888;
+  margin-bottom: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.infoValue {
+  font-family: "SF Mono", Monaco, monospace;
+  color: #d4d4d4;
+  word-break: break-all;
+}
+
+/* Document Paths */
+.docPathSection {
+  margin-top: 16px;
+  margin-bottom: 12px;
+}
+
+.docPathLabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #b0b0b0;
+}

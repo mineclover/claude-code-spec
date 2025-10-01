@@ -1,8 +1,8 @@
 {
-  "name": "my-app",
-  "productName": "my-app",
+  "name": "claude-code-spec",
+  "productName": "Claude Code Spec",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Claude CLI Analytics & Control Platform",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",

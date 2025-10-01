@@ -4,6 +4,7 @@ import type { AppSettingsAPI } from '../../types/api';
 export function exposeAppSettingsAPI(): void {
   contextBridge.exposeInMainWorld('appSettingsAPI', {
     getAllSettings: () => ipcRenderer.invoke('app-settings:get-all'),
+    getSettingsPath: () => ipcRenderer.invoke('app-settings:get-settings-path'),
     getClaudeProjectsPath: () => ipcRenderer.invoke('app-settings:get-claude-projects-path'),
     setClaudeProjectsPath: (path: string) =>
       ipcRenderer.invoke('app-settings:set-claude-projects-path', path),
