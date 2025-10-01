@@ -6,14 +6,45 @@ import { SessionManager } from './lib/SessionManager';
 import type { StreamEvent } from './lib/StreamParser';
 import { extractSessionId, isResultEvent, isSystemInitEvent } from './lib/types';
 import {
+  addBookmark,
+  clearAllBookmarks,
+  deleteBookmark,
+  exportBookmarks,
+  getAllBookmarks,
+  getBookmark,
+  getBookmarksByProject,
+  getBookmarksByTag,
+  importBookmarks,
+  searchBookmarks,
+  updateBookmark,
+} from './services/bookmarks';
+import {
+  getAllClaudeProjects,
+  getProjectSessions,
+  getSessionSummary,
+  readSessionLog,
+} from './services/claudeSessions';
+import {
   analyzeLogFile,
   createConfig,
   createSessionLogger,
   exportLogsAsJSON,
+  getLogFileForSession,
   getLogFiles,
   readLogFile,
   rotateLogFiles,
 } from './services/logger';
+import {
+  createBackup,
+  deleteSettingsFile,
+  findSettingsFiles,
+  loadBackupFromFile,
+  readSettingsFile,
+  restoreBackup,
+  saveBackupToFile,
+  validateMcpJson,
+  writeSettingsFile,
+} from './services/settings';
 
 if (started) {
   app.quit();
@@ -213,3 +244,155 @@ ipcMain.handle('logger:rotate', async () => {
   rotateLogFiles(loggerConfig);
   return { success: true };
 });
+
+// Get log file path for session
+ipcMain.handle('logger:get-session-log', async (_event, sessionId: string) => {
+  return getLogFileForSession(loggerConfig, sessionId);
+});
+
+// Read session log entries
+ipcMain.handle('logger:read-session-log', async (_event, sessionId: string) => {
+  const logFile = getLogFileForSession(loggerConfig, sessionId);
+  if (!logFile) {
+    return [];
+  }
+  return readLogFile(logFile);
+});
+
+// ============================================================================
+// Settings IPC Handlers
+// ============================================================================
+
+// Find all settings files in project
+ipcMain.handle('settings:find-files', async (_event, projectPath: string) => {
+  return findSettingsFiles(projectPath);
+});
+
+// Create backup of current settings
+ipcMain.handle('settings:create-backup', async (_event, projectPath: string) => {
+  return createBackup(projectPath);
+});
+
+// Save backup to file
+ipcMain.handle('settings:save-backup', async (_event, backup: unknown, filePath: string) => {
+  return saveBackupToFile(backup, filePath);
+});
+
+// Load backup from file
+ipcMain.handle('settings:load-backup', async (_event, filePath: string) => {
+  return loadBackupFromFile(filePath);
+});
+
+// Restore backup to project
+ipcMain.handle('settings:restore-backup', async (_event, backup: unknown) => {
+  return restoreBackup(backup);
+});
+
+// Read settings file
+ipcMain.handle('settings:read-file', async (_event, filePath: string) => {
+  return readSettingsFile(filePath);
+});
+
+// Write settings file
+ipcMain.handle('settings:write-file', async (_event, filePath: string, content: string) => {
+  return writeSettingsFile(filePath, content);
+});
+
+// Delete settings file
+ipcMain.handle('settings:delete-file', async (_event, filePath: string) => {
+  return deleteSettingsFile(filePath);
+});
+
+// Validate MCP JSON
+ipcMain.handle('settings:validate-mcp-json', async (_event, content: string) => {
+  return validateMcpJson(content);
+});
+
+// ============================================================================
+// Bookmarks IPC Handlers
+// ============================================================================
+
+// Get all bookmarks
+ipcMain.handle('bookmarks:get-all', async () => {
+  return getAllBookmarks();
+});
+
+// Get single bookmark
+ipcMain.handle('bookmarks:get', async (_event, id: string) => {
+  return getBookmark(id);
+});
+
+// Add new bookmark
+ipcMain.handle('bookmarks:add', async (_event, bookmark: unknown) => {
+  return addBookmark(bookmark as Parameters<typeof addBookmark>[0]);
+});
+
+// Update bookmark
+ipcMain.handle('bookmarks:update', async (_event, id: string, updates: unknown) => {
+  return updateBookmark(id, updates as Parameters<typeof updateBookmark>[1]);
+});
+
+// Delete bookmark
+ipcMain.handle('bookmarks:delete', async (_event, id: string) => {
+  return deleteBookmark(id);
+});
+
+// Search bookmarks
+ipcMain.handle('bookmarks:search', async (_event, query: string) => {
+  return searchBookmarks(query);
+});
+
+// Get bookmarks by project
+ipcMain.handle('bookmarks:get-by-project', async (_event, projectPath: string) => {
+  return getBookmarksByProject(projectPath);
+});
+
+// Get bookmarks by tag
+ipcMain.handle('bookmarks:get-by-tag', async (_event, tag: string) => {
+  return getBookmarksByTag(tag);
+});
+
+// Clear all bookmarks
+ipcMain.handle('bookmarks:clear-all', async () => {
+  return clearAllBookmarks();
+});
+
+// Export bookmarks
+ipcMain.handle('bookmarks:export', async (_event, outputPath: string) => {
+  return exportBookmarks(outputPath);
+});
+
+// Import bookmarks
+ipcMain.handle('bookmarks:import', async (_event, inputPath: string, merge = true) => {
+  return importBookmarks(inputPath, merge);
+});
+
+// ============================================================================
+// Claude Sessions IPC Handlers
+// ============================================================================
+
+// Get all Claude projects with sessions
+ipcMain.handle('claude-sessions:get-all-projects', async () => {
+  return getAllClaudeProjects();
+});
+
+// Get sessions for a specific project
+ipcMain.handle('claude-sessions:get-project-sessions', async (_event, projectPath: string) => {
+  return getProjectSessions(projectPath);
+});
+
+// Read session log
+ipcMain.handle(
+  'claude-sessions:read-log',
+  async (_event, projectPath: string, sessionId: string) => {
+    return readSessionLog(projectPath, sessionId);
+  },
+);
+
+// Get session summary
+ipcMain.handle(
+  'claude-sessions:get-summary',
+  async (_event, projectPath: string, sessionId: string) => {
+    return getSessionSummary(projectPath, sessionId);
+  },
+);

@@ -1,0 +1,177 @@
+.container {
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+  background: #1e1e1e;
+  color: #d4d4d4;
+}
+
+.header {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.header h3 {
+  margin: 0 0 15px 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.searchBox {
+  display: flex;
+  gap: 8px;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 8px 12px;
+  background: #252526;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #d4d4d4;
+  font-size: 14px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #0e639c;
+}
+
+.searchButton,
+.clearButton {
+  padding: 8px 16px;
+  background: #0e639c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.searchButton:hover,
+.clearButton:hover {
+  background: #1177bb;
+}
+
+.clearButton {
+  background: #555;
+}
+
+.clearButton:hover {
+  background: #666;
+}
+
+.empty {
+  text-align: center;
+  padding: 40px;
+  color: #858585;
+  font-size: 16px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.bookmarkItem {
+  background: #252526;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 15px;
+}
+
+.bookmarkHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.description {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.timestamp {
+  font-size: 12px;
+  color: #858585;
+}
+
+.bookmarkBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sessionId,
+.query {
+  font-size: 13px;
+  color: #d4d4d4;
+}
+
+.sessionId code,
+.query code {
+  background: #1e1e1e;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  color: #4ec9b0;
+}
+
+.tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  display: inline-block;
+  padding: 3px 8px;
+  background: #0e639c;
+  color: white;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.bookmarkActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.resumeButton,
+.deleteButton {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.resumeButton {
+  background: #0e639c;
+  color: white;
+}
+
+.resumeButton:hover {
+  background: #1177bb;
+}
+
+.deleteButton {
+  background: #3c3c3c;
+  color: #d4d4d4;
+  border: 1px solid #555;
+}
+
+.deleteButton:hover {
+  background: #d32f2f;
+  border-color: #d32f2f;
+  color: white;
+}

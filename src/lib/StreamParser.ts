@@ -36,12 +36,20 @@ export class StreamParser {
       const trimmedLine = line.trim();
       if (!trimmedLine) continue;
 
+      // Remove ANSI escape sequences (e.g., cursor control, colors)
+      // Pattern: ESC [ ... letter or ESC ) letter
+      const cleanedLine = trimmedLine.replace(
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences
+        /\x1b\[[0-9;?]*[a-zA-Z]|\x1b\)[a-zA-Z]/g,
+        '',
+      );
+
       // Only try to parse if line looks like it starts with JSON
-      if (trimmedLine.startsWith('{') || trimmedLine.startsWith('[')) {
-        this.parseLine(trimmedLine);
-      } else {
+      if (cleanedLine.startsWith('{') || cleanedLine.startsWith('[')) {
+        this.parseLine(cleanedLine);
+      } else if (cleanedLine) {
         // Non-JSON output (e.g., debug messages, warnings)
-        console.log('[StreamParser] Non-JSON output:', trimmedLine);
+        console.log('[StreamParser] Non-JSON output:', cleanedLine);
       }
     }
   }

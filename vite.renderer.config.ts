@@ -7,12 +7,19 @@ export default defineConfig({
     include: /src\/.*\.[tj]sx?$/,
   },
   optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime'],
     esbuildOptions: {
       loader: {
         '.js': 'jsx',
         '.ts': 'tsx',
         '.tsx': 'tsx',
       },
+    },
+  },
+  server: {
+    strictPort: false,
+    hmr: {
+      overlay: false,
     },
   },
 });

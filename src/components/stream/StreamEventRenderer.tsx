@@ -1,11 +1,18 @@
 import type React from 'react';
 import type { StreamEvent } from '../../lib/types';
-import { isAssistantEvent, isErrorEvent, isResultEvent, isSystemInitEvent } from '../../lib/types';
+import {
+  isAssistantEvent,
+  isErrorEvent,
+  isResultEvent,
+  isSystemInitEvent,
+  isUserEvent,
+} from '../../lib/types';
 import { AssistantEvent } from './events/AssistantEvent';
 import { ErrorEvent } from './events/ErrorEvent';
 import { ResultEvent } from './events/ResultEvent';
 import { SystemInitEvent } from './events/SystemInitEvent';
 import { UnknownEvent } from './events/UnknownEvent';
+import { UserEvent } from './events/UserEvent';
 
 interface StreamEventRendererProps {
   event: StreamEvent;
@@ -16,6 +23,10 @@ export const StreamEventRenderer: React.FC<StreamEventRendererProps> = ({ event,
   // Use type guards for routing
   if (isSystemInitEvent(event)) {
     return <SystemInitEvent key={index} event={event} />;
+  }
+
+  if (isUserEvent(event)) {
+    return <UserEvent key={index} event={event} />;
   }
 
   if (isAssistantEvent(event)) {

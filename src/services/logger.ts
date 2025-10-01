@@ -89,6 +89,33 @@ export const getLogFiles = (config: LoggerConfig): string[] => {
   }
 };
 
+/**
+ * Get log file path for a specific session ID
+ */
+export const getLogFileForSession = (config: LoggerConfig, sessionId: string): string | null => {
+  try {
+    const files = fs.readdirSync(config.logDir).filter((file) => file.includes(sessionId));
+
+    if (files.length === 0) {
+      return null;
+    }
+
+    // Return the most recent file if multiple exist
+    const sorted = files
+      .map((file) => path.join(config.logDir, file))
+      .sort((a, b) => {
+        const statA = fs.statSync(a);
+        const statB = fs.statSync(b);
+        return statB.mtime.getTime() - statA.mtime.getTime();
+      });
+
+    return sorted[0];
+  } catch (error) {
+    console.error('[Logger] Failed to get log file for session:', error);
+    return null;
+  }
+};
+
 // ============================================================================
 // Stream Operations
 // ============================================================================

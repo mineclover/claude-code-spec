@@ -1,0 +1,17 @@
+.container {
+  height: 100%;
+  background: #fff;
+  padding: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6c757d;
+  font-size: 14px;
+}

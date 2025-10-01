@@ -1,4 +1,4 @@
-import type { ClaudeAPI, LoggerAPI, SessionInfo } from './preload';
+import type { BookmarksAPI, ClaudeAPI, LoggerAPI, SessionInfo, SettingsAPI } from './preload';
 import type { LogEntry } from './services/logger';
 import type { StreamEvent } from './lib/types';
 
@@ -6,6 +6,8 @@ declare global {
   interface Window {
     claudeAPI: ClaudeAPI;
     loggerAPI: LoggerAPI;
+    settingsAPI: SettingsAPI;
+    bookmarksAPI: BookmarksAPI;
   }
 
   // Vite environment variables for Electron Forge

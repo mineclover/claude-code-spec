@@ -1,0 +1,55 @@
+.commandOutput {
+  font-family: "SF Mono", Monaco, monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #212529;
+  background-color: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 0;
+  border: 1px solid #e9ecef;
+}
+
+.content {
+  font-size: 13px;
+  color: #212529;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.toolResult {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.toolResult:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.toolId {
+  font-size: 11px;
+  color: #6c757d;
+  margin-bottom: 6px;
+  font-family: "SF Mono", Monaco, monospace;
+}
+
+.toolContent {
+  font-family: "SF Mono", Monaco, monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #212529;
+  background-color: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+  border: 1px solid #e9ecef;
+}

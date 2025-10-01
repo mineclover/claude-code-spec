@@ -36,6 +36,29 @@ export interface SystemInitEvent {
 }
 
 // ============================================================================
+// User Events
+// ============================================================================
+
+export interface ToolResultContent {
+  type: 'tool_result';
+  tool_use_id: string;
+  content: string;
+}
+
+export interface UserMessage {
+  role: 'user';
+  content: string | ToolResultContent[];
+}
+
+export interface UserEvent {
+  type: 'user';
+  message: UserMessage;
+  session_id: string;
+  parent_tool_use_id: string | null;
+  uuid: string;
+}
+
+// ============================================================================
 // Assistant Events
 // ============================================================================
 
@@ -146,6 +169,7 @@ export interface ErrorEvent {
 
 export type StreamEvent =
   | SystemInitEvent
+  | UserEvent
   | AssistantEvent
   | ResultEvent
   | ErrorEvent
@@ -157,6 +181,10 @@ export type StreamEvent =
 
 export function isSystemInitEvent(event: StreamEvent): event is SystemInitEvent {
   return event.type === 'system' && 'subtype' in event && event.subtype === 'init';
+}
+
+export function isUserEvent(event: StreamEvent): event is UserEvent {
+  return event.type === 'user' && 'message' in event;
 }
 
 export function isAssistantEvent(event: StreamEvent): event is AssistantEvent {

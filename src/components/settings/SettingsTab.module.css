@@ -1,0 +1,114 @@
+.container {
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+  background: #1e1e1e;
+  color: #d4d4d4;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.button {
+  padding: 8px 16px;
+  background: #0e639c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.button:hover {
+  background: #1177bb;
+}
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.fileItem {
+  background: #252526;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 15px;
+}
+
+.fileHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.fileName {
+  font-size: 16px;
+  font-weight: 500;
+  font-family: "Courier New", monospace;
+}
+
+.notFound {
+  color: #f48771;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+.fileInfo {
+  font-size: 13px;
+  color: #858585;
+}
+
+.toggleButton {
+  padding: 6px 12px;
+  background: #3c3c3c;
+  color: #d4d4d4;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.toggleButton:hover {
+  background: #505050;
+  border-color: #666;
+}
+
+.editorPanel {
+  margin-top: 20px;
+  background: #252526;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 20px;
+}
+
+.editorPanel h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.editorNote {
+  color: #858585;
+  font-style: italic;
+}

@@ -1,7 +1,7 @@
 .grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .item {
@@ -28,18 +28,130 @@
   color: #212529;
   font-family: "SF Mono", Monaco, monospace;
   word-break: break-all;
+  background-color: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 
-.mcpServers {
+.section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e9ecef;
+}
+
+.sectionTitle {
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.toolsList {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.mcpServer {
-  padding: 4px 8px;
-  background-color: #e9ecef;
-  border-radius: 3px;
-  font-size: 12px;
+.tool {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: #f1f3f5;
   color: #495057;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: "SF Mono", Monaco, monospace;
+  border: 1px solid #dee2e6;
+}
+
+.mcpServers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mcpServer {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+}
+
+.mcpServerSummary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.mcpServerSummary::-webkit-details-marker {
+  display: none;
+}
+
+.mcpServerSummary::marker {
+  content: "";
+}
+
+.mcpServerSummary:hover {
+  background-color: #e9ecef;
+  border-radius: 6px;
+}
+
+.mcpServerName {
+  font-weight: 600;
+  color: #212529;
+  flex: 1;
+  font-size: 13px;
+}
+
+.mcpStatus {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mcpStatus.connected {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.mcpStatus.disconnected {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.mcpToolCount {
+  font-size: 11px;
+  color: #6c757d;
+}
+
+.mcpServer[open] .toolsList {
+  padding: 12px;
+  border-top: 1px solid #dee2e6;
+  background-color: #ffffff;
+}
+
+.mcpServer[open] .mcpServerSummary {
+  background-color: #e9ecef;
+}
+
+.metaInfo {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 11px;
+  color: #6c757d;
+}
+
+.metaInfo span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }

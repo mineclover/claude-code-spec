@@ -1,0 +1,213 @@
+/**
+ * Settings File Management Service
+ * Handles backup, editing, and restoration of project configuration files
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface SettingsFile {
+  path: string;
+  name: string;
+  exists: boolean;
+  content?: string;
+  backup?: string;
+  lastModified?: number;
+}
+
+export interface ProjectSettings {
+  projectPath: string;
+  claudeMd?: SettingsFile;
+  mcpJson?: SettingsFile;
+  claudeDir?: string[];
+}
+
+export interface SettingsBackup {
+  timestamp: number;
+  projectPath: string;
+  files: Record<string, string>; // filename -> content
+}
+
+// ============================================================================
+// File Discovery
+// ============================================================================
+
+export const findSettingsFiles = (projectPath: string): ProjectSettings => {
+  const settings: ProjectSettings = {
+    projectPath,
+  };
+
+  // Check CLAUDE.md
+  const claudeMdPath = path.join(projectPath, 'CLAUDE.md');
+  if (fs.existsSync(claudeMdPath)) {
+    const stats = fs.statSync(claudeMdPath);
+    settings.claudeMd = {
+      path: claudeMdPath,
+      name: 'CLAUDE.md',
+      exists: true,
+      content: fs.readFileSync(claudeMdPath, 'utf-8'),
+      lastModified: stats.mtimeMs,
+    };
+  } else {
+    settings.claudeMd = {
+      path: claudeMdPath,
+      name: 'CLAUDE.md',
+      exists: false,
+    };
+  }
+
+  // Check .mcp.json
+  const mcpJsonPath = path.join(projectPath, '.mcp.json');
+  if (fs.existsSync(mcpJsonPath)) {
+    const stats = fs.statSync(mcpJsonPath);
+    settings.mcpJson = {
+      path: mcpJsonPath,
+      name: '.mcp.json',
+      exists: true,
+      content: fs.readFileSync(mcpJsonPath, 'utf-8'),
+      lastModified: stats.mtimeMs,
+    };
+  } else {
+    settings.mcpJson = {
+      path: mcpJsonPath,
+      name: '.mcp.json',
+      exists: false,
+    };
+  }
+
+  // Check .claude/ directory
+  const claudeDirPath = path.join(projectPath, '.claude');
+  if (fs.existsSync(claudeDirPath) && fs.statSync(claudeDirPath).isDirectory()) {
+    settings.claudeDir = fs.readdirSync(claudeDirPath).filter((file) => {
+      const filePath = path.join(claudeDirPath, file);
+      return fs.statSync(filePath).isFile();
+    });
+  }
+
+  return settings;
+};
+
+// ============================================================================
+// Backup Operations
+// ============================================================================
+
+export const createBackup = (projectPath: string): SettingsBackup => {
+  const settings = findSettingsFiles(projectPath);
+  const backup: SettingsBackup = {
+    timestamp: Date.now(),
+    projectPath,
+    files: {},
+  };
+
+  // Backup CLAUDE.md
+  if (settings.claudeMd?.exists && settings.claudeMd.content) {
+    backup.files['CLAUDE.md'] = settings.claudeMd.content;
+  }
+
+  // Backup .mcp.json
+  if (settings.mcpJson?.exists && settings.mcpJson.content) {
+    backup.files['.mcp.json'] = settings.mcpJson.content;
+  }
+
+  // Backup .claude/ files
+  if (settings.claudeDir) {
+    const claudeDirPath = path.join(projectPath, '.claude');
+    for (const file of settings.claudeDir) {
+      const filePath = path.join(claudeDirPath, file);
+      backup.files[`.claude/${file}`] = fs.readFileSync(filePath, 'utf-8');
+    }
+  }
+
+  return backup;
+};
+
+export const saveBackupToFile = (backup: SettingsBackup, outputPath: string): void => {
+  fs.writeFileSync(outputPath, JSON.stringify(backup, null, 2), 'utf-8');
+  console.log(`[Settings] Backup saved to: ${outputPath}`);
+};
+
+export const loadBackupFromFile = (backupPath: string): SettingsBackup => {
+  const content = fs.readFileSync(backupPath, 'utf-8');
+  return JSON.parse(content) as SettingsBackup;
+};
+
+export const restoreBackup = (backup: SettingsBackup): void => {
+  for (const [filename, content] of Object.entries(backup.files)) {
+    const filePath = path.join(backup.projectPath, filename);
+    const dir = path.dirname(filePath);
+
+    // Ensure directory exists
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.writeFileSync(filePath, content, 'utf-8');
+    console.log(`[Settings] Restored: ${filename}`);
+  }
+};
+
+// ============================================================================
+// File Operations
+// ============================================================================
+
+export const readSettingsFile = (filePath: string): string | null => {
+  try {
+    if (fs.existsSync(filePath)) {
+      return fs.readFileSync(filePath, 'utf-8');
+    }
+    return null;
+  } catch (error) {
+    console.error('[Settings] Failed to read file:', filePath, error);
+    return null;
+  }
+};
+
+export const writeSettingsFile = (filePath: string, content: string): boolean => {
+  try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.writeFileSync(filePath, content, 'utf-8');
+    console.log(`[Settings] Wrote file: ${filePath}`);
+    return true;
+  } catch (error) {
+    console.error('[Settings] Failed to write file:', filePath, error);
+    return false;
+  }
+};
+
+export const deleteSettingsFile = (filePath: string): boolean => {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log(`[Settings] Deleted file: ${filePath}`);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('[Settings] Failed to delete file:', filePath, error);
+    return false;
+  }
+};
+
+// ============================================================================
+// Validation
+// ============================================================================
+
+export const validateMcpJson = (content: string): { valid: boolean; error?: string } => {
+  try {
+    JSON.parse(content);
+    return { valid: true };
+  } catch (error) {
+    return {
+      valid: false,
+      error: error instanceof Error ? error.message : 'Invalid JSON',
+    };
+  }
+};
