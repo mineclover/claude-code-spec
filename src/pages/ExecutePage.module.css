@@ -189,59 +189,70 @@
 .sessionsContainer {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 200px;
+  gap: 8px;
+  max-height: 400px;
   overflow-y: auto;
-  padding: 2px;
+  padding: 4px;
 }
 
 .sessionItem {
-  padding: 8px 10px;
   border: 1px solid #dee2e6;
   border-radius: 4px;
   background: #fff;
-  cursor: pointer;
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.sessionItem:hover {
-  background: #f8f9fa;
-  border-color: #17a2b8;
+  overflow: hidden;
 }
 
 .sessionItem.selected {
   background: #e7f3ff;
   border-color: #17a2b8;
   border-width: 2px;
-  padding: 7px 9px;
+}
+
+.sessionItemContent {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 70px;
+  cursor: pointer;
+}
+
+.sessionItemContent:hover {
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .sessionItemId {
-  font-size: 11px;
+  font-size: 10px;
   font-family: "SF Mono", Monaco, monospace;
   color: #495057;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 600;
+  line-height: 1.4;
 }
 
 .sessionItemPreview {
-  font-size: 11px;
-  color: #6c757d;
-  line-height: 1.3;
+  font-size: 12px;
+  color: #212529;
+  line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .sessionItemTime {
   font-size: 10px;
   color: #17a2b8;
   font-weight: 500;
+  margin-top: auto;
 }
 
 .noSessions {
@@ -258,4 +269,56 @@
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #e9ecef;
+}
+
+.sessionItemActions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}
+
+.loadButton {
+  flex: 1;
+  padding: 6px 12px;
+  border: 1px solid #6c757d;
+  border-radius: 4px;
+  background: #fff;
+  color: #495057;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.loadButton:hover {
+  background: #6c757d;
+  color: #fff;
+  border-color: #6c757d;
+}
+
+.resumeButton {
+  flex: 1;
+  padding: 6px 12px;
+  border: 1px solid #17a2b8;
+  border-radius: 4px;
+  background: #17a2b8;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.resumeButton:hover:not(:disabled) {
+  background: #138496;
+  border-color: #117a8b;
+}
+
+.resumeButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

@@ -1,6 +1,7 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ClaudeSessionEntry } from '../../preload';
+import { SessionLogEventRenderer } from './SessionLogEventRenderer';
 import styles from './SessionLogViewer.module.css';
 
 interface SessionLogViewerProps {
@@ -18,10 +19,15 @@ export const SessionLogViewer: React.FC<SessionLogViewerProps> = ({
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadSessionLogs();
   }, [projectPath, sessionId]);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
 
   const loadSessionLogs = async () => {
     setLoading(true);
@@ -57,20 +63,6 @@ export const SessionLogViewer: React.FC<SessionLogViewerProps> = ({
     }
   };
 
-  const renderEntryType = (type: string): React.ReactElement => {
-    const typeClass = type === 'summary' ? styles.typeSummary : styles.typeDefault;
-    return <span className={typeClass}>{type}</span>;
-  };
-
-  const renderEntryContent = (entry: ClaudeSessionEntry): React.ReactElement => {
-    // Handle summary entries
-    if (entry.type === 'summary' && entry.summary) {
-      return <div className={styles.entryContent}>{entry.summary}</div>;
-    }
-
-    // Handle other entry types - show full JSON
-    return <pre className={styles.entryContentPre}>{JSON.stringify(entry, null, 2)}</pre>;
-  };
 
   if (loading) {
     return <div className={styles.loading}>Loading session logs...</div>;
@@ -120,11 +112,14 @@ export const SessionLogViewer: React.FC<SessionLogViewerProps> = ({
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <div className={styles.sessionId}>Session ID: {sessionId}</div>
+        <h3 className={styles.title}>
+          Session Log
+          <span className={styles.sessionId}>{sessionId}</span>
+        </h3>
         {summary && <div className={styles.summary}>{summary}</div>}
         <div className={styles.metadata}>
-          <span>Entries: {logs.length}</span>
-          <span>Project: {projectPath}</span>
+          <span className={styles.statBadge}>Entries: {logs.length}</span>
+          <span className={styles.statBadge}>Project: {projectPath}</span>
         </div>
         <div className={styles.controls}>
           {onClose && (
@@ -143,16 +138,9 @@ export const SessionLogViewer: React.FC<SessionLogViewerProps> = ({
 
       <div className={styles.logContent}>
         {logs.map((entry, idx) => (
-          <div key={idx} className={styles.logEntry}>
-            <div className={styles.logEntryHeader}>
-              {renderEntryType(entry.type)}
-              {entry.leafUuid && (
-                <span style={{ fontSize: '10px', color: '#6c757d' }}>Leaf: {entry.leafUuid}</span>
-              )}
-            </div>
-            {renderEntryContent(entry)}
-          </div>
+          <SessionLogEventRenderer key={`log-${idx}-${Date.now()}`} event={entry} index={idx} />
         ))}
+        <div ref={logEndRef} />
       </div>
     </div>
   );

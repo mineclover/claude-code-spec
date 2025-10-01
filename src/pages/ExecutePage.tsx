@@ -165,6 +165,62 @@ export const ExecutePage: React.FC = () => {
     }
   };
 
+  const handleResumeSession = async (sessionId: string) => {
+    if (!projectPath) {
+      setError('Project path is required');
+      return;
+    }
+
+    setSelectedSessionId(sessionId);
+    setIsRunning(true);
+    setError(null);
+    setEvents([]);
+    setErrors([]);
+    setCurrentPid(null);
+
+    try {
+      // Resume with empty query to continue the session
+      const result = await window.claudeAPI.executeClaudeCommand(
+        projectPath,
+        query || '', // Use current query or empty string
+        sessionId
+      );
+
+      if (result.success && result.pid) {
+        setCurrentPid(result.pid);
+      } else if (!result.success) {
+        setError(result.error || 'Failed to resume session');
+        setIsRunning(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setIsRunning(false);
+    }
+  };
+
+  const handleLoadSessionToOutput = async (sessionId: string) => {
+    if (!projectPath) {
+      setError('Project path is required');
+      return;
+    }
+
+    try {
+      // Load session logs
+      const sessionLogs = await window.claudeSessionsAPI.readLog(projectPath, sessionId);
+
+      // Convert session logs to stream events and append to current events
+      const streamEvents: StreamEvent[] = sessionLogs
+        .filter((entry) => entry.type !== 'summary') // Filter out summary entries
+        .map((entry) => entry as unknown as StreamEvent); // Type assertion for compatibility
+
+      setEvents((prev) => [...prev, ...streamEvents]);
+      setSelectedSessionId(sessionId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load session logs');
+      console.error('Failed to load session logs:', err);
+    }
+  };
+
   // Event listeners - setup once
   useEffect(() => {
     window.claudeAPI.onClaudeStarted((data) => {
@@ -237,19 +293,43 @@ export const ExecutePage: React.FC = () => {
                     <div
                       key={session.sessionId}
                       className={`${styles.sessionItem} ${selectedSessionId === session.sessionId ? styles.selected : ''}`}
-                      onClick={() => setSelectedSessionId(session.sessionId)}
                     >
-                      <div className={styles.sessionItemId} title={session.sessionId}>
-                        {session.sessionId}
+                      <div
+                        className={styles.sessionItemContent}
+                        onClick={() => setSelectedSessionId(session.sessionId)}
+                        onDoubleClick={() => handleLoadSessionToOutput(session.sessionId)}
+                      >
+                        <div className={styles.sessionItemId} title={session.sessionId}>
+                          {session.sessionId}
+                        </div>
+                        {session.firstUserMessage && (
+                          <div className={styles.sessionItemPreview} title={session.firstUserMessage}>
+                            {session.firstUserMessage}
+                          </div>
+                        )}
+                        <div className={styles.sessionItemTime}>
+                          {new Date(session.lastModified).toLocaleString()}
+                        </div>
                       </div>
-                      {session.firstUserMessage && (
-                        <div className={styles.sessionItemPreview} title={session.firstUserMessage}>
-                          {session.firstUserMessage}
+                      {selectedSessionId === session.sessionId && (
+                        <div className={styles.sessionItemActions}>
+                          <button
+                            type="button"
+                            className={styles.loadButton}
+                            onClick={() => handleLoadSessionToOutput(session.sessionId)}
+                          >
+                            Load to Output
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.resumeButton}
+                            onClick={() => handleResumeSession(session.sessionId)}
+                            disabled={isRunning}
+                          >
+                            Resume
+                          </button>
                         </div>
                       )}
-                      <div className={styles.sessionItemTime}>
-                        {new Date(session.lastModified).toLocaleString()}
-                      </div>
                     </div>
                   ))}
                 </div>

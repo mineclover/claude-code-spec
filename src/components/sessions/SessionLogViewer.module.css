@@ -6,30 +6,50 @@
 }
 
 .header {
-  padding: 16px;
-  border-bottom: 1px solid #e9ecef;
-  background: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #212529;
 }
 
 .sessionId {
   font-family: 'SF Mono', Monaco, monospace;
-  font-size: 11px;
-  color: #6c757d;
-  margin-bottom: 4px;
+  font-size: 12px;
+  padding: 4px 10px;
+  background-color: #007acc;
+  color: white;
+  border-radius: 4px;
+  font-weight: 500;
 }
 
 .summary {
   font-size: 14px;
   font-weight: 500;
   color: #212529;
-  margin-bottom: 8px;
 }
 
 .metadata {
   display: flex;
-  gap: 16px;
-  font-size: 11px;
-  color: #6c757d;
+  gap: 10px;
+}
+
+.statBadge {
+  font-size: 12px;
+  padding: 4px 10px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  color: #495057;
+  font-weight: 500;
 }
 
 .controls {
@@ -69,80 +89,22 @@
 .logContent {
   flex: 1;
   overflow-y: auto;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
   padding: 16px;
 }
 
-.logEntry {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-}
-
-.logEntryHeader {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.entryType {
-  font-size: 11px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 3px;
-  text-transform: uppercase;
-}
-
-.typeSummary {
-  composes: entryType;
-  background: #e7f3ff;
-  color: #0066cc;
-}
-
-.typeDefault {
-  composes: entryType;
-  background: #f8f9fa;
+.loading,
+.error,
+.empty {
   color: #6c757d;
-}
-
-.entryContent {
-  font-family: 'SF Mono', Monaco, monospace;
-  font-size: 11px;
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 14px;
   line-height: 1.6;
-  color: #212529;
-  overflow-x: auto;
-}
-
-.entryContentPre {
-  margin: 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #6c757d;
 }
 
 .error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
   color: #dc3545;
-  padding: 16px;
-  text-align: center;
-}
-
-.empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #6c757d;
 }
