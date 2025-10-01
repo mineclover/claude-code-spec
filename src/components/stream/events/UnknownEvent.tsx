@@ -9,7 +9,7 @@ interface UnknownEventProps {
 
 export const UnknownEvent: React.FC<UnknownEventProps> = ({ event }) => {
   return (
-    <EventBox type="unknown" icon="📦" title={`Unknown Event: ${event.type}`}>
+    <EventBox type="unknown" icon="📦" title={`Unknown Event: ${event.type}`} rawData={event}>
       <CodeBlock code={JSON.stringify(event, null, 2)} language="json" />
     </EventBox>
   );

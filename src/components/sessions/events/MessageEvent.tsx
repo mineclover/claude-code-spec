@@ -24,6 +24,7 @@ export const MessageEvent: React.FC<MessageEventProps> = ({ event }) => {
         type={isUser ? 'system' : 'assistant'}
         icon={isUser ? '👤' : '🤖'}
         title={isUser ? 'User' : 'Assistant'}
+        rawData={event}
       >
         <div className={styles.content}>{message.content}</div>
       </EventBox>
@@ -37,6 +38,7 @@ export const MessageEvent: React.FC<MessageEventProps> = ({ event }) => {
         type={isUser ? 'system' : 'assistant'}
         icon={isUser ? '🔧' : '🤖'}
         title={isUser ? 'Tool Result' : 'Assistant'}
+        rawData={event}
       >
         <div className={styles.arrayContent}>
           {message.content.map((item, idx) => (

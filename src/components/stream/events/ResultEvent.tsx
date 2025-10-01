@@ -10,7 +10,7 @@ interface ResultEventProps {
 
 export const ResultEvent: React.FC<ResultEventProps> = ({ event }) => {
   return (
-    <EventBox type="result" icon="✅" title={`Result: ${event.subtype}`}>
+    <EventBox type="result" icon="✅" title={`Result: ${event.subtype}`} rawData={event}>
       {event.result && <div className={styles.resultText}>{event.result}</div>}
 
       <div className={styles.stats}>

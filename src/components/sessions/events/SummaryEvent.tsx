@@ -9,7 +9,7 @@ interface SummaryEventProps {
 
 export const SummaryEvent: React.FC<SummaryEventProps> = ({ event }) => {
   return (
-    <EventBox type="system" icon="📋" title="Session Summary">
+    <EventBox type="system" icon="📋" title="Session Summary" rawData={event}>
       <div className={styles.content}>
         {event.summary}
       </div>

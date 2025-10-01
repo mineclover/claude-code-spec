@@ -13,7 +13,7 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
   // Handle tool_result content (array type)
   if (Array.isArray(content)) {
     return (
-      <EventBox type="user" icon="🔧" title="Tool Result">
+      <EventBox type="user" icon="🔧" title="Tool Result" rawData={event}>
         {content.map((item, idx) => (
           <div key={idx} className={styles.toolResult}>
             <div className={styles.toolId}>Tool: {item.tool_use_id}</div>
@@ -33,7 +33,7 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
     const commandOutput = match ? match[1] : content;
 
     return (
-      <EventBox type="user" icon="💻" title="Local Command Output">
+      <EventBox type="user" icon="💻" title="Local Command Output" rawData={event}>
         <pre className={styles.commandOutput}>{commandOutput}</pre>
       </EventBox>
     );
@@ -41,7 +41,7 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
 
   // Regular user message
   return (
-    <EventBox type="user" icon="👤" title="User Message">
+    <EventBox type="user" icon="👤" title="User Message" rawData={event}>
       <div className={styles.content}>{content}</div>
     </EventBox>
   );
