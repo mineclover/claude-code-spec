@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState } from 'react';
+import { RawDataActions } from './RawDataActions';
 import styles from './EventBox.module.css';
 
 export type EventType = 'system' | 'assistant' | 'result' | 'error' | 'unknown';
@@ -29,20 +29,6 @@ const getEventClass = (type: EventType): string => {
 
 export const EventBox: React.FC<EventBoxProps> = ({ type, icon, title, children, rawData }) => {
   const eventClass = getEventClass(type);
-  const [copied, setCopied] = useState(false);
-
-  const handleCopyRaw = async () => {
-    if (!rawData) return;
-
-    try {
-      const rawJson = JSON.stringify(rawData, null, 2);
-      await navigator.clipboard.writeText(rawJson);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy raw data:', err);
-    }
-  };
 
   return (
     <div className={`${styles.eventBox} ${eventClass}`}>
@@ -51,16 +37,7 @@ export const EventBox: React.FC<EventBoxProps> = ({ type, icon, title, children,
           {icon && <span className={styles.icon}>{icon}</span>}
           <strong className={styles.title}>{title}</strong>
         </div>
-        {rawData && (
-          <button
-            type="button"
-            className={styles.rawButton}
-            onClick={handleCopyRaw}
-            title="Copy raw event data"
-          >
-            {copied ? '✓ Copied' : 'Raw'}
-          </button>
-        )}
+        {rawData && <RawDataActions rawData={rawData} />}
       </div>
       <div className={styles.content}>{children}</div>
     </div>
