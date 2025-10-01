@@ -1,0 +1,37 @@
+{
+  "$schema": "meta-schema",
+  "description": "Template for document metadata",
+  "structure": {
+    "filePath": "string - Absolute path to the document",
+    "tags": "array - Search and categorization tags",
+    "reviews": "array - User reviews and feedback",
+    "improvements": "array - Suggested improvements",
+    "searchKeywords": "array - Additional search keywords",
+    "lastUpdated": "timestamp - Last metadata update time",
+    "rating": "number - Overall document rating (1-5)"
+  },
+  "example": {
+    "filePath": "/Users/junwoobang/project/claude-code-spec/docs/claude-context/config/index.md",
+    "tags": ["config", "settings", "hierarchy"],
+    "reviews": [
+      {
+        "id": "review-1",
+        "timestamp": 1234567890000,
+        "content": "Clear explanation of config hierarchy",
+        "rating": 5,
+        "author": "user"
+      }
+    ],
+    "improvements": [
+      {
+        "id": "improve-1",
+        "timestamp": 1234567890000,
+        "content": "Add more practical examples",
+        "status": "pending"
+      }
+    ],
+    "searchKeywords": ["config", "settings", "CLAUDE.md", "hierarchy", "enterprise", "project", "user"],
+    "lastUpdated": 1234567890000,
+    "rating": 4.5
+  }
+}

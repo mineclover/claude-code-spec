@@ -95,7 +95,79 @@
 
 .main {
   flex: 1;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: #f5f7fa;
   min-width: 0;
+}
+
+.addressBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+}
+
+.addressBarLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pageIcon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.pageName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+.addressSeparator {
+  color: #ccc;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.addressInputWrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.addressInput {
+  width: 100%;
+  padding: 6px 12px;
+  background-color: #f5f7fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  color: #333;
+  font-size: 13px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.addressInput:focus {
+  background-color: #ffffff;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.addressInput::placeholder {
+  color: #999;
+}
+
+.mainContent {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
 }

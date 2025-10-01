@@ -13,6 +13,8 @@ import { registerSettingsHandlers } from './ipc/handlers/settingsHandlers';
 import { registerBookmarksHandlers } from './ipc/handlers/bookmarksHandlers';
 import { registerClaudeSessionsHandlers } from './ipc/handlers/claudeSessionsHandlers';
 import { registerAppSettingsHandlers } from './ipc/handlers/appSettingsHandlers';
+import { registerDocsHandlers } from './ipc/handlers/docsHandlers';
+import { registerMetadataHandlers } from './ipc/handlers/metadataHandlers';
 
 if (started) {
   app.quit();
@@ -90,5 +92,11 @@ registerClaudeSessionsHandlers(claudeSessionsRouter);
 
 const appSettingsRouter = ipcRegistry.router('app-settings');
 registerAppSettingsHandlers(appSettingsRouter, settingsService);
+
+const docsRouter = ipcRegistry.router('docs');
+registerDocsHandlers(docsRouter);
+
+const metadataRouter = ipcRegistry.router('metadata');
+registerMetadataHandlers(metadataRouter);
 
 console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());

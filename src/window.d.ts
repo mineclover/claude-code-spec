@@ -1,4 +1,4 @@
-import type { AppSettingsAPI, BookmarksAPI, ClaudeAPI, ClaudeSessionsAPI, LoggerAPI, SettingsAPI } from './preload';
+import type { AppSettingsAPI, BookmarksAPI, ClaudeAPI, ClaudeSessionsAPI, DocsAPI, LoggerAPI, MetadataAPI, SettingsAPI } from './preload';
 
 declare global {
   interface Window {
@@ -8,5 +8,7 @@ declare global {
     bookmarksAPI: BookmarksAPI;
     claudeSessionsAPI: ClaudeSessionsAPI;
     appSettingsAPI: AppSettingsAPI;
+    docsAPI: DocsAPI;
+    metadataAPI: MetadataAPI;
   }
 }

@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import type { ClaudeProjectInfo, ClaudeSessionInfo } from '../../preload';
 import styles from './ClaudeProjectsList.module.css';
@@ -38,6 +38,7 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
   lastUpdated = null,
 }) => {
   const navigate = useNavigate();
+  const { projectDirName, sessionId } = useParams<{ projectDirName?: string; sessionId?: string }>();
   const [selectedProject, setSelectedProject] = useState<ClaudeProjectInfo | null>(null);
   const [selectedSession, setSelectedSession] = useState<ClaudeSessionInfo | null>(null);
   const [viewingLogs, setViewingLogs] = useState(false);
@@ -50,12 +51,39 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const SESSIONS_PAGE_SIZE = 20;
 
+  // Initialize from URL path params on mount
+  useEffect(() => {
+    if (projectDirName) {
+      // Find project from list by projectDirName
+      const project = projects.find(p => p.projectDirName === projectDirName);
+      if (project) {
+        setSelectedProject(project);
+
+        if (sessionId) {
+          // Will load session after sessions are loaded
+          setViewingLogs(true);
+        }
+      }
+    }
+  }, [projects, projectDirName, sessionId]); // Run when projects or URL params change
+
   // Load sessions when project selected or page changes
   useEffect(() => {
     if (selectedProject) {
       loadSessions(sessionsPage);
     }
   }, [selectedProject, sessionsPage]);
+
+  // Load specific session from URL after sessions are loaded
+  useEffect(() => {
+    if (sessionId && sessions.length > 0 && !selectedSession) {
+      const session = sessions.find(s => s.sessionId === sessionId);
+      if (session) {
+        setSelectedSession(session);
+        setViewingLogs(true);
+      }
+    }
+  }, [sessions, sessionId]);
 
   const loadSessions = async (page: number) => {
     if (!selectedProject) return;
@@ -127,6 +155,9 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
     setSessionsPage(0); // Reset to first page
     setSessions([]);
     setTotalSessions(0);
+
+    // Navigate to project path
+    navigate(`/claude-projects/${project.projectDirName}`);
   };
 
   const handleBackToProjects = () => {
@@ -136,16 +167,29 @@ export const ClaudeProjectsList: React.FC<ClaudeProjectsListProps> = ({
     setSessionsPage(0);
     setSessions([]);
     setTotalSessions(0);
+
+    // Navigate back to projects list
+    navigate('/claude-projects');
   };
 
   const handleSessionClick = (session: ClaudeSessionInfo) => {
     setSelectedSession(session);
     setViewingLogs(true);
+
+    // Navigate to session path
+    if (selectedProject) {
+      navigate(`/claude-projects/${selectedProject.projectDirName}/${session.sessionId}`);
+    }
   };
 
   const handleBackToSessions = () => {
     setSelectedSession(null);
     setViewingLogs(false);
+
+    // Navigate back to project sessions
+    if (selectedProject) {
+      navigate(`/claude-projects/${selectedProject.projectDirName}`);
+    }
   };
 
   const handleCopySessionId = (sessionId: string, e: React.MouseEvent) => {

@@ -1,5 +1,7 @@
 import type React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { PAGE_INDEX, getPageById } from '../../data/pageIndex';
 import styles from './Layout.module.css';
 
 interface LayoutProps {
@@ -8,8 +10,58 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [addressInput, setAddressInput] = useState('');
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
+
+  const getCurrentPageInfo = () => {
+    // Find page by route
+    const page = PAGE_INDEX.find(p => p.route === location.pathname);
+    return page;
+  };
+
+  const getDetailedPath = () => {
+    return location.pathname;
+  };
+
+  const getDisplayName = () => {
+    const pageInfo = getCurrentPageInfo();
+    const pathParts = location.pathname.split('/').filter(Boolean);
+
+    if (pathParts[0] === 'claude-projects') {
+      const projectDirName = pathParts[1];
+      const sessionId = pathParts[2];
+
+      if (sessionId) {
+        return `${pageInfo?.displayName || 'Claude Projects'} > Session`;
+      } else if (projectDirName) {
+        // Convert directory name format to readable name
+        // -Users-junwoobang-project-name -> project-name
+        const projectName = projectDirName.split('-').pop() || projectDirName;
+        return `${pageInfo?.displayName || 'Claude Projects'} > ${projectName}`;
+      }
+    }
+
+    return pageInfo?.displayName || location.pathname;
+  };
+
+  useEffect(() => {
+    setAddressInput(getDetailedPath());
+  }, [location.pathname, location.search]);
+
+  const handleAddressKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      navigate(addressInput);
+      setIsEditingAddress(false);
+    } else if (e.key === 'Escape') {
+      setAddressInput(getDetailedPath());
+      setIsEditingAddress(false);
+    }
+  };
+
+  const pageInfo = getCurrentPageInfo();
 
   return (
     <div className={styles.container}>
@@ -20,17 +72,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
 
         <div className={styles.nav}>
+          <Link to="/index" className={`${styles.navItem} ${isActive('/index') ? styles.active : ''}`}>
+            <span className={styles.icon}>📇</span>
+            <span>Index</span>
+          </Link>
+
           <Link to="/" className={`${styles.navItem} ${isActive('/') ? styles.active : ''}`}>
             <span className={styles.icon}>▶️</span>
             <span>Execute</span>
-          </Link>
-
-          <Link
-            to="/sessions"
-            className={`${styles.navItem} ${isActive('/sessions') ? styles.active : ''}`}
-          >
-            <span className={styles.icon}>📋</span>
-            <span>Sessions</span>
           </Link>
 
           <Link
@@ -42,11 +91,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Link>
 
           <Link
-            to="/bookmarks"
-            className={`${styles.navItem} ${isActive('/bookmarks') ? styles.active : ''}`}
+            to="/claude-docs"
+            className={`${styles.navItem} ${isActive('/claude-docs') ? styles.active : ''}`}
           >
-            <span className={styles.icon}>⭐</span>
-            <span>Bookmarks</span>
+            <span className={styles.icon}>📚</span>
+            <span>Claude Docs</span>
+          </Link>
+
+          <Link
+            to="/controller-docs"
+            className={`${styles.navItem} ${isActive('/controller-docs') ? styles.active : ''}`}
+          >
+            <span className={styles.icon}>🎛️</span>
+            <span>Controller Docs</span>
           </Link>
 
           <Link
@@ -63,7 +120,35 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </nav>
 
-      <main className={styles.main}>{children}</main>
+      <main className={styles.main}>
+        <div className={styles.addressBar}>
+          <div className={styles.addressBarLeft}>
+            {pageInfo && (
+              <>
+                <span className={styles.pageIcon}>{pageInfo.icon}</span>
+                <span className={styles.pageName}>{getDisplayName()}</span>
+                <span className={styles.addressSeparator}>•</span>
+              </>
+            )}
+          </div>
+          <div className={styles.addressInputWrapper}>
+            <input
+              type="text"
+              className={styles.addressInput}
+              value={addressInput}
+              onChange={(e) => setAddressInput(e.target.value)}
+              onKeyDown={handleAddressKeyDown}
+              onFocus={() => setIsEditingAddress(true)}
+              onBlur={() => {
+                setIsEditingAddress(false);
+                setAddressInput(getDetailedPath());
+              }}
+              placeholder="Enter route path..."
+            />
+          </div>
+        </div>
+        <div className={styles.mainContent}>{children}</div>
+      </main>
     </div>
   );
 };

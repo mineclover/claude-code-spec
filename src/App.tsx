@@ -1,10 +1,11 @@
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Layout } from './components/layout/Layout';
-import { BookmarksPage } from './pages/BookmarksPage';
 import { ClaudeProjectsPage } from './pages/ClaudeProjectsPage';
+import { ClaudeDocsPage } from './pages/ClaudeDocsPage';
+import { ControllerDocsPage } from './pages/ControllerDocsPage';
 import { ExecutePage } from './pages/ExecutePage';
-import { SessionsPage } from './pages/SessionsPage';
+import { IndexPage } from './pages/IndexPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 function App() {
@@ -14,9 +15,12 @@ function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<ExecutePage />} />
-          <Route path="/sessions" element={<SessionsPage />} />
+          <Route path="/index" element={<IndexPage />} />
           <Route path="/claude-projects" element={<ClaudeProjectsPage />} />
-          <Route path="/bookmarks" element={<BookmarksPage />} />
+          <Route path="/claude-projects/:projectDirName" element={<ClaudeProjectsPage />} />
+          <Route path="/claude-projects/:projectDirName/:sessionId" element={<ClaudeProjectsPage />} />
+          <Route path="/claude-docs" element={<ClaudeDocsPage />} />
+          <Route path="/controller-docs" element={<ControllerDocsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </Layout>
