@@ -33,6 +33,28 @@ export const MessageEvent: React.FC<MessageEventProps> = ({ event }) => {
 
   // Handle array content (tool results or complex content)
   if (Array.isArray(message.content)) {
+    // Check if content contains text blocks
+    const textBlocks = message.content.filter(
+      (item: any) => item && typeof item === 'object' && item.type === 'text'
+    );
+    const hasOnlyText = textBlocks.length === message.content.length;
+
+    // If all items are text blocks, render them as plain text
+    if (hasOnlyText && textBlocks.length > 0) {
+      const combinedText = textBlocks.map((item: any) => item.text).join('\n');
+      return (
+        <EventBox
+          type={isAssistant ? 'assistant' : 'system'}
+          icon={isAssistant ? '🤖' : '👤'}
+          title={isAssistant ? 'Assistant' : 'User'}
+          rawData={event}
+        >
+          <div className={styles.content}>{combinedText}</div>
+        </EventBox>
+      );
+    }
+
+    // Otherwise render as JSON for complex structures
     return (
       <EventBox
         type={isUser ? 'system' : 'assistant'}
