@@ -20,7 +20,15 @@ import {
 } from './services/bookmarks';
 import {
   getAllClaudeProjects,
+  getAllClaudeProjectsPaginated,
+  getTotalProjectCount,
+  clearTotalCountCache,
   getProjectSessions,
+  getProjectSessionsBasic,
+  getProjectSessionsPaginated,
+  getProjectSessionCount,
+  getSessionMetadata,
+  getSessionPreview,
   getSessionSummary,
   readSessionLog,
 } from './services/claudeSessions';
@@ -376,9 +384,45 @@ ipcMain.handle('claude-sessions:get-all-projects', async () => {
   return getAllClaudeProjects();
 });
 
+// Get total project count (fast, cached)
+ipcMain.handle('claude-sessions:get-total-count', async () => {
+  return getTotalProjectCount();
+});
+
+// Clear total count cache
+ipcMain.handle('claude-sessions:clear-count-cache', async () => {
+  clearTotalCountCache();
+  return { success: true };
+});
+
+// Get paginated Claude projects with sessions
+ipcMain.handle('claude-sessions:get-all-projects-paginated', async (_event, page: number, pageSize: number) => {
+  return getAllClaudeProjectsPaginated(page, pageSize);
+});
+
 // Get sessions for a specific project
 ipcMain.handle('claude-sessions:get-project-sessions', async (_event, projectPath: string) => {
   return getProjectSessions(projectPath);
+});
+
+// Get basic session info (fast, without metadata)
+ipcMain.handle('claude-sessions:get-project-sessions-basic', async (_event, projectPath: string) => {
+  return getProjectSessionsBasic(projectPath);
+});
+
+// Get metadata for a single session
+ipcMain.handle('claude-sessions:get-session-metadata', async (_event, projectPath: string, sessionId: string) => {
+  return getSessionMetadata(projectPath, sessionId);
+});
+
+// Get paginated sessions (with total count and hasMore)
+ipcMain.handle('claude-sessions:get-paginated', async (_event, projectPath: string, page: number, pageSize: number) => {
+  return getProjectSessionsPaginated(projectPath, page, pageSize);
+});
+
+// Get total session count
+ipcMain.handle('claude-sessions:get-count', async (_event, projectPath: string) => {
+  return getProjectSessionCount(projectPath);
 });
 
 // Read session log
@@ -394,5 +438,13 @@ ipcMain.handle(
   'claude-sessions:get-summary',
   async (_event, projectPath: string, sessionId: string) => {
     return getSessionSummary(projectPath, sessionId);
+  },
+);
+
+// Get session preview
+ipcMain.handle(
+  'claude-sessions:get-preview',
+  async (_event, projectPath: string, sessionId: string) => {
+    return getSessionPreview(projectPath, sessionId);
   },
 );

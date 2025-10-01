@@ -109,7 +109,8 @@ export interface ClaudeSessionEntry {
 }
 
 export interface ClaudeProjectInfo {
-  projectPath: string;
+  projectPath: string; // Actual cwd from session data
+  projectDirName: string; // Directory name format (-Users-junwoobang-...)
   claudeProjectDir: string;
   sessions: ClaudeSessionInfo[];
 }
@@ -119,20 +120,59 @@ export interface ClaudeSessionInfo {
   filePath: string;
   fileSize: number;
   lastModified: number;
+  cwd?: string; // Actual project path from session data
+  firstUserMessage?: string; // First user message content
+  hasData: boolean; // Whether session has any data
+}
+
+export interface PaginatedSessionsResult {
+  sessions: Omit<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface PaginatedProjectsResult {
+  projects: ClaudeProjectInfo[];
+  total: number;
+  hasMore: boolean;
 }
 
 export interface ClaudeSessionsAPI {
   // Get all projects with Claude sessions
   getAllProjects: () => Promise<ClaudeProjectInfo[]>;
 
+  // Get total project count (fast, cached)
+  getTotalCount: () => Promise<number>;
+
+  // Clear total count cache
+  clearCountCache: () => Promise<{ success: boolean }>;
+
+  // Get paginated projects with Claude sessions
+  getAllProjectsPaginated: (page: number, pageSize: number) => Promise<PaginatedProjectsResult>;
+
   // Get sessions for a specific project
   getProjectSessions: (projectPath: string) => Promise<ClaudeSessionInfo[]>;
+
+  // Get basic session info (fast, without metadata)
+  getProjectSessionsBasic: (projectPath: string) => Promise<Omit<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>[]>;
+
+  // Get paginated sessions
+  getProjectSessionsPaginated: (projectPath: string, page: number, pageSize: number) => Promise<PaginatedSessionsResult>;
+
+  // Get total session count
+  getProjectSessionCount: (projectPath: string) => Promise<number>;
+
+  // Get metadata for a single session
+  getSessionMetadata: (projectPath: string, sessionId: string) => Promise<Pick<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>>;
 
   // Read session log
   readLog: (projectPath: string, sessionId: string) => Promise<ClaudeSessionEntry[]>;
 
   // Get session summary
   getSummary: (projectPath: string, sessionId: string) => Promise<string | null>;
+
+  // Get session preview (first user message)
+  getPreview: (projectPath: string, sessionId: string) => Promise<string | null>;
 }
 
 export interface LoggerAPI {
@@ -292,12 +332,34 @@ contextBridge.exposeInMainWorld('bookmarksAPI', {
 contextBridge.exposeInMainWorld('claudeSessionsAPI', {
   getAllProjects: () => ipcRenderer.invoke('claude-sessions:get-all-projects'),
 
+  getTotalCount: () => ipcRenderer.invoke('claude-sessions:get-total-count'),
+
+  clearCountCache: () => ipcRenderer.invoke('claude-sessions:clear-count-cache'),
+
+  getAllProjectsPaginated: (page: number, pageSize: number) =>
+    ipcRenderer.invoke('claude-sessions:get-all-projects-paginated', page, pageSize),
+
   getProjectSessions: (projectPath: string) =>
     ipcRenderer.invoke('claude-sessions:get-project-sessions', projectPath),
+
+  getProjectSessionsBasic: (projectPath: string) =>
+    ipcRenderer.invoke('claude-sessions:get-project-sessions-basic', projectPath),
+
+  getProjectSessionsPaginated: (projectPath: string, page: number, pageSize: number) =>
+    ipcRenderer.invoke('claude-sessions:get-paginated', projectPath, page, pageSize),
+
+  getProjectSessionCount: (projectPath: string) =>
+    ipcRenderer.invoke('claude-sessions:get-count', projectPath),
+
+  getSessionMetadata: (projectPath: string, sessionId: string) =>
+    ipcRenderer.invoke('claude-sessions:get-session-metadata', projectPath, sessionId),
 
   readLog: (projectPath: string, sessionId: string) =>
     ipcRenderer.invoke('claude-sessions:read-log', projectPath, sessionId),
 
   getSummary: (projectPath: string, sessionId: string) =>
     ipcRenderer.invoke('claude-sessions:get-summary', projectPath, sessionId),
+
+  getPreview: (projectPath: string, sessionId: string) =>
+    ipcRenderer.invoke('claude-sessions:get-preview', projectPath, sessionId),
 } as ClaudeSessionsAPI);

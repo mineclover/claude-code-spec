@@ -6,35 +6,70 @@ import styles from './ClaudeProjectsPage.module.css';
 
 export const ClaudeProjectsPage: React.FC = () => {
   const [projects, setProjects] = useState<ClaudeProjectInfo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalProjects, setTotalProjects] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const PAGE_SIZE = 10;
 
+  // Load total count first (fast, cached)
   useEffect(() => {
-    loadClaudeProjects();
+    loadTotalCount();
   }, []);
 
-  const loadClaudeProjects = async () => {
+  // Load projects when page changes
+  useEffect(() => {
+    loadClaudeProjects(currentPage);
+  }, [currentPage]);
+
+  const loadTotalCount = async () => {
+    try {
+      const total = await window.claudeSessionsAPI.getTotalCount();
+      setTotalProjects(total);
+    } catch (error) {
+      console.error('Failed to load total count:', error);
+    }
+  };
+
+  const loadClaudeProjects = async (page: number) => {
     setLoading(true);
     try {
-      const allProjects = await window.claudeSessionsAPI.getAllProjects();
-      setProjects(allProjects);
+      const result = await window.claudeSessionsAPI.getAllProjectsPaginated(page, PAGE_SIZE);
+      setProjects(result.projects);
+      setTotalProjects(result.total);
+      setHasMore(result.hasMore);
     } catch (error) {
       console.error('Failed to load Claude projects:', error);
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.loading}>Loading Claude projects...</div>
-      </div>
-    );
-  }
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleRefresh = async () => {
+    // Clear cache and reload current page
+    await window.claudeSessionsAPI.clearCountCache();
+    await loadTotalCount();
+    await loadClaudeProjects(currentPage);
+  };
 
   return (
     <div className={styles.container}>
-      <ClaudeProjectsList projects={projects} onRefresh={loadClaudeProjects} />
+      <ClaudeProjectsList
+        projects={projects}
+        onRefresh={handleRefresh}
+        currentPage={currentPage}
+        totalProjects={totalProjects}
+        pageSize={PAGE_SIZE}
+        onPageChange={handlePageChange}
+        loading={loading}
+        initialLoading={initialLoading}
+      />
     </div>
   );
 };
