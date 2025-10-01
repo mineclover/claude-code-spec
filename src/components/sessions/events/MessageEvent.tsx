@@ -33,15 +33,22 @@ export const MessageEvent: React.FC<MessageEventProps> = ({ event }) => {
 
   // Handle array content (tool results or complex content)
   if (Array.isArray(message.content)) {
-    // Check if content contains text blocks
-    const textBlocks = message.content.filter(
-      (item: any) => item && typeof item === 'object' && item.type === 'text'
-    );
-    const hasOnlyText = textBlocks.length === message.content.length;
+    // Safely extract text from various content formats
+    const extractText = (item: any): string | null => {
+      if (!item) return null;
+      if (typeof item === 'string') return item;
+      if (typeof item === 'object' && item.type === 'text' && typeof item.text === 'string') {
+        return item.text;
+      }
+      return null;
+    };
 
-    // If all items are text blocks, render them as plain text
-    if (hasOnlyText && textBlocks.length > 0) {
-      const combinedText = textBlocks.map((item: any) => item.text).join('\n');
+    // Try to extract all text content
+    const textParts = message.content.map(extractText).filter((t): t is string => t !== null);
+
+    // If we successfully extracted text from all items, render as text
+    if (textParts.length === message.content.length && textParts.length > 0) {
+      const combinedText = textParts.join('\n');
       return (
         <EventBox
           type={isAssistant ? 'assistant' : 'system'}
@@ -54,7 +61,7 @@ export const MessageEvent: React.FC<MessageEventProps> = ({ event }) => {
       );
     }
 
-    // Otherwise render as JSON for complex structures
+    // Otherwise render as JSON for complex structures (safely)
     return (
       <EventBox
         type={isUser ? 'system' : 'assistant'}
@@ -63,11 +70,18 @@ export const MessageEvent: React.FC<MessageEventProps> = ({ event }) => {
         rawData={event}
       >
         <div className={styles.arrayContent}>
-          {message.content.map((item, idx) => (
-            <div key={idx} className={styles.contentItem}>
-              <pre className={styles.contentPre}>{JSON.stringify(item, null, 2)}</pre>
-            </div>
-          ))}
+          {message.content.map((item, idx) => {
+            // Ensure we always render a string, never an object
+            const displayContent = typeof item === 'string'
+              ? item
+              : JSON.stringify(item, null, 2);
+
+            return (
+              <div key={idx} className={styles.contentItem}>
+                <pre className={styles.contentPre}>{displayContent}</pre>
+              </div>
+            );
+          })}
         </div>
       </EventBox>
     );

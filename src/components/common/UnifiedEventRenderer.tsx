@@ -7,6 +7,7 @@
 
 import type React from 'react';
 import { eventRegistry, EventType, type UnifiedEvent } from '../../lib/event-registry';
+import { ErrorBoundary } from './ErrorBoundary';
 
 // Import stream event components
 import { SystemInitEvent } from '../stream/events/SystemInitEvent';
@@ -92,14 +93,26 @@ export const UnifiedEventRenderer: React.FC<UnifiedEventRendererProps> = ({ even
     const fallbackRenderer = eventRegistry.getRenderer(EventType.UNKNOWN);
     if (fallbackRenderer) {
       const Component = fallbackRenderer.component;
-      return <Component event={event} index={index} key={index} />;
+      return (
+        <ErrorBoundary key={index}>
+          <Component event={event} index={index} />
+        </ErrorBoundary>
+      );
     }
 
     // Ultimate fallback
-    return <UnknownEvent event={event} key={index} />;
+    return (
+      <ErrorBoundary key={index}>
+        <UnknownEvent event={event} />
+      </ErrorBoundary>
+    );
   }
 
-  // Render with the appropriate component
+  // Render with the appropriate component wrapped in ErrorBoundary
   const Component = renderer.component;
-  return <Component event={event} index={index} key={index} />;
+  return (
+    <ErrorBoundary key={index}>
+      <Component event={event} index={index} />
+    </ErrorBoundary>
+  );
 };
