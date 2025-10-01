@@ -11,6 +11,7 @@ interface AppSettings {
   claudeProjectsPath?: string;
   currentProjectPath?: string;
   currentProjectDirName?: string;
+  mcpResourcePaths?: string[]; // Additional MCP config file paths
 }
 
 export class SettingsService {
@@ -79,6 +80,70 @@ export class SettingsService {
     this.settings.currentProjectPath = undefined;
     this.settings.currentProjectDirName = undefined;
     this.saveSettings();
+  }
+
+  // MCP Resource Paths methods
+  getMcpResourcePaths(): string[] {
+    return this.settings.mcpResourcePaths || [];
+  }
+
+  setMcpResourcePaths(paths: string[]): void {
+    this.settings.mcpResourcePaths = paths;
+    this.saveSettings();
+  }
+
+  addMcpResourcePath(path: string): void {
+    if (!this.settings.mcpResourcePaths) {
+      this.settings.mcpResourcePaths = [];
+    }
+
+    // Avoid duplicates
+    if (!this.settings.mcpResourcePaths.includes(path)) {
+      this.settings.mcpResourcePaths.push(path);
+      this.saveSettings();
+    }
+  }
+
+  removeMcpResourcePath(path: string): void {
+    if (this.settings.mcpResourcePaths) {
+      this.settings.mcpResourcePaths = this.settings.mcpResourcePaths.filter(p => p !== path);
+      this.saveSettings();
+    }
+  }
+
+  // Get OS-specific default paths
+  getDefaultPaths(): { claudeProjectsPath: string; mcpConfigPath: string } {
+    const homeDir = app.getPath('home');
+    const platform = process.platform;
+
+    let claudeProjectsPath: string;
+    let mcpConfigPath: string;
+
+    if (platform === 'win32') {
+      // Windows
+      claudeProjectsPath = `${homeDir}\\.claude\\projects`;
+      mcpConfigPath = `${homeDir}\\.claude.json`;
+    } else {
+      // macOS/Linux
+      claudeProjectsPath = `${homeDir}/.claude/projects`;
+      mcpConfigPath = `${homeDir}/.claude.json`;
+    }
+
+    return { claudeProjectsPath, mcpConfigPath };
+  }
+
+  // Get default MCP resource path (the standard ~/.claude.json location)
+  getDefaultMcpResourcePaths(): string[] {
+    const homeDir = app.getPath('home');
+    const platform = process.platform;
+
+    if (platform === 'win32') {
+      // Windows: %USERPROFILE%\.claude.json
+      return [`${homeDir}\\.claude.json`];
+    } else {
+      // macOS/Linux: ~/.claude.json
+      return [`${homeDir}/.claude.json`];
+    }
   }
 }
 

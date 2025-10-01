@@ -18,6 +18,7 @@ import {
   getMcpServerList,
   createMcpConfig,
 } from '../../services/settings';
+import { settingsService } from '../../services/appSettings';
 
 export function registerSettingsHandlers(router: IPCRouter): void {
   // Find all settings files
@@ -74,9 +75,10 @@ export function registerSettingsHandlers(router: IPCRouter): void {
     return listMcpConfigs(projectPath);
   });
 
-  // Get MCP server list from ~/.claude.json
+  // Get MCP server list from ~/.claude.json and additional resource paths
   router.handle('get-mcp-servers', async (_event) => {
-    return getMcpServerList();
+    const additionalPaths = settingsService.getMcpResourcePaths();
+    return getMcpServerList(additionalPaths);
   });
 
   // Create MCP config file

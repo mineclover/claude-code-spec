@@ -15,6 +15,7 @@ export function McpConfigsPage() {
   const { projectPath, projectDirName } = useProject();
   const [configs, setConfigs] = useState<McpConfigFile[]>([]);
   const [availableServers, setAvailableServers] = useState<McpServer[]>([]);
+  const [sourcePaths, setSourcePaths] = useState<string[]>([]);
   const [selectedConfig, setSelectedConfig] = useState<McpConfigFile | null>(null);
   const [editingContent, setEditingContent] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
@@ -55,6 +56,7 @@ export function McpConfigsPage() {
         toast.error(result.error);
       } else {
         setAvailableServers(result.servers);
+        setSourcePaths(result.sourcePaths || []);
       }
     } catch (error) {
       console.error('Failed to load available servers:', error);
@@ -294,13 +296,31 @@ export function McpConfigsPage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>
-                  Select MCP Servers ({selectedServers.length} selected)
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <label className={styles.formLabel} style={{ margin: 0 }}>
+                    Select MCP Servers ({selectedServers.length} selected)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={loadAvailableServers}
+                    className={styles.refreshServersButton}
+                    title="Refresh server list from configured paths"
+                  >
+                    🔄 Refresh Servers
+                  </button>
+                </div>
+                {sourcePaths.length > 0 && (
+                  <div className={styles.sourcePathsInfo}>
+                    <span className={styles.sourcePathsLabel}>Loading from:</span>
+                    {sourcePaths.map((path, idx) => (
+                      <span key={idx} className={styles.sourcePathItem}>{path}</span>
+                    ))}
+                  </div>
+                )}
                 <div className={styles.serverList}>
                   {availableServers.length === 0 ? (
                     <p className={styles.noServers}>
-                      No MCP servers found in ~/.claude.json
+                      No MCP servers found. Configure resource paths in Settings.
                     </p>
                   ) : (
                     availableServers.map((server) => (

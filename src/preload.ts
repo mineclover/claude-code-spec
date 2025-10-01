@@ -95,7 +95,7 @@ export interface SettingsAPI {
 
   // MCP Configuration Management
   listMcpConfigs: (projectPath: string) => Promise<McpConfigFile[]>;
-  getMcpServers: () => Promise<{ servers: McpServer[], error?: string }>;
+  getMcpServers: () => Promise<{ servers: McpServer[], error?: string, sourcePaths: string[] }>;
   createMcpConfig: (projectPath: string, name: string, servers: string[]) => Promise<{ success: boolean; path?: string; error?: string }>;
 }
 
@@ -392,6 +392,12 @@ export interface AppSettings {
   claudeProjectsPath?: string;
   currentProjectPath?: string;
   currentProjectDirName?: string;
+  mcpResourcePaths?: string[]; // Additional MCP config file paths
+}
+
+export interface DefaultPaths {
+  claudeProjectsPath: string;
+  mcpConfigPath: string;
 }
 
 export interface AppSettingsAPI {
@@ -402,6 +408,12 @@ export interface AppSettingsAPI {
   getCurrentProjectDirName: () => Promise<string | undefined>;
   setCurrentProject: (projectPath: string, projectDirName: string) => Promise<{ success: boolean }>;
   clearCurrentProject: () => Promise<{ success: boolean }>;
+  getMcpResourcePaths: () => Promise<string[]>;
+  setMcpResourcePaths: (paths: string[]) => Promise<{ success: boolean }>;
+  addMcpResourcePath: (path: string) => Promise<{ success: boolean }>;
+  removeMcpResourcePath: (path: string) => Promise<{ success: boolean }>;
+  getDefaultPaths: () => Promise<DefaultPaths>;
+  getDefaultMcpResourcePaths: () => Promise<string[]>;
 }
 
 contextBridge.exposeInMainWorld('appSettingsAPI', {
@@ -414,6 +426,15 @@ contextBridge.exposeInMainWorld('appSettingsAPI', {
   setCurrentProject: (projectPath: string, projectDirName: string) =>
     ipcRenderer.invoke('app-settings:set-current-project', projectPath, projectDirName),
   clearCurrentProject: () => ipcRenderer.invoke('app-settings:clear-current-project'),
+  getMcpResourcePaths: () => ipcRenderer.invoke('app-settings:get-mcp-resource-paths'),
+  setMcpResourcePaths: (paths: string[]) =>
+    ipcRenderer.invoke('app-settings:set-mcp-resource-paths', paths),
+  addMcpResourcePath: (path: string) =>
+    ipcRenderer.invoke('app-settings:add-mcp-resource-path', path),
+  removeMcpResourcePath: (path: string) =>
+    ipcRenderer.invoke('app-settings:remove-mcp-resource-path', path),
+  getDefaultPaths: () => ipcRenderer.invoke('app-settings:get-default-paths'),
+  getDefaultMcpResourcePaths: () => ipcRenderer.invoke('app-settings:get-default-mcp-resource-paths'),
 } as AppSettingsAPI);
 
 // Docs API

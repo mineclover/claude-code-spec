@@ -261,42 +261,89 @@ export const listMcpConfigs = (projectPath: string): McpConfigFile[] => {
 };
 
 /**
- * Get available MCP servers from user config (~/.claude.json)
+ * Get available MCP servers from user config (~/.claude.json) and additional resource paths
+ * @param additionalPaths - Optional additional config file paths to read
  */
-export const getMcpServerList = (): { servers: McpServer[], error?: string } => {
-  try {
-    const homeDir = process.env.HOME || process.env.USERPROFILE;
-    if (!homeDir) {
-      return { servers: [], error: 'Home directory not found' };
-    }
+export const getMcpServerList = (additionalPaths?: string[]): { servers: McpServer[], error?: string, sourcePaths: string[] } => {
+  const allServers: McpServer[] = [];
+  const sourcePathsSet = new Set<string>(); // Track unique source paths
+  const errors: string[] = [];
+  const serverNames = new Set<string>(); // Track unique server names
 
+  // Helper function to read servers from a config file
+  const readServersFromPath = (configPath: string): McpServer[] => {
+    try {
+      if (!fs.existsSync(configPath)) {
+        return [];
+      }
+
+      const content = fs.readFileSync(configPath, 'utf-8');
+      const config = JSON.parse(content);
+
+      if (!config.mcpServers || typeof config.mcpServers !== 'object') {
+        return [];
+      }
+
+      const servers: McpServer[] = Object.entries(config.mcpServers).map(([name, server]: [string, any]) => ({
+        name,
+        type: server.type || 'stdio',
+        command: server.command || '',
+        args: server.args || [],
+        env: server.env || {},
+      }));
+
+      // Normalize path and add to set (prevents duplicates)
+      const normalizedPath = path.normalize(configPath);
+      sourcePathsSet.add(normalizedPath);
+      return servers;
+    } catch (error) {
+      errors.push(`Failed to read ${configPath}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return [];
+    }
+  };
+
+  // Read from default ~/.claude.json
+  const homeDir = process.env.HOME || process.env.USERPROFILE;
+  if (homeDir) {
     const claudeConfigPath = path.join(homeDir, '.claude.json');
-    if (!fs.existsSync(claudeConfigPath)) {
-      return { servers: [], error: '~/.claude.json not found' };
+    const defaultServers = readServersFromPath(claudeConfigPath);
+    for (const server of defaultServers) {
+      if (!serverNames.has(server.name)) {
+        allServers.push(server);
+        serverNames.add(server.name);
+      }
     }
-
-    const content = fs.readFileSync(claudeConfigPath, 'utf-8');
-    const config = JSON.parse(content);
-
-    if (!config.mcpServers || typeof config.mcpServers !== 'object') {
-      return { servers: [] };
-    }
-
-    const servers: McpServer[] = Object.entries(config.mcpServers).map(([name, server]: [string, any]) => ({
-      name,
-      type: server.type || 'stdio',
-      command: server.command || '',
-      args: server.args || [],
-      env: server.env || {},
-    }));
-
-    return { servers };
-  } catch (error) {
-    return {
-      servers: [],
-      error: error instanceof Error ? error.message : 'Failed to read MCP servers',
-    };
   }
+
+  // Read from additional paths
+  if (additionalPaths && additionalPaths.length > 0) {
+    for (const additionalPath of additionalPaths) {
+      // Expand ~ in path
+      const expandedPath = additionalPath.startsWith('~')
+        ? path.join(homeDir || '', additionalPath.slice(1))
+        : additionalPath;
+
+      // Normalize and check if we've already read this path
+      const normalizedPath = path.normalize(expandedPath);
+      if (sourcePathsSet.has(normalizedPath)) {
+        continue; // Skip duplicate paths
+      }
+
+      const additionalServers = readServersFromPath(expandedPath);
+      for (const server of additionalServers) {
+        if (!serverNames.has(server.name)) {
+          allServers.push(server);
+          serverNames.add(server.name);
+        }
+      }
+    }
+  }
+
+  if (allServers.length === 0 && errors.length > 0) {
+    return { servers: [], error: errors.join('; '), sourcePaths: Array.from(sourcePathsSet) };
+  }
+
+  return { servers: allServers, sourcePaths: Array.from(sourcePathsSet) };
 };
 
 /**

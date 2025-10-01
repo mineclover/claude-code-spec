@@ -47,4 +47,37 @@ export function registerAppSettingsHandlers(
     settingsService.clearCurrentProject();
     return { success: true };
   });
+
+  // Get MCP resource paths
+  router.handle('get-mcp-resource-paths', async () => {
+    return settingsService.getMcpResourcePaths();
+  });
+
+  // Set MCP resource paths
+  router.handle('set-mcp-resource-paths', async (_event, paths: string[]) => {
+    settingsService.setMcpResourcePaths(paths);
+    return { success: true };
+  });
+
+  // Add MCP resource path
+  router.handle('add-mcp-resource-path', async (_event, path: string) => {
+    settingsService.addMcpResourcePath(path);
+    return { success: true };
+  });
+
+  // Remove MCP resource path
+  router.handle('remove-mcp-resource-path', async (_event, path: string) => {
+    settingsService.removeMcpResourcePath(path);
+    return { success: true };
+  });
+
+  // Get OS-specific default paths
+  router.handle('get-default-paths', async () => {
+    return settingsService.getDefaultPaths();
+  });
+
+  // Get default MCP resource paths
+  router.handle('get-default-mcp-resource-paths', async () => {
+    return settingsService.getDefaultMcpResourcePaths();
+  });
 }

@@ -63,6 +63,17 @@
   margin-bottom: 12px;
 }
 
+.settingNote {
+  font-size: 12px;
+  color: #9db4ff;
+  background: #1a1f3a;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border-left: 3px solid #667eea;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
 .pathInput {
   display: flex;
   gap: 8px;
@@ -220,5 +231,76 @@
 
 .editorNote {
   color: #858585;
+  font-style: italic;
+}
+
+/* MCP Resource Paths */
+.resourcePathsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.resourcePathItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #252525;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+}
+
+.resourcePathText {
+  flex: 1;
+  font-size: 13px;
+  font-family: "SF Mono", Monaco, monospace;
+  color: #d4d4d4;
+}
+
+.removePathButton {
+  padding: 4px 12px;
+  background: #3c3c3c;
+  color: #d4d4d4;
+  border: 1px solid #555;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.removePathButton:hover {
+  background: #5a2d2d;
+  color: #f44336;
+  border-color: #f44336;
+}
+
+.addPathButton {
+  padding: 8px 16px;
+  background: #3c3c3c;
+  color: #d4d4d4;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+  margin-top: 8px;
+}
+
+.addPathButton:hover:not(:disabled) {
+  background: #4a4a4a;
+}
+
+.addPathButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.emptyPaths {
+  padding: 12px;
+  text-align: center;
+  color: #666;
+  font-size: 13px;
   font-style: italic;
 }
