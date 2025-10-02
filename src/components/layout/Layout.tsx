@@ -16,8 +16,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [_isEditingAddress, setIsEditingAddress] = useState(false);
   const { projectPath, projectDirName } = useProject();
 
-  console.log('[Layout] Render - projectPath:', projectPath, 'projectDirName:', projectDirName);
-
   const isActive = (path: string) => location.pathname === path;
 
   const getCurrentPageInfo = () => {
