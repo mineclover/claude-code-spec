@@ -1166,7 +1166,7 @@ export class MarkdownEditor {
     switch (item.type) {
       case 'heading':
         const heading = item as HeadingItem;
-        return [`${'#'.repeat(heading.level)} ${heading.text}`];
+        return [`${'#'.repeat(heading.level)} ${heading.text}`, ''];
       
       case 'direct-ref':
         const directRef = item as DirectRefItem;
