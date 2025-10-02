@@ -2,6 +2,7 @@ export interface ClaudeSessionEntry {
   type: string;
   summary?: string;
   leafUuid?: string;
+  isSidechain?: boolean; // Indicates if this event is from a sub-agent
   [key: string]: unknown;
 }
 

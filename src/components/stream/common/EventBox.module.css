@@ -68,6 +68,36 @@
   background-color: #f8f9fa;
 }
 
+/* Sub-Agent Styling */
+.sidechain {
+  margin-left: 24px;
+  border-left-width: 3px;
+  border-left-style: dashed;
+  opacity: 0.9;
+  position: relative;
+}
+
+.sidechain::before {
+  content: '↳';
+  position: absolute;
+  left: -20px;
+  top: 16px;
+  color: #6c757d;
+  font-size: 16px;
+}
+
+.sidechainBadge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6c757d;
+  background-color: rgba(108, 117, 125, 0.1);
+  border: 1px solid rgba(108, 117, 125, 0.2);
+  border-radius: 12px;
+}
+
 /* CSS Variables */
 :root {
   --bg-secondary: #ffffff;

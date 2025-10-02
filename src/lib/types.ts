@@ -9,6 +9,7 @@
 
 export interface BaseStreamEvent {
   type: string;
+  isSidechain?: boolean; // Indicates if this event is from a sub-agent
   [key: string]: unknown;
 }
 
@@ -33,6 +34,7 @@ export interface SystemInitEvent {
   output_style: string;
   agents: string[];
   uuid: string;
+  isSidechain?: boolean;
 }
 
 // ============================================================================
@@ -56,6 +58,7 @@ export interface UserEvent {
   session_id: string;
   parent_tool_use_id: string | null;
   uuid: string;
+  isSidechain?: boolean;
 }
 
 // ============================================================================
@@ -103,6 +106,7 @@ export interface AssistantEvent {
   parent_tool_use_id: string | null;
   session_id: string;
   uuid: string;
+  isSidechain?: boolean;
 }
 
 // ============================================================================
@@ -149,6 +153,7 @@ export interface ResultEvent {
     tool_input: Record<string, unknown>;
   }>;
   uuid: string;
+  isSidechain?: boolean;
 }
 
 // ============================================================================
@@ -161,6 +166,7 @@ export interface ErrorEvent {
     type: string;
     message: string;
   };
+  isSidechain?: boolean;
 }
 
 // ============================================================================

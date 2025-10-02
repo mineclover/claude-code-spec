@@ -13,7 +13,7 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
   // Handle tool_result content (array type)
   if (Array.isArray(content)) {
     return (
-      <EventBox type="user" icon="🔧" title="Tool Result" rawData={event}>
+      <EventBox type="user" icon="🔧" title="Tool Result" rawData={event} isSidechain={event.isSidechain}>
         {content.map((item, index) => {
           // Safely extract text from content that might be a string or object
           const extractContent = (content: unknown): string => {
@@ -64,7 +64,13 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
     commandOutput = commandOutput.replace(/\u001b\[[0-9;]*m/g, '');
 
     return (
-      <EventBox type="user" icon="💻" title="Local Command Output" rawData={event}>
+      <EventBox
+        type="user"
+        icon="💻"
+        title="Local Command Output"
+        rawData={event}
+        isSidechain={event.isSidechain}
+      >
         <pre className={styles.commandOutput}>{commandOutput}</pre>
       </EventBox>
     );
@@ -72,7 +78,7 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
 
   // Regular user message
   return (
-    <EventBox type="user" icon="👤" title="User Message" rawData={event}>
+    <EventBox type="user" icon="👤" title="User Message" rawData={event} isSidechain={event.isSidechain}>
       <div className={styles.content}>{content}</div>
     </EventBox>
   );

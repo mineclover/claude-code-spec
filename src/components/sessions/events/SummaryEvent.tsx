@@ -9,7 +9,13 @@ interface SummaryEventProps {
 
 export const SummaryEvent: React.FC<SummaryEventProps> = ({ event }) => {
   return (
-    <EventBox type="system" icon="📋" title="Session Summary" rawData={event}>
+    <EventBox
+      type="system"
+      icon="📋"
+      title="Session Summary"
+      rawData={event}
+      isSidechain={event.isSidechain}
+    >
       <div className={styles.content}>{event.summary}</div>
       {event.leafUuid && (
         <div className={styles.metadata}>

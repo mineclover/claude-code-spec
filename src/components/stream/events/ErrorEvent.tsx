@@ -9,7 +9,7 @@ interface ErrorEventProps {
 
 export const ErrorEvent: React.FC<ErrorEventProps> = ({ event }) => {
   return (
-    <EventBox type="error" icon="❌" title="Error" rawData={event}>
+    <EventBox type="error" icon="❌" title="Error" rawData={event} isSidechain={event.isSidechain}>
       <div className={styles.errorType}>{event.error.type}</div>
       <div className={styles.errorMessage}>{event.error.message}</div>
     </EventBox>

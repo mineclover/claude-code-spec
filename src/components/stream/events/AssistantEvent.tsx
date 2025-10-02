@@ -15,7 +15,13 @@ export const AssistantEvent: React.FC<AssistantEventProps> = ({ event }) => {
   const toolUses = extractToolUsesFromMessage(event.message);
 
   return (
-    <EventBox type="assistant" icon="🤖" title="Assistant Response" rawData={event}>
+    <EventBox
+      type="assistant"
+      icon="🤖"
+      title="Assistant Response"
+      rawData={event}
+      isSidechain={event.isSidechain}
+    >
       {textContent && <div className={styles.textContent}>{textContent}</div>}
 
       {toolUses.length > 0 && (

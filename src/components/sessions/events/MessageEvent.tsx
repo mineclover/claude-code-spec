@@ -25,6 +25,7 @@ export const MessageEvent: React.FC<MessageEventProps> = ({ event }) => {
         icon={isUser ? '👤' : '🤖'}
         title={isUser ? 'User' : 'Assistant'}
         rawData={event}
+        isSidechain={event.isSidechain}
       >
         <div className={styles.content}>{message.content}</div>
       </EventBox>
@@ -62,6 +63,7 @@ export const MessageEvent: React.FC<MessageEventProps> = ({ event }) => {
           icon={isAssistant ? '🤖' : '👤'}
           title={isAssistant ? 'Assistant' : 'User'}
           rawData={event}
+          isSidechain={event.isSidechain}
         >
           <div className={styles.content}>{combinedText}</div>
         </EventBox>
@@ -75,6 +77,7 @@ export const MessageEvent: React.FC<MessageEventProps> = ({ event }) => {
         icon={isUser ? '🔧' : '🤖'}
         title={isUser ? 'Tool Result' : 'Assistant'}
         rawData={event}
+        isSidechain={event.isSidechain}
       >
         <div className={styles.arrayContent}>
           {message.content.map((item, idx) => {

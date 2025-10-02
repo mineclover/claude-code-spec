@@ -11,7 +11,13 @@ export const UnknownSessionEvent: React.FC<UnknownSessionEventProps> = ({ event 
   const eventType = event.type || 'unknown';
 
   return (
-    <EventBox type="unknown" icon="📦" title={`Unknown Event: ${eventType}`} rawData={event}>
+    <EventBox
+      type="unknown"
+      icon="📦"
+      title={`Unknown Event: ${eventType}`}
+      rawData={event}
+      isSidechain={event.isSidechain}
+    >
       <CodeBlock code={JSON.stringify(event, null, 2)} language="json" />
     </EventBox>
   );

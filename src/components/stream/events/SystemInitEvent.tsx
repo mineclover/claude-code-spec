@@ -27,7 +27,13 @@ export const SystemInitEvent: React.FC<SystemInitEventProps> = ({ event }) => {
   );
 
   return (
-    <EventBox type="system" icon="🔧" title="System Initialized" rawData={event}>
+    <EventBox
+      type="system"
+      icon="🔧"
+      title="System Initialized"
+      rawData={event}
+      isSidechain={event.isSidechain}
+    >
       <div className={styles.grid}>
         <div className={styles.item}>
           <span className={styles.label}>Session ID:</span>

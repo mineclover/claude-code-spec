@@ -10,6 +10,7 @@ interface EventBoxProps {
   title: string;
   children: React.ReactNode;
   rawData?: unknown; // Original event data for raw copy
+  isSidechain?: boolean; // Indicates if this event is from a sub-agent
 }
 
 const getEventClass = (type: EventType): string => {
@@ -29,15 +30,26 @@ const getEventClass = (type: EventType): string => {
   }
 };
 
-export const EventBox: React.FC<EventBoxProps> = ({ type, icon, title, children, rawData }) => {
+export const EventBox: React.FC<EventBoxProps> = ({
+  type,
+  icon,
+  title,
+  children,
+  rawData,
+  isSidechain = false,
+}) => {
   const eventClass = getEventClass(type);
+  const sidechainClass = isSidechain ? styles.sidechain : '';
 
   return (
-    <div className={`${styles.eventBox} ${eventClass}`}>
+    <div className={`${styles.eventBox} ${eventClass} ${sidechainClass}`}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           {icon && <span className={styles.icon}>{icon}</span>}
-          <strong className={styles.title}>{title}</strong>
+          <strong className={styles.title}>
+            {title}
+            {isSidechain && <span className={styles.sidechainBadge}>Sub-Agent</span>}
+          </strong>
         </div>
         {rawData ? <RawDataActions rawData={rawData} /> : null}
       </div>
