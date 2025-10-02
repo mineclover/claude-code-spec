@@ -884,6 +884,114 @@ export class MarkdownEditor {
   }
 
   /**
+   * Convert a managed region and its items to JSON format
+   * Useful for data-driven operations and export
+   */
+  regionToJSON(regionName: string): object {
+    const region = this.findManagedRegion(regionName);
+    if (!region) {
+      throw new Error(`Managed region '${regionName}' not found`);
+    }
+
+    const items = this.parseRegionItems(regionName);
+
+    return {
+      name: region.name,
+      items: items.map(item => ({
+        id: item.id,
+        type: item.type,
+        line: item.line,
+        ...this.itemToJSONData(item)
+      }))
+    };
+  }
+
+  /**
+   * Convert item-specific data to JSON
+   */
+  private itemToJSONData(item: RegionItem): object {
+    switch (item.type) {
+      case 'heading':
+        const heading = item as HeadingItem;
+        return { level: heading.level, text: heading.text };
+      
+      case 'direct-ref':
+        const directRef = item as DirectRefItem;
+        return { path: directRef.path };
+      
+      case 'indirect-ref':
+        const indirectRef = item as IndirectRefItem;
+        return { path: indirectRef.path, description: indirectRef.description };
+      
+      case 'code-block':
+        const codeBlock = item as CodeBlockItem;
+        return { language: codeBlock.language, content: codeBlock.content };
+      
+      case 'text':
+        const text = item as TextItem;
+        return { content: text.content };
+      
+      default:
+        return {};
+    }
+  }
+
+  /**
+   * Update a managed region from JSON data
+   * This allows data-driven manipulation of regions
+   */
+  updateRegionFromJSON(regionName: string, jsonData: { items: any[] }): void {
+    const region = this.findManagedRegion(regionName);
+    if (!region) {
+      throw new Error(`Managed region '${regionName}' not found`);
+    }
+
+    // Convert JSON items to markdown lines
+    const markdownLines: string[] = [];
+    
+    for (const item of jsonData.items) {
+      const lines = this.itemToMarkdown(item);
+      markdownLines.push(...lines);
+    }
+
+    const newContent = markdownLines.join('\n');
+    this.updateManagedRegionContent(regionName, newContent);
+  }
+
+  /**
+   * Export all managed regions as JSON
+   */
+  exportAllRegionsJSON(): object {
+    const regions = this.findAllManagedRegions();
+    return {
+      regions: regions.map(region => this.regionToJSON(region.name))
+    };
+  }
+
+  /**
+   * Import regions from JSON (replaces existing content)
+   */
+  importRegionsFromJSON(jsonData: { regions: any[] }): void {
+    for (const regionData of jsonData.regions) {
+      const region = this.findManagedRegion(regionData.name);
+      if (region) {
+        this.updateRegionFromJSON(regionData.name, { items: regionData.items });
+      } else {
+        // Create new region if it doesn't exist
+        const items = regionData.items || [];
+        const markdownLines: string[] = [];
+        
+        for (const item of items) {
+          const lines = this.itemToMarkdown(item);
+          markdownLines.push(...lines);
+        }
+        
+        this.addManagedRegion(regionData.name, markdownLines.join('\n'), 'end');
+      }
+    }
+  }
+
+  /**
    * Add a new item to region at specified position
    */
 

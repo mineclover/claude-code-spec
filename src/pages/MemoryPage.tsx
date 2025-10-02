@@ -317,12 +317,18 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
   const [items, setItems] = useState<RegionItem[]>([]);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showJSONView, setShowJSONView] = useState(false);
+  const [jsonData, setJsonData] = useState<string>('');
 
   useEffect(() => {
     setEditContent(region.content);
     if (editor) {
       const regionItems = editor.parseRegionItems(region.name);
       setItems(regionItems);
+
+      // Update JSON data
+      const json = editor.regionToJSON(region.name);
+      setJsonData(JSON.stringify(json, null, 2));
     }
   }, [region, editor]);
 
@@ -344,7 +350,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
     if (!editor) return;
 
     const newItem: any = { type };
-    
+
     switch (type) {
       case 'heading':
         newItem.level = 2;
@@ -366,6 +372,50 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
     editor.addRegionItem(region.name, newItem, 'end');
     setShowAddMenu(false);
     onSave();
+  };
+
+  const handleMoveItem = (itemId: string, direction: 'up' | 'down') => {
+    if (!editor) return;
+
+    const currentIndex = items.findIndex(item => item.id === itemId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= items.length) return;
+
+    // Create new items array with swapped positions
+    const newItems = [...items];
+    [newItems[currentIndex], newItems[newIndex]] = [newItems[newIndex], newItems[currentIndex]];
+
+    // Update region from JSON
+    editor.updateRegionFromJSON(region.name, { items: newItems });
+    onSave();
+  };
+
+  const handleSaveJSON = () => {
+    if (!editor) return;
+
+    try {
+      const parsedJSON = JSON.parse(jsonData);
+      editor.updateRegionFromJSON(region.name, parsedJSON);
+      setShowJSONView(false);
+      onSave();
+    } catch (err) {
+      alert('Invalid JSON: ' + (err as Error).message);
+    }
+  };
+
+  const handleExportJSON = () => {
+    if (!editor) return;
+
+    const json = editor.regionToJSON(region.name);
+    const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${region.name}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const getItemIcon = (type: string) => {
@@ -408,9 +458,17 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
           <div className={styles.itemsList}>
             <div className={styles.itemsHeader}>
               <h4>Region Items ({items.length})</h4>
-              <button onClick={() => setShowAddMenu(!showAddMenu)} className={styles.buttonSmall}>
-                ➕ Add Item
-              </button>
+              <div>
+                <button onClick={() => setShowJSONView(!showJSONView)} className={styles.buttonSmall}>
+                  {showJSONView ? '📝 List View' : '{ } JSON View'}
+                </button>
+                <button onClick={handleExportJSON} className={styles.buttonSmall}>
+                  💾 Export JSON
+                </button>
+                <button onClick={() => setShowAddMenu(!showAddMenu)} className={styles.buttonSmall}>
+                  ➕ Add Item
+                </button>
+              </div>
             </div>
 
             {showAddMenu && (
@@ -430,18 +488,36 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
               </div>
             )}
 
-            {items.map((item) => (
+            {!showJSONView && items.map((item, idx) => (
               <div key={item.id} className={styles.itemCard}>
                 <div className={styles.itemHeader}>
                   <span className={styles.itemIcon}>{getItemIcon(item.type)}</span>
                   <span className={styles.itemType}>{item.type}</span>
                   <span className={styles.itemLine}>Line {item.line + 1}</span>
-                  <button
-                    onClick={() => handleDeleteItem(item.id)}
-                    className={styles.buttonDangerSmall}
-                  >
-                    🗑️
-                  </button>
+                  <div>
+                    <button
+                      onClick={() => handleMoveItem(item.id, 'up')}
+                      disabled={idx === 0}
+                      className={styles.buttonSmall}
+                      title="Move up"
+                    >
+                      ⬆️
+                    </button>
+                    <button
+                      onClick={() => handleMoveItem(item.id, 'down')}
+                      disabled={idx === items.length - 1}
+                      className={styles.buttonSmall}
+                      title="Move down"
+                    >
+                      ⬇️
+                    </button>
+                    <button
+                      onClick={() => handleDeleteItem(item.id)}
+                      className={styles.buttonDangerSmall}
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
                 <div className={styles.itemContent}>
                   {item.type === 'heading' && (
@@ -470,6 +546,27 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
                 </div>
               </div>
             ))}
+
+            {showJSONView && (
+              <div className={styles.jsonEditor}>
+                <div className={styles.jsonEditorHeader}>
+                  <h4>JSON Data Editor</h4>
+                  <button onClick={handleSaveJSON} className={styles.button}>
+                    💾 Save JSON
+                  </button>
+                </div>
+                <textarea
+                  value={jsonData}
+                  onChange={(e) => setJsonData(e.target.value)}
+                  className={styles.textarea}
+                  rows={20}
+                  style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                />
+                <p className={styles.hint}>
+                  Edit items array to add, remove, or reorder items. Changes will be applied to markdown when saved.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Raw Content Editor */}
