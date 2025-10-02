@@ -3,9 +3,11 @@
  * Handles all Claude CLI session data queries
  */
 
+import { shell } from 'electron';
 import {
   getAllClaudeProjects,
   getAllClaudeProjectsPaginated,
+  getClaudeProjectsDir,
   getProjectSessionCount,
   getProjectSessions,
   getProjectSessionsBasic,
@@ -75,5 +77,16 @@ export function registerClaudeSessionsHandlers(router: IPCRouter): void {
   // Get session preview
   router.handle('get-preview', async (_event, projectPath: string, sessionId: string) => {
     return getSessionPreview(projectPath, sessionId);
+  });
+
+  // Open logs folder in system file explorer
+  router.handle('open-logs-folder', async () => {
+    const logsDir = getClaudeProjectsDir();
+    await shell.openPath(logsDir);
+  });
+
+  // Open project folder in system file explorer
+  router.handle('open-project-folder', async (_event, projectPath: string) => {
+    await shell.openPath(projectPath);
   });
 }

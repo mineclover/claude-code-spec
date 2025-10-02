@@ -15,6 +15,7 @@ export const ClaudeSessionsListPage: React.FC = () => {
   const navigate = useNavigate();
   const { projectDirName } = useParams<{ projectDirName: string }>();
   const [projectPath, setProjectPath] = useState<string>('');
+  const [actualProjectPath, setActualProjectPath] = useState<string>(''); // Real cwd from session
   const [sessions, setSessions] = useState<ClaudeSessionInfo[]>([]);
   const [sessionsPage, setSessionsPage] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
@@ -42,6 +43,13 @@ export const ClaudeSessionsListPage: React.FC = () => {
         if (cached) {
           setSessions(cached.sessions);
           setTotalSessions(cached.total);
+
+          // Update actual project path from cached sessions
+          const sessionWithCwd = cached.sessions.find((s) => s.cwd && s.hasData);
+          if (sessionWithCwd?.cwd && !actualProjectPath) {
+            setActualProjectPath(sessionWithCwd.cwd);
+          }
+
           setSessionsLoading(false);
           return;
         }
@@ -69,6 +77,12 @@ export const ClaudeSessionsListPage: React.FC = () => {
 
         setSessions(sessionsWithMetadata);
         setTotalSessions(result.total);
+
+        // Update actual project path from first valid session cwd
+        const sessionWithCwd = sessionsWithMetadata.find((s) => s.cwd && s.hasData);
+        if (sessionWithCwd?.cwd && !actualProjectPath) {
+          setActualProjectPath(sessionWithCwd.cwd);
+        }
 
         await setCachedSessionsPage(
           projectPath,
@@ -117,6 +131,19 @@ export const ClaudeSessionsListPage: React.FC = () => {
     await loadSessions(sessionsPage);
   };
 
+  const handleOpenFolder = async () => {
+    // Use actual cwd from session data, fallback to parsed path
+    const pathToOpen = actualProjectPath || projectPath;
+    if (!pathToOpen) return;
+
+    try {
+      await window.claudeSessionsAPI.openProjectFolder(pathToOpen);
+    } catch (error) {
+      console.error('Failed to open project folder:', error);
+      toast.error('Failed to open project folder');
+    }
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -125,8 +152,11 @@ export const ClaudeSessionsListPage: React.FC = () => {
             ← Back to Projects
           </button>
         </div>
-        <h3>{projectPath}</h3>
+        <h3>{actualProjectPath || projectPath}</h3>
         <div className={styles.headerRight}>
+          <button type="button" onClick={handleOpenFolder} className={styles.button}>
+            Open Folder
+          </button>
           <button type="button" onClick={handleRefreshSessions} className={styles.button}>
             Refresh
           </button>

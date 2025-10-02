@@ -33,5 +33,10 @@ export function exposeSessionsAPI(): void {
 
     getPreview: (projectPath: string, sessionId: string) =>
       ipcRenderer.invoke('claude-sessions:get-preview', projectPath, sessionId),
+
+    openLogsFolder: () => ipcRenderer.invoke('claude-sessions:open-logs-folder'),
+
+    openProjectFolder: (projectPath: string) =>
+      ipcRenderer.invoke('claude-sessions:open-project-folder', projectPath),
   } as ClaudeSessionsAPI);
 }

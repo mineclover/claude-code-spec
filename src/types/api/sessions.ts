@@ -76,4 +76,10 @@ export interface ClaudeSessionsAPI {
 
   // Get session preview (first user message)
   getPreview: (projectPath: string, sessionId: string) => Promise<string | null>;
+
+  // Open logs folder in system file explorer
+  openLogsFolder: () => Promise<void>;
+
+  // Open project folder in system file explorer
+  openProjectFolder: (projectPath: string) => Promise<void>;
 }
