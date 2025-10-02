@@ -101,6 +101,17 @@ export interface ReferenceValidation {
 export class MarkdownEditor {
   private lines: string[];
 
+  
+  /**
+   * Cache for parsed region items
+   * Key: region name
+   * Value: { content hash, parsed items }
+   */
+  private itemsCache = new Map<string, {
+    contentHash: string;
+    items: RegionItem[];
+  }>();
+
 
   /**
    * Generate a unique ID for region items
@@ -524,6 +535,14 @@ export class MarkdownEditor {
     const deleteCount = region.contentEndLine - region.contentStartLine + 1;
 
     this.lines.splice(region.contentStartLine, deleteCount, ...newContentLines);
+
+    // Invalidate cache
+    this.itemsCache.delete(name);
+
+    // Auto-infer region type based on new content
+    const items = this.parseRegionItems(name);
+    const inferredType = this.inferRegionType(items);
+    region.type = inferredType;
   }
 
   /**
@@ -742,8 +761,20 @@ export class MarkdownEditor {
     const region = this.findManagedRegion(regionName);
     if (!region) return [];
 
+    // Calculate content hash for cache key
+    const contentLines = this.lines.slice(region.contentStartLine, region.contentEndLine + 1);
+    const content = contentLines.join('\n');
+    const contentHash = MarkdownEditor.generateStableItemId('cache', content);
+
+    // Check cache
+    const cached = this.itemsCache.get(regionName);
+    if (cached && cached.contentHash === contentHash) {
+      return cached.items;
+    }
+
+    // Parse items
     const items: RegionItem[] = [];
-    const lines = this.lines.slice(region.contentStartLine, region.contentEndLine + 1);
+    const lines = contentLines;
     
     let i = 0;
     while (i < lines.length) {
@@ -851,7 +882,44 @@ export class MarkdownEditor {
       i++;
     }
 
+    // Update cache
+    this.itemsCache.set(regionName, { contentHash, items });
+
     return items;
+  }
+
+
+  /**
+   * Infer region type based on its content
+   * 
+   * Region 내용을 분석하여 적절한 타입을 추론합니다.
+   * 
+   * @param items - Region 항목 배열
+   * @returns 추론된 region type
+   * 
+   * @example
+   * const items = editor.parseRegionItems('test');
+   * const type = editor.inferRegionType(items);
+   * // 'section', 'code', 또는 'mixed'
+   */
+  inferRegionType(items: RegionItem[]): 'section' | 'code' | 'mixed' {
+    const hasHeading = items.some(i => i.type === 'heading');
+    const hasDirectRef = items.some(i => i.type === 'direct-ref');
+    const hasIndirectRef = items.some(i => i.type === 'indirect-ref');
+    const hasCodeBlock = items.some(i => i.type === 'code-block');
+
+    // Section: Heading + Direct References only
+    if (hasHeading && hasDirectRef && !hasCodeBlock && !hasIndirectRef) {
+      return 'section';
+    }
+
+    // Code: Code blocks + Indirect References (no direct refs)
+    if (hasCodeBlock && !hasDirectRef) {
+      return 'code';
+    }
+
+    // Mixed: everything else
+    return 'mixed';
   }
 
   /**
@@ -897,6 +965,9 @@ export class MarkdownEditor {
 
     const linesToInsert = this.itemToMarkdown(item);
     this.lines.splice(insertLine, 0, ...linesToInsert);
+
+    // Invalidate cache
+    this.itemsCache.delete(regionName);
   }
 
   /**
@@ -936,6 +1007,9 @@ export class MarkdownEditor {
     // Replace lines (delete old lines and insert new ones)
     const deleteCount = item.endLine - item.line + 1;
     this.lines.splice(item.line, deleteCount, ...newLines);
+
+    // Invalidate cache
+    this.itemsCache.delete(regionName);
   }
 
   /**
@@ -964,6 +1038,9 @@ export class MarkdownEditor {
 
     const deleteCount = item.endLine - item.line + 1;
     this.lines.splice(item.line, deleteCount);
+
+    // Invalidate cache
+    this.itemsCache.delete(regionName);
   }
 
   /**
