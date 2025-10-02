@@ -128,7 +128,7 @@ export const ClaudeDocsPage: React.FC = () => {
     }
   };
 
-  const handleContentClick = (e: React.MouseEvent<HTMLPreElement>) => {
+  const _handleContentClick = (e: React.MouseEvent<HTMLPreElement>) => {
     const target = e.target as HTMLElement;
 
     // Check if clicked element contains a reference pattern (@context/...)
@@ -191,18 +191,7 @@ export const ClaudeDocsPage: React.FC = () => {
               {loading ? (
                 <div className={styles.loading}>Loading...</div>
               ) : (
-                <pre
-                  ref={contentRef}
-                  className={styles.markdownContent}
-                  onClick={handleContentClick}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      handleContentClick(e as unknown as React.MouseEvent<HTMLPreElement>);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                >
+                <pre ref={contentRef} className={styles.markdownContent}>
                   {content}
                 </pre>
               )}
@@ -212,7 +201,7 @@ export const ClaudeDocsPage: React.FC = () => {
           <div className={styles.emptyState}>
             <h2>Welcome to Claude Docs</h2>
             <p>Select a document from the left sidebar to view its content.</p>
-            <button className={styles.indexButton} onClick={navigateToIndex}>
+            <button type="button" className={styles.indexButton} onClick={navigateToIndex}>
               📇 Open Index
             </button>
           </div>

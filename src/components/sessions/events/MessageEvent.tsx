@@ -80,9 +80,11 @@ export const MessageEvent: React.FC<MessageEventProps> = ({ event }) => {
           {message.content.map((item, idx) => {
             // Ensure we always render a string, never an object
             const displayContent = typeof item === 'string' ? item : JSON.stringify(item, null, 2);
+            // Use content hash for stable key (first 100 chars + index for uniqueness)
+            const contentKey = `${idx}-${displayContent.slice(0, 100)}`;
 
             return (
-              <div key={idx} className={styles.contentItem}>
+              <div key={contentKey} className={styles.contentItem}>
                 <pre className={styles.contentPre}>{displayContent}</pre>
               </div>
             );

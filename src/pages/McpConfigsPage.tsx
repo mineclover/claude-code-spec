@@ -173,20 +173,6 @@ export function McpConfigsPage() {
     );
   };
 
-  const handleSelectProject = async () => {
-    const path = await window.claudeAPI.selectDirectory();
-    if (path) {
-      console.log('[McpConfigsPage] Selected project:', path);
-      const _dirName = path.split('/').filter(Boolean).pop() || path;
-
-      // Update ProjectContext
-      const { updateProject } = require('../contexts/ProjectContext');
-      // Since we're in a function component, we need to navigate to Execute page to trigger selection
-      navigate(`/?projectPath=${encodeURIComponent(path)}`);
-      toast.success('Project selected. Redirecting...');
-    }
-  };
-
   if (!projectPath) {
     return (
       <div className={styles.emptyState}>
@@ -197,10 +183,14 @@ export function McpConfigsPage() {
             Select a project to manage MCP configurations
           </p>
           <div className={styles.emptyStateActions}>
-            <button onClick={() => navigate('/claude-projects')} className={styles.primaryButton}>
+            <button
+              type="button"
+              onClick={() => navigate('/claude-projects')}
+              className={styles.primaryButton}
+            >
               📁 Browse Claude Projects
             </button>
-            <button onClick={() => navigate('/')} className={styles.secondaryButton}>
+            <button type="button" onClick={() => navigate('/')} className={styles.secondaryButton}>
               Go to Execute Page
             </button>
           </div>
@@ -230,7 +220,11 @@ export function McpConfigsPage() {
               {projectDirName || projectPath.split('/').filter(Boolean).pop()}
             </span>
           </div>
-          <button onClick={() => setIsCreating(true)} className={styles.newConfigButton}>
+          <button
+            type="button"
+            onClick={() => setIsCreating(true)}
+            className={styles.newConfigButton}
+          >
             + New Configuration
           </button>
         </div>
@@ -245,13 +239,20 @@ export function McpConfigsPage() {
                 className={`${styles.configItem} ${
                   selectedConfig?.path === config.path ? styles.selected : ''
                 }`}
-                onClick={() => handleSelectConfig(config)}
               >
-                <div className={styles.configName}>{config.name}</div>
-                <div className={styles.configMeta}>
-                  {new Date(config.lastModified).toLocaleString()}
-                </div>
                 <button
+                  type="button"
+                  className={styles.configItemButton}
+                  onClick={() => handleSelectConfig(config)}
+                  aria-label={`Select configuration ${config.name}`}
+                >
+                  <div className={styles.configName}>{config.name}</div>
+                  <div className={styles.configMeta}>
+                    {new Date(config.lastModified).toLocaleString()}
+                  </div>
+                </button>
+                <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDeleteConfig(config);
@@ -277,7 +278,7 @@ export function McpConfigsPage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Configuration Name</label>
+                <div className={styles.formLabel}>Configuration Name</div>
                 <input
                   type="text"
                   value={newConfigName}
@@ -299,9 +300,9 @@ export function McpConfigsPage() {
                     marginBottom: '12px',
                   }}
                 >
-                  <label className={styles.formLabel} style={{ margin: 0 }}>
+                  <div className={styles.formLabel} style={{ margin: 0 }}>
                     Select MCP Servers ({selectedServers.length} selected)
-                  </label>
+                  </div>
                   <button
                     type="button"
                     onClick={loadAvailableServers}
@@ -314,8 +315,8 @@ export function McpConfigsPage() {
                 {sourcePaths.length > 0 && (
                   <div className={styles.sourcePathsInfo}>
                     <span className={styles.sourcePathsLabel}>Loading from:</span>
-                    {sourcePaths.map((path, idx) => (
-                      <span key={idx} className={styles.sourcePathItem}>
+                    {sourcePaths.map((path) => (
+                      <span key={path} className={styles.sourcePathItem}>
                         {path}
                       </span>
                     ))}
@@ -329,7 +330,7 @@ export function McpConfigsPage() {
                   ) : (
                     availableServers.map((server) => (
                       <div key={server.name} className={styles.serverItem}>
-                        <label className={styles.serverItemLabel}>
+                        <div className={styles.serverItemLabel}>
                           <input
                             type="checkbox"
                             checked={selectedServers.includes(server.name)}
@@ -338,7 +339,8 @@ export function McpConfigsPage() {
                               toggleServerSelection(server.name);
                             }}
                           />
-                          <div
+                          <button
+                            type="button"
                             className={styles.serverItemContent}
                             onClick={() => toggleServerSelection(server.name)}
                           >
@@ -346,8 +348,8 @@ export function McpConfigsPage() {
                             <div className={styles.serverCommand}>
                               {server.command} {server.args.join(' ')}
                             </div>
-                          </div>
-                        </label>
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}
@@ -356,6 +358,7 @@ export function McpConfigsPage() {
 
               <div className={styles.buttonGroup}>
                 <button
+                  type="button"
                   onClick={handleCreateConfig}
                   disabled={
                     !newConfigName.trim() ||
@@ -379,6 +382,7 @@ export function McpConfigsPage() {
                     : 'Create Configuration'}
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setIsCreating(false);
                     setNewConfigName('');
@@ -400,13 +404,14 @@ export function McpConfigsPage() {
 
               {/* Usage Scripts */}
               <div className={styles.usageSection}>
-                <label className={styles.formLabel}>Usage Scripts</label>
+                <div className={styles.formLabel}>Usage Scripts</div>
 
                 {/* Interactive Mode */}
                 <div className={styles.scriptVariant}>
                   <div className={styles.scriptVariantHeader}>
                     <span className={styles.scriptVariantTitle}>💬 Interactive Mode</span>
                     <button
+                      type="button"
                       onClick={() => {
                         const relativePath = `.claude/${selectedConfig.name}`;
                         const script = `claude --mcp-config ${relativePath} --strict-mcp-config --dangerously-skip-permissions`;
@@ -434,6 +439,7 @@ export function McpConfigsPage() {
                   <div className={styles.scriptVariantHeader}>
                     <span className={styles.scriptVariantTitle}>⚡ Single Query Mode</span>
                     <button
+                      type="button"
                       onClick={() => {
                         const relativePath = `.claude/${selectedConfig.name}`;
                         const script = `claude -p "your query here" --mcp-config ${relativePath} --strict-mcp-config --dangerously-skip-permissions`;
@@ -456,7 +462,7 @@ export function McpConfigsPage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Configuration Content</label>
+                <div className={styles.formLabel}>Configuration Content</div>
                 <textarea
                   value={editingContent}
                   onChange={(e) => setEditingContent(e.target.value)}
@@ -466,10 +472,11 @@ export function McpConfigsPage() {
               </div>
 
               <div className={styles.buttonGroup}>
-                <button onClick={handleSaveConfig} className={styles.saveButton}>
+                <button type="button" onClick={handleSaveConfig} className={styles.saveButton}>
                   Save Changes
                 </button>
                 <button
+                  type="button"
                   onClick={() => setEditingContent(selectedConfig.content)}
                   className={styles.cancelButton}
                 >

@@ -10,11 +10,9 @@ if (started) {
   app.quit();
 }
 
-let mainWindow: BrowserWindow | null = null;
-
 // Create main window
 const handleCreateWindow = () => {
-  mainWindow = createWindow();
+  createWindow();
 };
 
 // Setup IPC handlers on app ready

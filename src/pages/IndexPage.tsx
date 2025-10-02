@@ -56,29 +56,33 @@ export const IndexPage: React.FC = () => {
       <div className={styles.content}>
         <div className={styles.sidebar}>
           <div className={styles.categoryList}>
-            <div
+            <button
+              type="button"
               className={`${styles.categoryItem} ${!selectedCategory ? styles.active : ''}`}
               onClick={() => setSelectedCategory(null)}
+              aria-label="Show all pages"
             >
               <span className={styles.categoryIcon}>📋</span>
               <span>전체</span>
               <span className={styles.categoryCount}>{PAGE_INDEX.length}</span>
-            </div>
+            </button>
 
             {categories.map((category) => {
               const info = CATEGORY_INFO[category];
               const count = pagesByCategory[category]?.length || 0;
 
               return (
-                <div
+                <button
                   key={category}
+                  type="button"
                   className={`${styles.categoryItem} ${selectedCategory === category ? styles.active : ''}`}
                   onClick={() => setSelectedCategory(category)}
+                  aria-label={`Filter by ${info.name}`}
                 >
                   <span className={styles.categoryIcon}>{info.icon}</span>
                   <span>{info.name}</span>
                   <span className={styles.categoryCount}>{count}</span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -106,10 +110,12 @@ export const IndexPage: React.FC = () => {
 
                     <div className={styles.pageGrid}>
                       {pages.map((page) => (
-                        <div
+                        <button
                           key={page.id}
+                          type="button"
                           className={styles.pageCard}
                           onClick={() => handlePageClick(page.route)}
+                          aria-label={`Navigate to ${page.displayName}`}
                         >
                           <div className={styles.pageIcon}>{page.icon}</div>
                           <div className={styles.pageInfo}>
@@ -117,7 +123,7 @@ export const IndexPage: React.FC = () => {
                             <p className={styles.pageDescription}>{page.description}</p>
                           </div>
                           <div className={styles.pageRoute}>{page.route}</div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -135,25 +141,27 @@ export const IndexPage: React.FC = () => {
 
               <div className={styles.pageGrid}>
                 {filteredPages.map((page) => (
-                  <div
+                  <button
                     key={page.id}
+                    type="button"
                     className={styles.pageCard}
                     onClick={() => handlePageClick(page.route)}
+                    aria-label={`Navigate to ${page.displayName}`}
                   >
                     <div className={styles.pageIcon}>{page.icon}</div>
                     <div className={styles.pageInfo}>
                       <h3 className={styles.pageName}>{page.displayName}</h3>
                       <p className={styles.pageDescription}>{page.description}</p>
                       <div className={styles.pageTags}>
-                        {page.keywords.slice(0, 3).map((keyword, idx) => (
-                          <span key={idx} className={styles.pageTag}>
+                        {page.keywords.slice(0, 3).map((keyword) => (
+                          <span key={keyword} className={styles.pageTag}>
                             {keyword}
                           </span>
                         ))}
                       </div>
                     </div>
                     <div className={styles.pageRoute}>{page.route}</div>
-                  </div>
+                  </button>
                 ))}
               </div>
 

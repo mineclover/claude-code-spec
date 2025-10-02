@@ -50,24 +50,29 @@ export const Pagination: React.FC<PaginationProps> = ({
         </button>
         <div className={styles.pageNumbers}>
           {Array.from({ length: totalPages }, (_, i) => {
+            const pageNum = i;
             // Show max 7 pages: current +/- 2
-            if (i === 0 || i === totalPages - 1 || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            if (
+              pageNum === 0 ||
+              pageNum === totalPages - 1 ||
+              (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
+            ) {
               return (
                 <button
-                  key={`page-${i}`}
+                  key={pageNum}
                   type="button"
-                  onClick={() => onPageChange(i)}
-                  className={`${styles.pageNumber} ${i === currentPage ? styles.active : ''}`}
-                  aria-label={`Page ${i + 1}`}
-                  aria-current={i === currentPage ? 'page' : undefined}
+                  onClick={() => onPageChange(pageNum)}
+                  className={`${styles.pageNumber} ${pageNum === currentPage ? styles.active : ''}`}
+                  aria-label={`Page ${pageNum + 1}`}
+                  aria-current={pageNum === currentPage ? 'page' : undefined}
                 >
-                  {i + 1}
+                  {pageNum + 1}
                 </button>
               );
             }
-            if (i === currentPage - 3 || i === currentPage + 3) {
+            if (pageNum === currentPage - 3 || pageNum === currentPage + 3) {
               return (
-                <span key={`ellipsis-${i}`} className={styles.ellipsis}>
+                <span key={`ellipsis-${pageNum}`} className={styles.ellipsis}>
                   ...
                 </span>
               );

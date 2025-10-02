@@ -288,13 +288,16 @@ export const getMcpServerList = (
       }
 
       const servers: McpServer[] = Object.entries(config.mcpServers).map(
-        ([name, server]: [string, any]) => ({
-          name,
-          type: server.type || 'stdio',
-          command: server.command || '',
-          args: server.args || [],
-          env: server.env || {},
-        }),
+        ([name, server]: [string, unknown]) => {
+          const serverConfig = server as Partial<McpServer>;
+          return {
+            name,
+            type: serverConfig.type || 'stdio',
+            command: serverConfig.command || '',
+            args: serverConfig.args || [],
+            env: serverConfig.env || {},
+          };
+        },
       );
 
       // Normalize path and add to set (prevents duplicates)
@@ -375,7 +378,9 @@ export const createMcpConfig = (
     }
 
     // Build MCP config
-    const mcpConfig: Record<string, any> = {
+    const mcpConfig: {
+      mcpServers: Record<string, Omit<McpServer, 'name'>>;
+    } = {
       mcpServers: {},
     };
 

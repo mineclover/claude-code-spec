@@ -118,7 +118,11 @@ export class IPCRegistry {
     if (!this.routers.has(domain)) {
       this.routers.set(domain, new IPCRouter(domain, options));
     }
-    return this.routers.get(domain)!;
+    const router = this.routers.get(domain);
+    if (!router) {
+      throw new Error(`Failed to get or create router for domain: ${domain}`);
+    }
+    return router;
   }
 
   /**

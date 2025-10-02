@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Pagination } from '../components/common/Pagination';
 import { StreamOutput } from '../components/stream/StreamOutput';
@@ -9,6 +9,8 @@ import { getCachedSessionsPage, setCachedSessionsPage } from '../services/cache'
 import styles from './ExecutePage.module.css';
 
 export const ExecutePage: React.FC = () => {
+  const projectPathInputId = useId();
+  const queryInputId = useId();
   const { projectPath: contextProjectPath, updateProject } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const [projectPath, setProjectPath] = useState('');
@@ -266,9 +268,10 @@ export const ExecutePage: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.controls}>
         <div className={styles.inputGroup}>
-          <label>Project Path</label>
+          <label htmlFor={projectPathInputId}>Project Path</label>
           <div className={styles.pathInput}>
             <input
+              id={projectPathInputId}
               type="text"
               value={projectPath}
               onChange={(e) => setProjectPath(e.target.value)}
@@ -284,7 +287,7 @@ export const ExecutePage: React.FC = () => {
         {projectPath && (
           <div className={styles.sessionsList}>
             <div className={styles.sessionsHeader}>
-              <label>Recent Sessions</label>
+              <div className={styles.sessionsLabel}>Recent Sessions</div>
               <div className={styles.sessionsHeaderActions}>
                 <button
                   type="button"
@@ -304,75 +307,75 @@ export const ExecutePage: React.FC = () => {
                 </button>
               </div>
             </div>
-            {sessionsExpanded && (
-              <>
-                {sessionsLoading && recentSessions.length === 0 ? (
-                  <div className={styles.noSessions}>Loading sessions...</div>
-                ) : recentSessions.length === 0 ? (
-                  <div className={styles.noSessions}>No sessions for this project</div>
-                ) : (
-                  <>
-                    <div className={styles.sessionsContainer}>
-                      {recentSessions.map((session) => (
-                        <div
-                          key={session.sessionId}
-                          className={`${styles.sessionItem} ${selectedSessionId === session.sessionId ? styles.selected : ''}`}
+            {sessionsExpanded &&
+              (sessionsLoading && recentSessions.length === 0 ? (
+                <div className={styles.noSessions}>Loading sessions...</div>
+              ) : recentSessions.length === 0 ? (
+                <div className={styles.noSessions}>No sessions for this project</div>
+              ) : (
+                <>
+                  <div className={styles.sessionsContainer}>
+                    {recentSessions.map((session) => (
+                      <div
+                        key={session.sessionId}
+                        className={`${styles.sessionItem} ${selectedSessionId === session.sessionId ? styles.selected : ''}`}
+                      >
+                        <button
+                          type="button"
+                          className={styles.sessionItemContent}
                           onClick={() => setSelectedSessionId(session.sessionId)}
+                          onDoubleClick={() => handleLoadSessionToOutput(session.sessionId)}
+                          aria-label={`Select session ${session.sessionId}`}
                         >
-                          <div
-                            className={styles.sessionItemContent}
-                            onDoubleClick={() => handleLoadSessionToOutput(session.sessionId)}
-                          >
-                            <div className={styles.sessionItemId} title={session.sessionId}>
-                              {session.sessionId}
-                            </div>
-                            {session.firstUserMessage && (
-                              <div
-                                className={styles.sessionItemPreview}
-                                title={session.firstUserMessage}
-                              >
-                                {session.firstUserMessage}
-                              </div>
-                            )}
-                            <div className={styles.sessionItemTime}>
-                              {new Date(session.lastModified).toLocaleString()}
-                            </div>
+                          <div className={styles.sessionItemId} title={session.sessionId}>
+                            {session.sessionId}
                           </div>
-                          <button
-                            type="button"
-                            className={styles.loadArrowButton}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleLoadSessionToOutput(session.sessionId);
-                            }}
-                            title="Load to Output"
-                          >
-                            →
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    {totalSessions > SESSIONS_PAGE_SIZE && (
-                      <div className={styles.sessionsPagination}>
-                        <Pagination
-                          currentPage={sessionsPage}
-                          totalItems={totalSessions}
-                          pageSize={SESSIONS_PAGE_SIZE}
-                          onPageChange={setSessionsPage}
-                          itemName="sessions"
-                        />
+                          {session.firstUserMessage && (
+                            <div
+                              className={styles.sessionItemPreview}
+                              title={session.firstUserMessage}
+                            >
+                              {session.firstUserMessage}
+                            </div>
+                          )}
+                          <div className={styles.sessionItemTime}>
+                            {new Date(session.lastModified).toLocaleString()}
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.loadArrowButton}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLoadSessionToOutput(session.sessionId);
+                          }}
+                          title="Load to Output"
+                        >
+                          →
+                        </button>
                       </div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
+                    ))}
+                  </div>
+                  {totalSessions > SESSIONS_PAGE_SIZE && (
+                    <div className={styles.sessionsPagination}>
+                      <Pagination
+                        currentPage={sessionsPage}
+                        totalItems={totalSessions}
+                        pageSize={SESSIONS_PAGE_SIZE}
+                        onPageChange={setSessionsPage}
+                        itemName="sessions"
+                      />
+                    </div>
+                  )}
+                </>
+              ))}
           </div>
         )}
 
         <div className={styles.inputGroup}>
-          <label>Query</label>
+          <label htmlFor={queryInputId}>Query</label>
           <textarea
+            id={queryInputId}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Enter your query..."

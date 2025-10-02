@@ -468,7 +468,10 @@ export const getAllClaudeProjectsPaginated = (
     const paginatedProjectDirs = allProjects.slice(start, end);
 
     const projects = paginatedProjectDirs.map((projectInfo) => {
-      const { dir, claudeProjectDir, inferredPath } = projectInfo!;
+      if (!projectInfo) {
+        throw new Error('Project info is null after filtering');
+      }
+      const { dir, claudeProjectDir, inferredPath } = projectInfo;
       const sessions = getProjectSessions(inferredPath);
 
       // Use actual cwd from first session with data, fallback to inferred path

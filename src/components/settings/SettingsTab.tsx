@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import type { ProjectSettings } from '../../preload';
 import styles from './SettingsTab.module.css';
 
@@ -8,6 +8,11 @@ interface SettingsTabProps {
 }
 
 export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
+  const claudeProjectsPathId = useId();
+  const newMcpPathId = useId();
+  const claudeDocsPathId = useId();
+  const controllerDocsPathId = useId();
+  const metadataPathId = useId();
   const [claudeProjectsPath, setClaudeProjectsPath] = useState('');
   const [isPathLoading, setIsPathLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -302,7 +307,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
 
         <div className={styles.settingsSection}>
           <div className={styles.settingItem}>
-            <label className={styles.settingLabel}>Claude Projects Path</label>
+            <label htmlFor={claudeProjectsPathId} className={styles.settingLabel}>
+              Claude Projects Path
+            </label>
             <div className={styles.settingDescription}>
               The directory path where Claude CLI stores session data (typically ~/.claude/projects)
             </div>
@@ -312,6 +319,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
             </div>
             <div className={styles.pathInput}>
               <input
+                id={claudeProjectsPathId}
                 type="text"
                 value={claudeProjectsPath}
                 onChange={(e) => setClaudeProjectsPath(e.target.value)}
@@ -357,7 +365,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
 
           {/* MCP Resource Paths Section */}
           <div className={styles.settingItem}>
-            <label className={styles.settingLabel}>MCP Configuration Resource Paths</label>
+            <label htmlFor={newMcpPathId} className={styles.settingLabel}>
+              MCP Configuration Resource Paths
+            </label>
             <div className={styles.settingDescription}>
               Configuration files containing mcpServers definitions (e.g., GitHub, Memory, Database
               servers). Each file should have a "mcpServers" section defining MCP server
@@ -372,8 +382,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
             {/* Configured Paths */}
             <div className={styles.resourcePathsList}>
               {mcpResourcePaths.length > 0 ? (
-                mcpResourcePaths.map((path, index) => (
-                  <div key={index} className={styles.resourcePathItem}>
+                mcpResourcePaths.map((path) => (
+                  <div key={path} className={styles.resourcePathItem}>
                     <span className={styles.resourcePathText}>{path}</span>
                     <button
                       type="button"
@@ -394,6 +404,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
             {/* Add New Path */}
             <div className={styles.pathInput}>
               <input
+                id={newMcpPathId}
                 type="text"
                 value={newMcpPath}
                 onChange={(e) => setNewMcpPath(e.target.value)}
@@ -440,16 +451,19 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
 
           {/* Document Paths Section */}
           <div className={styles.settingItem}>
-            <label className={styles.settingLabel}>Document Paths</label>
+            <div className={styles.settingLabel}>Document Paths</div>
             <div className={styles.settingDescription}>
               Configure paths to documentation and metadata directories used by the application.
             </div>
 
             {/* Claude Docs Path */}
             <div className={styles.docPathSection}>
-              <label className={styles.docPathLabel}>Claude Cookbooks Path</label>
+              <label htmlFor={claudeDocsPathId} className={styles.docPathLabel}>
+                Claude Cookbooks Path
+              </label>
               <div className={styles.pathInput}>
                 <input
+                  id={claudeDocsPathId}
                   type="text"
                   value={claudeDocsPath}
                   onChange={(e) => setClaudeDocsPath(e.target.value)}
@@ -470,9 +484,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
 
             {/* Controller Docs Path */}
             <div className={styles.docPathSection}>
-              <label className={styles.docPathLabel}>Controller Docs Path</label>
+              <label htmlFor={controllerDocsPathId} className={styles.docPathLabel}>
+                Controller Docs Path
+              </label>
               <div className={styles.pathInput}>
                 <input
+                  id={controllerDocsPathId}
                   type="text"
                   value={controllerDocsPath}
                   onChange={(e) => setControllerDocsPath(e.target.value)}
@@ -493,9 +510,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ projectPath }) => {
 
             {/* Metadata Path */}
             <div className={styles.docPathSection}>
-              <label className={styles.docPathLabel}>Metadata Path</label>
+              <label htmlFor={metadataPathId} className={styles.docPathLabel}>
+                Metadata Path
+              </label>
               <div className={styles.pathInput}>
                 <input
+                  id={metadataPathId}
                   type="text"
                   value={metadataPath}
                   onChange={(e) => setMetadataPath(e.target.value)}

@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { Pagination } from '../components/common/Pagination';
@@ -17,6 +17,7 @@ import styles from './ClaudeProjectsListPage.module.css';
 type SortOption = 'recent' | 'oldest' | 'name';
 
 export const ClaudeProjectsListPage: React.FC = () => {
+  const sortSelectId = useId();
   const navigate = useNavigate();
   const { updateProject } = useProject();
   const [projects, setProjects] = useState<ClaudeProjectInfo[]>([]);
@@ -113,9 +114,9 @@ export const ClaudeProjectsListPage: React.FC = () => {
         <h3>Claude CLI Projects</h3>
         <div className={styles.headerControls}>
           <div className={styles.sortControls}>
-            <label htmlFor="sort-select">Sort by:</label>
+            <label htmlFor={sortSelectId}>Sort by:</label>
             <select
-              id="sort-select"
+              id={sortSelectId}
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
             >
