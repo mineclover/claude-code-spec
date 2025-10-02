@@ -23,7 +23,6 @@ export const MemoryPage: React.FC = () => {
   const [managedRegions, setManagedRegions] = useState<ManagedRegion[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<string>('');
   const [newRegionName, setNewRegionName] = useState<string>('');
-  const [newRegionType, setNewRegionType] = useState<'section' | 'code' | 'mixed'>('section');
   const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
   const [duplicateRefs, setDuplicateRefs] = useState<Map<string, number[]>>(new Map());
   const [invalidRefs, setInvalidRefs] = useState<ContextReference[]>([]);
@@ -97,17 +96,12 @@ export const MemoryPage: React.FC = () => {
   const handleCreateRegion = useCallback(() => {
     if (!editor || !newRegionName.trim()) return;
 
-    const initialContent =
-      newRegionType === 'section'
-        ? '## References\n\n@context/topic/file.md\n@context/another/file.md'
-        : newRegionType === 'code'
-          ? '## Tools\n\n```bash\nnpm run dev\n```\n\n`@context/topic/file.md` - 필요 시 참조하세요.'
-          : '## Mixed Content\n\n@context/topic/file.md\n\n```bash\nnpm install\n```\n\n`@context/troubleshooting/file.md` - 문제 발생 시 참조하세요.';
+    const initialContent = '## Section\n\n@context/topic/file.md';
 
     editor.addManagedRegion(newRegionName.trim(), initialContent, 'end');
     setNewRegionName('');
     saveClaudeMd();
-  }, [editor, newRegionName, newRegionType, saveClaudeMd]);
+  }, [editor, newRegionName, saveClaudeMd]);
 
   // Delete region
   const handleDeleteRegion = useCallback(
@@ -214,15 +208,6 @@ export const MemoryPage: React.FC = () => {
             onChange={(e) => setNewRegionName(e.target.value)}
             className={styles.input}
           />
-          <select
-            value={newRegionType}
-            onChange={(e) => setNewRegionType(e.target.value as any)}
-            className={styles.select}
-          >
-            <option value="section">Section (Heading + Bullets)</option>
-            <option value="code">Code Block</option>
-            <option value="mixed">Mixed Content</option>
-          </select>
           <button onClick={handleCreateRegion} className={styles.button}>
             Create
           </button>
@@ -383,19 +368,6 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
     onSave();
   };
 
-  const getTypeIcon = () => {
-    switch (region.type) {
-      case 'section':
-        return '📝';
-      case 'code':
-        return '💻';
-      case 'mixed':
-        return '📋';
-      default:
-        return '📄';
-    }
-  };
-
   const getItemIcon = (type: string) => {
     switch (type) {
       case 'heading': return '📌';
@@ -410,7 +382,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
     <div className={styles.regionCard}>
       <div className={styles.regionHeader} onClick={onToggle}>
         <div className={styles.regionHeaderLeft}>
-          <span className={styles.regionIcon}>{getTypeIcon()}</span>
+          <span className={styles.regionIcon}>📋</span>
           <span className={styles.regionName}>{region.name}</span>
           <span className={styles.regionLines}>
             Lines {region.startLine + 1}-{region.endLine + 1}
