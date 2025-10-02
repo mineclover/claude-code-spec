@@ -1370,18 +1370,10 @@ export class MarkdownEditor {
       this.lines.pop();
     }
 
-    // Add separator section
-    const separator = [
-      '',
-      '---',
-      '',
-      '## Memory 관리 영역',
-      '',
-      '아래 영역들은 Memory Editor를 통해 관리됩니다.',
-      '',
-    ];
-
-    this.lines.push(...separator);
+    // Add separator
+    this.lines.push('');
+    this.lines.push('---');
+    this.lines.push('');
 
     // Add all regions at the bottom
     regionData.forEach((data, index) => {
