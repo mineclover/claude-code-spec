@@ -164,6 +164,32 @@
   margin: 0;
 }
 
+.sessionsHeaderActions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.toggleButton {
+  padding: 4px 8px;
+  border: 1px solid #6c757d;
+  border-radius: 3px;
+  background: #fff;
+  color: #495057;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+}
+
+.toggleButton:hover {
+  background: #f8f9fa;
+  border-color: #495057;
+}
+
 .refreshButton {
   padding: 4px 10px;
   border: 1px solid #6c757d;
@@ -190,7 +216,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 400px;
+  max-height: min(500px, 40vh);
   overflow-y: auto;
   padding: 4px;
 }
@@ -203,6 +229,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 115px;
 }
 
 .sessionItem.selected {
@@ -216,7 +243,6 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-height: 70px;
   cursor: pointer;
 }
 
@@ -277,6 +303,7 @@
   padding: 8px 10px;
   background: #f8f9fa;
   border-top: 1px solid #dee2e6;
+  flex-shrink: 0;
 }
 
 .loadButton {

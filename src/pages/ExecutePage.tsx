@@ -25,7 +25,8 @@ export const ExecutePage: React.FC = () => {
   const [sessionsPage, setSessionsPage] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
   const [sessionsLoading, setSessionsLoading] = useState(false);
-  const SESSIONS_PAGE_SIZE = 10;
+  const [sessionsExpanded, setSessionsExpanded] = useState(true);
+  const SESSIONS_PAGE_SIZE = 5;
 
   const loadRecentSessions = useCallback(async (page: number, skipCache = false) => {
     if (!projectPath) return;
@@ -219,12 +220,12 @@ export const ExecutePage: React.FC = () => {
       // Load session logs
       const sessionLogs = await window.claudeSessionsAPI.readLog(projectPath, sessionId);
 
-      // Convert session logs to stream events and append to current events
+      // Convert session logs to stream events and replace current events
       const streamEvents: StreamEvent[] = sessionLogs
         .filter((entry) => entry.type !== 'summary') // Filter out summary entries
         .map((entry) => entry as unknown as StreamEvent); // Type assertion for compatibility
 
-      setEvents((prev) => [...prev, ...streamEvents]);
+      setEvents(streamEvents); // Replace instead of append
       setSelectedSessionId(sessionId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load session logs');
@@ -280,83 +281,97 @@ export const ExecutePage: React.FC = () => {
           <div className={styles.sessionsList}>
             <div className={styles.sessionsHeader}>
               <label>Recent Sessions</label>
-              <button
-                type="button"
-                onClick={handleRefreshSessions}
-                className={styles.refreshButton}
-                disabled={sessionsLoading}
-              >
-                {sessionsLoading ? 'Refreshing...' : 'Refresh'}
-              </button>
+              <div className={styles.sessionsHeaderActions}>
+                <button
+                  type="button"
+                  onClick={() => setSessionsExpanded(!sessionsExpanded)}
+                  className={styles.toggleButton}
+                  title={sessionsExpanded ? 'Collapse' : 'Expand'}
+                >
+                  {sessionsExpanded ? '▼' : '▶'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRefreshSessions}
+                  className={styles.refreshButton}
+                  disabled={sessionsLoading}
+                >
+                  {sessionsLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>
             </div>
-            {sessionsLoading && recentSessions.length === 0 ? (
-              <div className={styles.noSessions}>Loading sessions...</div>
-            ) : recentSessions.length === 0 ? (
-              <div className={styles.noSessions}>No sessions for this project</div>
-            ) : (
+            {sessionsExpanded && (
               <>
-                <div className={styles.sessionsContainer}>
-                  {recentSessions.map((session) => (
-                    <div
-                      key={session.sessionId}
-                      className={`${styles.sessionItem} ${selectedSessionId === session.sessionId ? styles.selected : ''}`}
-                      onClick={() => setSelectedSessionId(session.sessionId)}
-                    >
-                      <div
-                        className={styles.sessionItemContent}
-                        onDoubleClick={() => handleLoadSessionToOutput(session.sessionId)}
-                      >
-                        <div className={styles.sessionItemId} title={session.sessionId}>
-                          {session.sessionId}
-                        </div>
-                        {session.firstUserMessage && (
+                {sessionsLoading && recentSessions.length === 0 ? (
+                  <div className={styles.noSessions}>Loading sessions...</div>
+                ) : recentSessions.length === 0 ? (
+                  <div className={styles.noSessions}>No sessions for this project</div>
+                ) : (
+                  <>
+                    <div className={styles.sessionsContainer}>
+                      {recentSessions.map((session) => (
+                        <div
+                          key={session.sessionId}
+                          className={`${styles.sessionItem} ${selectedSessionId === session.sessionId ? styles.selected : ''}`}
+                          onClick={() => setSelectedSessionId(session.sessionId)}
+                        >
                           <div
-                            className={styles.sessionItemPreview}
-                            title={session.firstUserMessage}
+                            className={styles.sessionItemContent}
+                            onDoubleClick={() => handleLoadSessionToOutput(session.sessionId)}
                           >
-                            {session.firstUserMessage}
+                            <div className={styles.sessionItemId} title={session.sessionId}>
+                              {session.sessionId}
+                            </div>
+                            {session.firstUserMessage && (
+                              <div
+                                className={styles.sessionItemPreview}
+                                title={session.firstUserMessage}
+                              >
+                                {session.firstUserMessage}
+                              </div>
+                            )}
+                            <div className={styles.sessionItemTime}>
+                              {new Date(session.lastModified).toLocaleString()}
+                            </div>
                           </div>
-                        )}
-                        <div className={styles.sessionItemTime}>
-                          {new Date(session.lastModified).toLocaleString()}
+                          <div className={styles.sessionItemActions}>
+                            <button
+                              type="button"
+                              className={styles.loadButton}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleLoadSessionToOutput(session.sessionId);
+                              }}
+                            >
+                              Load to Output
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.resumeButton}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleResumeSession(session.sessionId);
+                              }}
+                              disabled={isRunning}
+                            >
+                              Resume
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                      <div className={styles.sessionItemActions}>
-                        <button
-                          type="button"
-                          className={styles.loadButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleLoadSessionToOutput(session.sessionId);
-                          }}
-                        >
-                          Load to Output
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.resumeButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleResumeSession(session.sessionId);
-                          }}
-                          disabled={isRunning}
-                        >
-                          Resume
-                        </button>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                {totalSessions > SESSIONS_PAGE_SIZE && (
-                  <div className={styles.sessionsPagination}>
-                    <Pagination
-                      currentPage={sessionsPage}
-                      totalItems={totalSessions}
-                      pageSize={SESSIONS_PAGE_SIZE}
-                      onPageChange={setSessionsPage}
-                      itemName="sessions"
-                    />
-                  </div>
+                    {totalSessions > SESSIONS_PAGE_SIZE && (
+                      <div className={styles.sessionsPagination}>
+                        <Pagination
+                          currentPage={sessionsPage}
+                          totalItems={totalSessions}
+                          pageSize={SESSIONS_PAGE_SIZE}
+                          onPageChange={setSessionsPage}
+                          itemName="sessions"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
