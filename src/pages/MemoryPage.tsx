@@ -412,7 +412,6 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
         <div className={styles.regionHeaderLeft}>
           <span className={styles.regionIcon}>{getTypeIcon()}</span>
           <span className={styles.regionName}>{region.name}</span>
-          <span className={styles.regionType}>{region.type}</span>
           <span className={styles.regionLines}>
             Lines {region.startLine + 1}-{region.endLine + 1}
           </span>
