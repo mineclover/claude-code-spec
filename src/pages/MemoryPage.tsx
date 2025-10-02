@@ -491,10 +491,12 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
             {!showJSONView && items.map((item, idx) => (
               <div key={item.id} className={styles.itemCard}>
                 <div className={styles.itemHeader}>
-                  <span className={styles.itemIcon}>{getItemIcon(item.type)}</span>
-                  <span className={styles.itemType}>{item.type}</span>
-                  <span className={styles.itemLine}>Line {item.line + 1}</span>
-                  <div>
+                  <div className={styles.itemInfo}>
+                    <span className={styles.itemIcon}>{getItemIcon(item.type)}</span>
+                    <span className={styles.itemType}>{item.type}</span>
+                    <span className={styles.itemLine}>Line {item.line + 1}</span>
+                  </div>
+                  <div className={styles.itemActions}>
                     <button
                       onClick={() => handleMoveItem(item.id, 'up')}
                       disabled={idx === 0}

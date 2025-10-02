@@ -179,7 +179,6 @@ Stream JSON 출력은 JSONL 형식 (JSON Lines):
 
 <!-- MEMORY_START: references -->
 ## References
-
 @context/memory/index.md
 @context/config/permissions-configuration.md
 <!-- MEMORY_END: references -->
