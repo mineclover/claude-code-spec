@@ -733,6 +733,34 @@
   font-size: 0.85rem;
 }
 
+.indirectRefItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.refPath {
+  background: #f6f8fa;
+  padding: 0.3rem 0.5rem;
+  border-radius: 3px;
+  color: #0366d6;
+  font-size: 0.85rem;
+  width: fit-content;
+}
+
+.refDescList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-left: 0.5rem;
+}
+
+.refDescLine {
+  color: #586069;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 .codeItem {
   border-radius: 4px;
   overflow: hidden;

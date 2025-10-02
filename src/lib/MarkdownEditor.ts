@@ -815,7 +815,46 @@ export class MarkdownEditor {
         continue;
       }
 
-      // Indirect reference (`@context/path` - description)
+      // Indirect reference (multi-line format)
+      // `@context/path`
+      // - description line 1
+      // - description line 2
+      const indirectRefPathMatch = line.match(/^\s*`(@context\/[^`]+)`\s*$/);
+      if (indirectRefPathMatch) {
+        const path = indirectRefPathMatch[1];
+        const startLine = globalLine;
+        const descriptionLines: string[] = [];
+        i++;
+
+        // Collect description lines starting with "- "
+        while (i < lines.length) {
+          const descLine = lines[i];
+          const descMatch = descLine.match(/^\s*-\s+(.+)$/);
+          if (descMatch) {
+            descriptionLines.push(descMatch[1]);
+            i++;
+          } else {
+            break;
+          }
+        }
+
+        const description = descriptionLines.join('\n');
+        const content = `${path}:${description}`;
+        const endLine = region.contentStartLine + i - 1;
+        
+        items.push({
+          id: MarkdownEditor.generateStableItemId('indirect-ref', content),
+          type: 'indirect-ref',
+          path,
+          description,
+          line: startLine,
+          endLine,
+          raw: `\`${path}\`\n${descriptionLines.map(d => `- ${d}`).join('\n')}`,
+        } as IndirectRefItem);
+        continue;
+      }
+
+      // Legacy single-line indirect reference (`@context/path` - description)
       const indirectRefMatch = line.match(/^\s*`(@context\/[^`]+)`\s*-\s*(.+)$/);
       if (indirectRefMatch) {
         const path = indirectRefMatch[1];
@@ -1127,7 +1166,12 @@ export class MarkdownEditor {
       
       case 'indirect-ref':
         const indirectRef = item as IndirectRefItem;
-        return [`\`${indirectRef.path}\` - ${indirectRef.description}`];
+        // Multi-line format
+        const descLines = indirectRef.description.split('\n');
+        return [
+          `\`${indirectRef.path}\``,
+          ...descLines.map(line => `- ${line}`)
+        ];
       
       case 'code-block':
         const codeBlock = item as CodeBlockItem;

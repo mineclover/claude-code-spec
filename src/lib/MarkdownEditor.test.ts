@@ -20,7 +20,9 @@ Some content here.
 npm run dev
 \`\`\`
 
-\`@context/optional.md\` - Optional reference
+\`@context/optional.md\`
+- Optional reference
+- 필요 시 참조하세요
 <!-- MEMORY_END: test-region -->
 
 More content.
@@ -116,6 +118,36 @@ More content.
       const content = editor.getContent();
       expect(content).not.toContain('```bash');
       expect(content).not.toContain('npm run dev');
+    });
+
+    it('should parse multi-line indirect reference', () => {
+      const items = editor.parseRegionItems('test-region');
+      const indirectRef = items.find(i => i.type === 'indirect-ref') as IndirectRefItem;
+
+      expect(indirectRef).toBeDefined();
+      expect(indirectRef.path).toBe('@context/optional.md');
+      expect(indirectRef.description).toBe('Optional reference\n필요 시 참조하세요');
+      expect(indirectRef.line).toBeDefined();
+      expect(indirectRef.endLine).toBeGreaterThan(indirectRef.line);
+    });
+
+    it('should correctly update multi-line indirect reference', () => {
+      const items = editor.parseRegionItems('test-region');
+      const indirectRef = items.find(i => i.type === 'indirect-ref') as IndirectRefItem;
+
+      editor.updateRegionItem('test-region', indirectRef.id, {
+        description: '새로운 설명\n두 번째 줄\n세 번째 줄'
+      });
+
+      const updated = editor.parseRegionItems('test-region');
+      const updatedRef = updated.find(i => i.type === 'indirect-ref') as IndirectRefItem;
+
+      expect(updatedRef.description).toBe('새로운 설명\n두 번째 줄\n세 번째 줄');
+
+      // Old description should not remain
+      const content = editor.getContent();
+      expect(content).not.toContain('Optional reference');
+      expect(content).toContain('새로운 설명');
     });
   });
 

@@ -361,7 +361,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
         break;
       case 'indirect-ref':
         newItem.path = '@context/new/file.md';
-        newItem.description = '설명을 입력하세요';
+        newItem.description = '설명을 입력하세요\n추가 설명이 필요하면 여기에 작성';
         break;
       case 'code-block':
         newItem.language = 'bash';
@@ -531,9 +531,15 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
                     </div>
                   )}
                   {item.type === 'indirect-ref' && (
-                    <div className={styles.refItem}>
-                      <code>{(item as IndirectRefItem).path}</code>
-                      <span className={styles.refDesc}>- {(item as IndirectRefItem).description}</span>
+                    <div className={styles.indirectRefItem}>
+                      <code className={styles.refPath}>{(item as IndirectRefItem).path}</code>
+                      <div className={styles.refDescList}>
+                        {(item as IndirectRefItem).description.split('\n').map((line, idx) => (
+                          <div key={idx} className={styles.refDescLine}>
+                            • {line}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                   {item.type === 'code-block' && (
