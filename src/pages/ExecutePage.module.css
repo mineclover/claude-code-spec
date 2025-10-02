@@ -276,6 +276,12 @@
   cursor: pointer;
   flex: 1;
   min-width: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
 }
 
 .sessionItemContent:hover {

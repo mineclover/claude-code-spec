@@ -79,6 +79,11 @@
   transition: background-color 0.15s;
   color: #cccccc;
   font-size: 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
 }
 
 .categoryItem:hover {
@@ -164,6 +169,11 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
+  text-align: left;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  width: 100%;
 }
 
 .pageCard:hover {
