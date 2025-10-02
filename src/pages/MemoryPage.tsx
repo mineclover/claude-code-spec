@@ -406,35 +406,6 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
     }
   };
 
-
-  // Group items by sections (headings)
-  const groupItemsBySection = (items: RegionItem[]) => {
-    const sections: { heading: HeadingItem | null; items: RegionItem[] }[] = [];
-    let currentSection: { heading: HeadingItem | null; items: RegionItem[] } = { heading: null, items: [] };
-
-    for (const item of items) {
-      if (item.type === 'heading') {
-        // Start new section
-        if (currentSection.heading || currentSection.items.length > 0) {
-          sections.push(currentSection);
-        }
-        currentSection = { heading: item as HeadingItem, items: [] };
-      } else {
-        // Add to current section
-        currentSection.items.push(item);
-      }
-    }
-
-    // Push last section
-    if (currentSection.heading || currentSection.items.length > 0) {
-      sections.push(currentSection);
-    }
-
-    return sections;
-  };
-
-  const sections = groupItemsBySection(items);
-
   return (
     <div className={styles.regionCard}>
       <div className={styles.regionHeader} onClick={onToggle}>
@@ -488,61 +459,43 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
               </div>
             )}
 
-            {sections.map((section, sectionIdx) => (
-              <div key={`section-${sectionIdx}`} className={styles.section}>
-                {section.heading && (
-                  <div className={styles.sectionHeading}>
-                    <div className={styles.sectionHeadingLeft}>
-                      <span className={styles.itemIcon}>📌</span>
-                      <h4>{section.heading.text}</h4>
-                      <span className={styles.itemLine}>Line {section.heading.line + 1}</span>
+            {items.map((item) => (
+              <div key={item.id} className={styles.itemCard}>
+                <div className={styles.itemHeader}>
+                  <span className={styles.itemIcon}>{getItemIcon(item.type)}</span>
+                  <span className={styles.itemType}>{item.type}</span>
+                  <span className={styles.itemLine}>Line {item.line + 1}</span>
+                  <button
+                    onClick={() => handleDeleteItem(item.id)}
+                    className={styles.buttonDangerSmall}
+                  >
+                    🗑️
+                  </button>
+                </div>
+                <div className={styles.itemContent}>
+                  {item.type === 'heading' && (
+                    <h4 className={styles.headingText}>{(item as HeadingItem).text}</h4>
+                  )}
+                  {item.type === 'direct-ref' && (
+                    <div className={styles.refItem}>
+                      <code>{(item as DirectRefItem).path}</code>
                     </div>
-                    <button
-                      onClick={() => handleDeleteItem(section.heading!.id)}
-                      className={styles.buttonDangerSmall}
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                )}
-                <div className={styles.sectionItems}>
-                  {section.items.map((item) => (
-                    <div key={item.id} className={styles.itemCard}>
-                      <div className={styles.itemHeader}>
-                        <span className={styles.itemIcon}>{getItemIcon(item.type)}</span>
-                        <span className={styles.itemType}>{item.type}</span>
-                        <span className={styles.itemLine}>Line {item.line + 1}</span>
-                        <button
-                          onClick={() => handleDeleteItem(item.id)}
-                          className={styles.buttonDangerSmall}
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                      <div className={styles.itemContent}>
-                        {item.type === 'direct-ref' && (
-                          <div className={styles.refItem}>
-                            <code>{(item as DirectRefItem).path}</code>
-                          </div>
-                        )}
-                        {item.type === 'indirect-ref' && (
-                          <div className={styles.refItem}>
-                            <code>{(item as IndirectRefItem).path}</code>
-                            <span className={styles.refDesc}>- {(item as IndirectRefItem).description}</span>
-                          </div>
-                        )}
-                        {item.type === 'code-block' && (
-                          <div className={styles.codeItem}>
-                            <div className={styles.codeLang}>{(item as CodeBlockItem).language}</div>
-                            <pre className={styles.codeContent}>{(item as CodeBlockItem).content}</pre>
-                          </div>
-                        )}
-                        {item.type === 'text' && (
-                          <div className={styles.textItem}>{(item as TextItem).content}</div>
-                        )}
-                      </div>
+                  )}
+                  {item.type === 'indirect-ref' && (
+                    <div className={styles.refItem}>
+                      <code>{(item as IndirectRefItem).path}</code>
+                      <span className={styles.refDesc}>- {(item as IndirectRefItem).description}</span>
                     </div>
-                  ))}
+                  )}
+                  {item.type === 'code-block' && (
+                    <div className={styles.codeItem}>
+                      <div className={styles.codeLang}>{(item as CodeBlockItem).language}</div>
+                      <pre className={styles.codeContent}>{(item as CodeBlockItem).content}</pre>
+                    </div>
+                  )}
+                  {item.type === 'text' && (
+                    <div className={styles.textItem}>{(item as TextItem).content}</div>
+                  )}
                 </div>
               </div>
             ))}
