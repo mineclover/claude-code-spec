@@ -96,7 +96,8 @@ export const SessionsPanel: React.FC<SessionsPanelProps> = ({
             <div className={styles.empty}>No sessions yet</div>
           ) : (
             sessions.map((session) => (
-              <div
+              <button
+                type="button"
                 key={session.sessionId}
                 className={`${styles.sessionItem} ${
                   selectedSession?.sessionId === session.sessionId ? styles.selected : ''
@@ -110,7 +111,7 @@ export const SessionsPanel: React.FC<SessionsPanelProps> = ({
                 </div>
                 <div className={styles.sessionQuery}>{session.query}</div>
                 <div className={styles.sessionPath}>{session.cwd}</div>
-              </div>
+              </button>
             ))
           )}
         </div>
@@ -148,28 +149,28 @@ export const SessionsPanel: React.FC<SessionsPanelProps> = ({
 
               <div className={styles.detailContent}>
                 <div className={styles.detailSection}>
-                  <label>Session ID:</label>
+                  <div className={styles.detailLabel}>Session ID:</div>
                   <code>{selectedSession.sessionId}</code>
                 </div>
 
                 <div className={styles.detailSection}>
-                  <label>Project Path:</label>
+                  <div className={styles.detailLabel}>Project Path:</div>
                   <code>{selectedSession.cwd}</code>
                 </div>
 
                 <div className={styles.detailSection}>
-                  <label>Query:</label>
+                  <div className={styles.detailLabel}>Query:</div>
                   <pre>{selectedSession.query}</pre>
                 </div>
 
                 <div className={styles.detailSection}>
-                  <label>Created:</label>
+                  <div className={styles.detailLabel}>Created:</div>
                   <span>{new Date(selectedSession.timestamp).toLocaleString()}</span>
                 </div>
 
                 {selectedSession.lastResult && (
                   <div className={styles.detailSection}>
-                    <label>Last Result:</label>
+                    <div className={styles.detailLabel}>Last Result:</div>
                     <pre className={styles.result}>{selectedSession.lastResult}</pre>
                   </div>
                 )}

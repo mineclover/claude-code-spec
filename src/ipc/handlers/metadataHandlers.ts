@@ -49,7 +49,10 @@ function createDefaultMetadata(filePath: string): DocumentMetadata {
   };
 }
 
-export function registerMetadataHandlers(router: IPCRouter, settingsService: SettingsService): void {
+export function registerMetadataHandlers(
+  router: IPCRouter,
+  settingsService: SettingsService,
+): void {
   // Helper to get metadata path from settings
   const getMetaDir = (): string => {
     const savedPath = settingsService.getMetadataPath();

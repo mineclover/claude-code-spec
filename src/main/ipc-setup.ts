@@ -1,7 +1,7 @@
 /**
  * IPC handlers setup
  */
-import { ipcRegistry } from '../ipc/IPCRouter';
+
 import { registerAppSettingsHandlers } from '../ipc/handlers/appSettingsHandlers';
 import { registerBookmarksHandlers } from '../ipc/handlers/bookmarksHandlers';
 import { registerClaudeHandlers } from '../ipc/handlers/claudeHandlers';
@@ -11,6 +11,7 @@ import { registerDocsHandlers } from '../ipc/handlers/docsHandlers';
 import { registerLoggerHandlers } from '../ipc/handlers/loggerHandlers';
 import { registerMetadataHandlers } from '../ipc/handlers/metadataHandlers';
 import { registerSettingsHandlers } from '../ipc/handlers/settingsHandlers';
+import { ipcRegistry } from '../ipc/IPCRouter';
 import { settingsService } from '../services/appSettings';
 import { activeClients, logger, loggerConfig, sessionManager } from './app-context';
 

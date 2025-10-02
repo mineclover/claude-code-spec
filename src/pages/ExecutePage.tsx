@@ -28,77 +28,80 @@ export const ExecutePage: React.FC = () => {
   const [sessionsExpanded, setSessionsExpanded] = useState(true);
   const SESSIONS_PAGE_SIZE = 5;
 
-  const loadRecentSessions = useCallback(async (page: number, skipCache = false) => {
-    if (!projectPath) return;
+  const loadRecentSessions = useCallback(
+    async (page: number, skipCache = false) => {
+      if (!projectPath) return;
 
-    setSessionsLoading(true);
-    try {
-      // Try cache first (unless refresh is requested)
-      if (!skipCache) {
-        const cached = await getCachedSessionsPage(projectPath, page, SESSIONS_PAGE_SIZE);
+      setSessionsLoading(true);
+      try {
+        // Try cache first (unless refresh is requested)
+        if (!skipCache) {
+          const cached = await getCachedSessionsPage(projectPath, page, SESSIONS_PAGE_SIZE);
 
-        if (cached) {
-          const sessions = cached.sessions.map((s) => ({
-            sessionId: s.sessionId,
-            firstUserMessage: s.firstUserMessage,
-            lastModified: s.lastModified,
-          }));
-          setRecentSessions(sessions);
-          setTotalSessions(cached.total);
-          setSessionsLoading(false);
-          return;
-        }
-      }
-
-      // Fetch from backend
-      const result = await window.claudeSessionsAPI.getProjectSessionsPaginated(
-        projectPath,
-        page,
-        SESSIONS_PAGE_SIZE,
-      );
-
-      // Get metadata for each session
-      const sessionsWithMetadata = await Promise.all(
-        result.sessions.map(async (session) => {
-          try {
-            const metadata = await window.claudeSessionsAPI.getSessionMetadata(
-              projectPath,
-              session.sessionId,
-            );
-            return { ...session, ...metadata };
-          } catch (error) {
-            console.error('Failed to load session metadata:', error);
-            return { ...session, hasData: false };
+          if (cached) {
+            const sessions = cached.sessions.map((s) => ({
+              sessionId: s.sessionId,
+              firstUserMessage: s.firstUserMessage,
+              lastModified: s.lastModified,
+            }));
+            setRecentSessions(sessions);
+            setTotalSessions(cached.total);
+            setSessionsLoading(false);
+            return;
           }
-        }),
-      );
+        }
 
-      const sessions = sessionsWithMetadata.map((s) => ({
-        sessionId: s.sessionId,
-        firstUserMessage: s.firstUserMessage,
-        lastModified: s.lastModified,
-      }));
+        // Fetch from backend
+        const result = await window.claudeSessionsAPI.getProjectSessionsPaginated(
+          projectPath,
+          page,
+          SESSIONS_PAGE_SIZE,
+        );
 
-      setRecentSessions(sessions);
-      setTotalSessions(result.total);
+        // Get metadata for each session
+        const sessionsWithMetadata = await Promise.all(
+          result.sessions.map(async (session) => {
+            try {
+              const metadata = await window.claudeSessionsAPI.getSessionMetadata(
+                projectPath,
+                session.sessionId,
+              );
+              return { ...session, ...metadata };
+            } catch (error) {
+              console.error('Failed to load session metadata:', error);
+              return { ...session, hasData: false };
+            }
+          }),
+        );
 
-      // Cache the result
-      await setCachedSessionsPage(
-        projectPath,
-        page,
-        SESSIONS_PAGE_SIZE,
-        sessionsWithMetadata,
-        result.total,
-        result.hasMore,
-      );
-    } catch (err) {
-      console.error('Failed to load recent sessions:', err);
-      setRecentSessions([]);
-      setTotalSessions(0);
-    } finally {
-      setSessionsLoading(false);
-    }
-  }, [projectPath]);
+        const sessions = sessionsWithMetadata.map((s) => ({
+          sessionId: s.sessionId,
+          firstUserMessage: s.firstUserMessage,
+          lastModified: s.lastModified,
+        }));
+
+        setRecentSessions(sessions);
+        setTotalSessions(result.total);
+
+        // Cache the result
+        await setCachedSessionsPage(
+          projectPath,
+          page,
+          SESSIONS_PAGE_SIZE,
+          sessionsWithMetadata,
+          result.total,
+          result.hasMore,
+        );
+      } catch (err) {
+        console.error('Failed to load recent sessions:', err);
+        setRecentSessions([]);
+        setTotalSessions(0);
+      } finally {
+        setSessionsLoading(false);
+      }
+    },
+    [projectPath],
+  );
 
   // Handle projectPath from URL params
   useEffect(() => {
@@ -159,10 +162,11 @@ export const ExecutePage: React.FC = () => {
     setCurrentPid(null);
 
     try {
+      // Execute always starts a new session (no resume)
       const result = await window.claudeAPI.executeClaudeCommand(
         projectPath,
         query,
-        selectedSessionId || undefined,
+        undefined, // Always undefined for Execute - never resume
       );
 
       if (result.success && result.pid) {

@@ -1,5 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { DocumentImprovement, DocumentMetadata, DocumentReview, MetadataAPI } from '../../types/api';
+import type {
+  DocumentImprovement,
+  DocumentMetadata,
+  DocumentReview,
+  MetadataAPI,
+} from '../../types/api';
 
 export function exposeMetadataAPI(): void {
   contextBridge.exposeInMainWorld('metadataAPI', {

@@ -3,7 +3,9 @@ import { HashRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { ProjectProvider } from './contexts/ProjectContext';
 import { ClaudeDocsPage } from './pages/ClaudeDocsPage';
-import { ClaudeProjectsPage } from './pages/ClaudeProjectsPage';
+import { ClaudeProjectsListPage } from './pages/ClaudeProjectsListPage';
+import { ClaudeSessionDetailPage } from './pages/ClaudeSessionDetailPage';
+import { ClaudeSessionsListPage } from './pages/ClaudeSessionsListPage';
 import { ControllerDocsPage } from './pages/ControllerDocsPage';
 import { ExecutePage } from './pages/ExecutePage';
 import { IndexPage } from './pages/IndexPage';
@@ -19,11 +21,11 @@ function App() {
           <Routes>
             <Route path="/" element={<ExecutePage />} />
             <Route path="/index" element={<IndexPage />} />
-            <Route path="/claude-projects" element={<ClaudeProjectsPage />} />
-            <Route path="/claude-projects/:projectDirName" element={<ClaudeProjectsPage />} />
+            <Route path="/claude-projects" element={<ClaudeProjectsListPage />} />
+            <Route path="/claude-projects/:projectDirName" element={<ClaudeSessionsListPage />} />
             <Route
               path="/claude-projects/:projectDirName/:sessionId"
-              element={<ClaudeProjectsPage />}
+              element={<ClaudeSessionDetailPage />}
             />
             <Route path="/mcp-configs" element={<McpConfigsPage />} />
             <Route path="/claude-docs" element={<ClaudeDocsPage />} />

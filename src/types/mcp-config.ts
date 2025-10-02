@@ -160,6 +160,7 @@ export const EXAMPLE_CONFIGS: Record<string, McpServer> = {
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-github'],
     env: {
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: This is a placeholder for environment variable
       GITHUB_TOKEN: '${GITHUB_TOKEN}',
     },
     metadata: {
@@ -184,8 +185,10 @@ export const EXAMPLE_CONFIGS: Record<string, McpServer> = {
   database: {
     type: 'stdio',
     command: 'npx',
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: This is a placeholder for environment variable
     args: ['-y', '@bytebase/dbhub', '--dsn', '${DATABASE_URL:-postgresql://localhost:5432/dev}'],
     env: {
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: This is a placeholder for environment variable
       DATABASE_URL: '${DATABASE_URL}',
     },
     metadata: {
@@ -208,6 +211,7 @@ export const EXAMPLE_CONFIGS: Record<string, McpServer> = {
     transport: 'sse',
     auth: {
       type: 'bearer',
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: This is a placeholder for environment variable
       token: '${API_TOKEN}',
     },
     metadata: {

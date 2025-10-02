@@ -9,7 +9,7 @@ import { isSystemInitEvent } from './types';
 
 export interface ClaudeClientOptions {
   cwd: string;
-  model?: 'sonnet' | 'opus' | 'haiku';  // Add model option
+  model?: 'sonnet' | 'opus' | 'haiku'; // Add model option
   onStream: StreamCallback;
   onError?: ErrorCallback;
   onClose?: (code: number) => void;

@@ -86,14 +86,15 @@ export const ClaudeDocsPage: React.FC = () => {
       if (node.type === 'directory') {
         return (
           <div key={node.path} className={styles.treeNode}>
-            <div
+            <button
+              type="button"
               className={styles.directory}
               style={{ paddingLeft: `${level * 16}px` }}
               onClick={() => toggleDirectory(node.path)}
             >
               <span className={styles.dirIcon}>{isExpanded ? '📂' : '📁'}</span>
               <span className={styles.dirName}>{node.name}</span>
-            </div>
+            </button>
             {isExpanded && node.children && (
               <div className={styles.children}>{renderFileTree(node.children, level + 1)}</div>
             )}
@@ -107,7 +108,8 @@ export const ClaudeDocsPage: React.FC = () => {
       }
 
       return (
-        <div
+        <button
+          type="button"
           key={node.path}
           className={`${styles.file} ${isSelected ? styles.selected : ''}`}
           style={{ paddingLeft: `${level * 16 + 24}px` }}
@@ -115,7 +117,7 @@ export const ClaudeDocsPage: React.FC = () => {
         >
           <span className={styles.fileIcon}>📄</span>
           <span className={styles.fileName}>{node.name}</span>
-        </div>
+        </button>
       );
     });
   };
@@ -137,7 +139,7 @@ export const ClaudeDocsPage: React.FC = () => {
       const referencePath = referenceMatch[1];
       // Clean up the path - remove any trailing backticks or special characters
       const cleanPath = referencePath.replace(/[`'"]$/, '');
-      const fullPath = `${DOCS_ROOT}/${cleanPath}`;
+      const fullPath = `${docsRoot}/${cleanPath}`;
 
       // Load the referenced document
       loadFileContent(fullPath);
@@ -150,7 +152,7 @@ export const ClaudeDocsPage: React.FC = () => {
 
   const getRelativePath = (filePath: string): string => {
     if (!filePath) return '';
-    return filePath.replace(`${DOCS_ROOT}/`, '');
+    return filePath.replace(`${docsRoot}/`, '');
   };
 
   return (
@@ -168,7 +170,7 @@ export const ClaudeDocsPage: React.FC = () => {
           <>
             <div className={styles.contentHeader}>
               <div className={styles.breadcrumb}>
-                <button className={styles.breadcrumbButton} onClick={navigateToIndex}>
+                <button type="button" className={styles.breadcrumbButton} onClick={navigateToIndex}>
                   📇 Index
                 </button>
                 <span className={styles.breadcrumbSeparator}>/</span>
@@ -176,6 +178,7 @@ export const ClaudeDocsPage: React.FC = () => {
               </div>
               <div className={styles.headerActions}>
                 <button
+                  type="button"
                   className={styles.copyButton}
                   onClick={copyPathToClipboard}
                   title="Copy file path"
@@ -192,6 +195,13 @@ export const ClaudeDocsPage: React.FC = () => {
                   ref={contentRef}
                   className={styles.markdownContent}
                   onClick={handleContentClick}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleContentClick(e as unknown as React.MouseEvent<HTMLPreElement>);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                 >
                   {content}
                 </pre>

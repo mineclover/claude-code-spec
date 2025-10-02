@@ -16,7 +16,6 @@ export function exposeLoggerAPI(): void {
 
     getSessionLog: (sessionId: string) => ipcRenderer.invoke('logger:get-session-log', sessionId),
 
-    readSessionLog: (sessionId: string) =>
-      ipcRenderer.invoke('logger:read-session-log', sessionId),
+    readSessionLog: (sessionId: string) => ipcRenderer.invoke('logger:read-session-log', sessionId),
   } as LoggerAPI);
 }

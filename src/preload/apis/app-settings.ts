@@ -9,8 +9,7 @@ export function exposeAppSettingsAPI(): void {
     setClaudeProjectsPath: (path: string) =>
       ipcRenderer.invoke('app-settings:set-claude-projects-path', path),
     getCurrentProjectPath: () => ipcRenderer.invoke('app-settings:get-current-project-path'),
-    getCurrentProjectDirName: () =>
-      ipcRenderer.invoke('app-settings:get-current-project-dir-name'),
+    getCurrentProjectDirName: () => ipcRenderer.invoke('app-settings:get-current-project-dir-name'),
     setCurrentProject: (projectPath: string, projectDirName: string) =>
       ipcRenderer.invoke('app-settings:set-current-project', projectPath, projectDirName),
     clearCurrentProject: () => ipcRenderer.invoke('app-settings:clear-current-project'),
@@ -33,7 +32,6 @@ export function exposeAppSettingsAPI(): void {
     setControllerDocsPath: (path: string) =>
       ipcRenderer.invoke('app-settings:set-controller-docs-path', path),
     getMetadataPath: () => ipcRenderer.invoke('app-settings:get-metadata-path'),
-    setMetadataPath: (path: string) =>
-      ipcRenderer.invoke('app-settings:set-metadata-path', path),
+    setMetadataPath: (path: string) => ipcRenderer.invoke('app-settings:set-metadata-path', path),
   } as AppSettingsAPI);
 }

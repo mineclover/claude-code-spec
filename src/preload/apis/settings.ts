@@ -23,8 +23,7 @@ export function exposeSettingsAPI(): void {
 
     deleteFile: (filePath: string) => ipcRenderer.invoke('settings:delete-file', filePath),
 
-    validateMcpJson: (content: string) =>
-      ipcRenderer.invoke('settings:validate-mcp-json', content),
+    validateMcpJson: (content: string) => ipcRenderer.invoke('settings:validate-mcp-json', content),
 
     // MCP Configuration Management
     listMcpConfigs: (projectPath: string) =>

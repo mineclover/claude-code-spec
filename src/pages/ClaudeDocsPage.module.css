@@ -46,6 +46,12 @@
   padding: 6px 12px;
   cursor: pointer;
   transition: background-color 0.15s;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  width: 100%;
+  text-align: left;
 }
 
 .directory:hover {
@@ -72,6 +78,12 @@
   padding: 6px 12px;
   cursor: pointer;
   transition: background-color 0.15s;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  width: 100%;
+  text-align: left;
 }
 
 .file:hover {

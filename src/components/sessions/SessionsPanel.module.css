@@ -77,6 +77,14 @@
   border-bottom: 1px solid #333;
   cursor: pointer;
   transition: background 0.2s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  text-align: left;
+  width: 100%;
+  color: inherit;
+  font: inherit;
 }
 
 .sessionItem:hover {
@@ -194,7 +202,7 @@
   gap: 8px;
 }
 
-.detailSection label {
+.detailLabel {
   font-size: 13px;
   font-weight: 500;
   color: #858585;

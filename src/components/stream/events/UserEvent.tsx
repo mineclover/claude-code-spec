@@ -20,7 +20,12 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
             if (typeof content === 'string') {
               return content;
             }
-            if (typeof content === 'object' && content !== null && 'type' in content && 'text' in content) {
+            if (
+              typeof content === 'object' &&
+              content !== null &&
+              'type' in content &&
+              'text' in content
+            ) {
               // Handle text block objects like {type: 'text', text: '...'}
               if (content.type === 'text' && typeof content.text === 'string') {
                 return content.text;
@@ -53,8 +58,9 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
     // Extract content between tags
     const match = content.match(/<local-command-stdout>([\s\S]*?)<\/local-command-stdout>/);
     let commandOutput = match ? match[1] : content;
-    
+
     // Remove ANSI escape sequences but preserve newlines
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequence pattern is intentional
     commandOutput = commandOutput.replace(/\u001b\[[0-9;]*m/g, '');
 
     return (

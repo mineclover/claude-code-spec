@@ -54,7 +54,7 @@ export const Pagination: React.FC<PaginationProps> = ({
             if (i === 0 || i === totalPages - 1 || (i >= currentPage - 2 && i <= currentPage + 2)) {
               return (
                 <button
-                  key={i}
+                  key={`page-${i}`}
                   type="button"
                   onClick={() => onPageChange(i)}
                   className={`${styles.pageNumber} ${i === currentPage ? styles.active : ''}`}
@@ -67,7 +67,7 @@ export const Pagination: React.FC<PaginationProps> = ({
             }
             if (i === currentPage - 3 || i === currentPage + 3) {
               return (
-                <span key={i} className={styles.ellipsis}>
+                <span key={`ellipsis-${i}`} className={styles.ellipsis}>
                   ...
                 </span>
               );
