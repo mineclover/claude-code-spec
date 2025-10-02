@@ -4,6 +4,14 @@
 
 ## 문서 목록
 
+### [Event Components](./event-components.md)
+이벤트 렌더링 컴포넌트 시스템
+
+- EventBox: 공통 이벤트 컨테이너
+- UnifiedEventRenderer: 통합 렌더링 시스템
+- Session/Stream Event Components
+- 서브 에이전트(isSidechain) 시각화
+
 ### [Task Tracking Strategy](./task-tracking-strategy.md)
 병렬 Task 실행 시 서브 에이전트 추적 전략
 
