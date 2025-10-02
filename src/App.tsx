@@ -10,6 +10,7 @@ import { ControllerDocsPage } from './pages/ControllerDocsPage';
 import { ExecutePage } from './pages/ExecutePage';
 import { IndexPage } from './pages/IndexPage';
 import { McpConfigsPage } from './pages/McpConfigsPage';
+import { MemoryPage } from './pages/MemoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
             <Route path="/mcp-configs" element={<McpConfigsPage />} />
             <Route path="/claude-docs" element={<ClaudeDocsPage />} />
             <Route path="/controller-docs" element={<ControllerDocsPage />} />
+            <Route path="/memory" element={<MemoryPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </Layout>

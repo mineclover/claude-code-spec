@@ -78,6 +78,26 @@ export const PAGE_INDEX: PageIndex[] = [
 
   // Configuration
   {
+    id: 'memory',
+    name: 'Memory',
+    displayName: 'Memory 편집기',
+    description: 'CLAUDE.md 파일의 참조 및 컨텍스트를 관리합니다.',
+    route: '/memory',
+    icon: '🧠',
+    category: 'configuration',
+    keywords: [
+      'memory',
+      'claude.md',
+      'context',
+      'reference',
+      'markdown',
+      '메모리',
+      '참조',
+      '문서',
+      '컨텍스트',
+    ],
+  },
+  {
     id: 'settings',
     name: 'Settings',
     displayName: '설정',

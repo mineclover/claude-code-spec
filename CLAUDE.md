@@ -170,3 +170,23 @@ Stream JSON 출력은 JSONL 형식 (JSON Lines):
 ```
 
 각 줄은 완전한 JSON 객체여야 하며, 줄바꿈(`\n`)으로 구분됩니다.
+
+---
+
+## Memory 관리 영역
+
+아래 영역들은 Memory Editor를 통해 관리됩니다.
+
+<!-- MEMORY_START: references -->
+## References
+
+@context/memory/index.md
+@context/config/permissions-configuration.md
+<!-- MEMORY_END: references -->
+
+<!-- MEMORY_START: tools -->
+## Development Tools
+
+
+`@context/usage/claude-execution-strategy.md` - 실행 전략 문서입니다. 필요 시 참조하세요.
+<!-- MEMORY_END: tools -->

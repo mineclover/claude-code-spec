@@ -8,6 +8,7 @@ import { registerClaudeHandlers } from '../ipc/handlers/claudeHandlers';
 import { registerClaudeSessionsHandlers } from '../ipc/handlers/claudeSessionsHandlers';
 import { registerDialogHandlers } from '../ipc/handlers/dialogHandlers';
 import { registerDocsHandlers } from '../ipc/handlers/docsHandlers';
+import { registerFileHandlers } from '../ipc/handlers/fileHandlers';
 import { registerLoggerHandlers } from '../ipc/handlers/loggerHandlers';
 import { registerMetadataHandlers } from '../ipc/handlers/metadataHandlers';
 import { registerSettingsHandlers } from '../ipc/handlers/settingsHandlers';
@@ -58,6 +59,10 @@ export function setupIPCHandlers(): void {
   // Metadata handlers
   const metadataRouter = ipcRegistry.router('metadata');
   registerMetadataHandlers(metadataRouter, settingsService);
+
+  // File handlers
+  const fileRouter = ipcRegistry.router('file');
+  registerFileHandlers(fileRouter);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }

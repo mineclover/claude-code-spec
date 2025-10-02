@@ -8,6 +8,7 @@ import { exposeAppSettingsAPI } from './preload/apis/app-settings';
 import { exposeBookmarksAPI } from './preload/apis/bookmarks';
 import { exposeClaudeAPI } from './preload/apis/claude';
 import { exposeDocsAPI } from './preload/apis/docs';
+import { exposeFileAPI } from './preload/apis/file';
 import { exposeLoggerAPI } from './preload/apis/logger';
 import { exposeMetadataAPI } from './preload/apis/metadata';
 import { exposeSessionsAPI } from './preload/apis/sessions';
@@ -22,6 +23,7 @@ exposeSessionsAPI();
 exposeAppSettingsAPI();
 exposeDocsAPI();
 exposeMetadataAPI();
+exposeFileAPI();
 
 // Re-export types for convenience
 export * from './types/api';

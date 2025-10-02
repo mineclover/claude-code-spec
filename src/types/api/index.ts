@@ -4,6 +4,7 @@ export * from './app-settings';
 export * from './bookmarks';
 export * from './claude';
 export * from './docs';
+export * from './file';
 export * from './logger';
 export * from './metadata';
 export * from './sessions';

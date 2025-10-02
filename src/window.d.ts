@@ -4,6 +4,7 @@ import type {
   ClaudeAPI,
   ClaudeSessionsAPI,
   DocsAPI,
+  FileAPI,
   LoggerAPI,
   MetadataAPI,
   SettingsAPI,
@@ -19,5 +20,6 @@ declare global {
     appSettingsAPI: AppSettingsAPI;
     docsAPI: DocsAPI;
     metadataAPI: MetadataAPI;
+    fileAPI: FileAPI;
   }
 }
