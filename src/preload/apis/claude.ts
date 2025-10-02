@@ -9,8 +9,8 @@ import type {
 
 export function exposeClaudeAPI(): void {
   contextBridge.exposeInMainWorld('claudeAPI', {
-    executeClaudeCommand: (projectPath: string, query: string, sessionId?: string) =>
-      ipcRenderer.invoke('claude:execute', projectPath, query, sessionId),
+    executeClaudeCommand: (projectPath: string, query: string, sessionId?: string, mcpConfig?: string, model?: 'sonnet' | 'opus') =>
+      ipcRenderer.invoke('claude:execute', projectPath, query, sessionId, mcpConfig, model),
 
     selectDirectory: () => ipcRenderer.invoke('dialog:selectDirectory'),
 

@@ -20,6 +20,9 @@ export const ExecutePage: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPid, setCurrentPid] = useState<number | null>(null);
+  const [mcpConfigs, setMcpConfigs] = useState<Array<{ name: string; path: string }>>([]);
+  const [selectedMcpConfig, setSelectedMcpConfig] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState<'sonnet' | 'opus'>('sonnet');
   const [recentSessions, setRecentSessions] = useState<
     Array<{ sessionId: string; firstUserMessage?: string; lastModified: number }>
   >([]);
@@ -29,6 +32,21 @@ export const ExecutePage: React.FC = () => {
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsExpanded, setSessionsExpanded] = useState(true);
   const SESSIONS_PAGE_SIZE = 5;
+
+  const loadMcpConfigs = useCallback(async () => {
+    if (!projectPath) {
+      setMcpConfigs([]);
+      return;
+    }
+
+    try {
+      const configs = await window.settingsAPI.listMcpConfigs(projectPath);
+      setMcpConfigs(configs.map((c) => ({ name: c.name, path: `.claude/${c.name}` })));
+    } catch (err) {
+      console.error('Failed to load MCP configs:', err);
+      setMcpConfigs([]);
+    }
+  }, [projectPath]);
 
   const loadRecentSessions = useCallback(
     async (page: number, skipCache = false) => {
@@ -123,6 +141,11 @@ export const ExecutePage: React.FC = () => {
     }
   }, [contextProjectPath, projectPath]);
 
+  // Load MCP configs when projectPath changes
+  useEffect(() => {
+    loadMcpConfigs();
+  }, [loadMcpConfigs]);
+
   // Load recent sessions when projectPath or page changes
   useEffect(() => {
     if (projectPath) {
@@ -169,6 +192,8 @@ export const ExecutePage: React.FC = () => {
         projectPath,
         query,
         undefined, // Always undefined for Execute - never resume
+        selectedMcpConfig || undefined, // Pass selected MCP config
+        selectedModel, // Pass selected model
       );
 
       if (result.success && result.pid) {
@@ -202,6 +227,8 @@ export const ExecutePage: React.FC = () => {
         projectPath,
         query || '', // Use current query or empty string
         sessionId,
+        selectedMcpConfig || undefined, // Pass selected MCP config
+        selectedModel, // Pass selected model
       );
 
       if (result.success && result.pid) {
@@ -371,6 +398,36 @@ export const ExecutePage: React.FC = () => {
               ))}
           </div>
         )}
+
+        <div className={styles.inputGroup}>
+          <label htmlFor="mcpConfigSelect">MCP Configuration</label>
+          <select
+            id="mcpConfigSelect"
+            value={selectedMcpConfig}
+            onChange={(e) => setSelectedMcpConfig(e.target.value)}
+            className={styles.select}
+          >
+            <option value="">None (default permissions)</option>
+            {mcpConfigs.map((config) => (
+              <option key={config.path} value={config.path}>
+                {config.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label htmlFor="modelSelect">Model</label>
+          <select
+            id="modelSelect"
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value as 'sonnet' | 'opus')}
+            className={styles.select}
+          >
+            <option value="sonnet">Sonnet (Default - Balanced)</option>
+            <option value="opus">Opus (Most Capable)</option>
+          </select>
+        </div>
 
         <div className={styles.inputGroup}>
           <label htmlFor={queryInputId}>Query</label>

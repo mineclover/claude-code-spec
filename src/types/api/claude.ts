@@ -33,6 +33,8 @@ export interface ClaudeAPI {
     projectPath: string,
     query: string,
     sessionId?: string,
+    mcpConfig?: string,
+    model?: 'sonnet' | 'opus',
   ) => Promise<{ success: boolean; pid?: number; error?: string }>;
 
   // Directory selection

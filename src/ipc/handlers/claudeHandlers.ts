@@ -27,15 +27,18 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
     projectPath: string,
     query: string,
     sessionId?: string,
+    mcpConfig?: string,
+    model?: 'sonnet' | 'opus',
   ) => {
-    console.log('[Main] Execute request:', { projectPath, query, sessionId });
+    console.log('[Main] Execute request:', { projectPath, query, sessionId, mcpConfig, model });
 
     try {
       // Create Claude client
       const client = new ClaudeClientClass({
         cwd: projectPath,
-        model: 'sonnet', // Use Sonnet by default for better speed/cost balance
+        model: model || 'sonnet', // Use Sonnet by default for better speed/cost balance
         sessionId: sessionId || undefined,
+        mcpConfig: mcpConfig || undefined,
         onStream: (streamEvent: StreamEvent) => {
           // Forward stream event to renderer
           event.sender.send('claude:stream', {
@@ -108,8 +111,8 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
   // Execute Claude CLI
   router.handle(
     'execute',
-    async (event: IpcMainInvokeEvent, projectPath: string, query: string, sessionId?: string) => {
-      return executeClaudeCommand(event, projectPath, query, sessionId);
+    async (event: IpcMainInvokeEvent, projectPath: string, query: string, sessionId?: string, mcpConfig?: string, model?: 'sonnet' | 'opus') => {
+      return executeClaudeCommand(event, projectPath, query, sessionId, mcpConfig, model);
     },
   );
 

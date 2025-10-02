@@ -9,11 +9,12 @@ import { isSystemInitEvent } from './types';
 
 export interface ClaudeClientOptions {
   cwd: string;
-  model?: 'sonnet' | 'opus' | 'haiku'; // Add model option
+  model?: 'sonnet' | 'opus'; // Add model option
   onStream: StreamCallback;
   onError?: ErrorCallback;
   onClose?: (code: number) => void;
   sessionId?: string;
+  mcpConfig?: string; // Path to MCP config file (e.g., '.claude/.mcp-dev.json')
 }
 
 export interface ClaudeMessage {
@@ -63,6 +64,12 @@ export class ClaudeClient {
       '--verbose',
       '--dangerously-skip-permissions',
     ];
+
+    // Add MCP config if specified
+    if (this.options.mcpConfig) {
+      args.push('--mcp-config', this.options.mcpConfig);
+      args.push('--strict-mcp-config');
+    }
 
     // Add model if specified (defaults to sonnet for better performance)
     if (this.options.model) {
