@@ -149,6 +149,23 @@ More content.
       expect(content).not.toContain('Optional reference');
       expect(content).toContain('새로운 설명');
     });
+
+    it('should parse indirect reference with empty lines between path and description', () => {
+      const contentWithEmptyLines = `<!-- MEMORY_START: test-empty -->
+\`@context/file.md\`
+
+- 설명 첫 줄
+- 설명 둘째 줄
+<!-- MEMORY_END: test-empty -->`;
+
+      const testEditor = new MarkdownEditor(contentWithEmptyLines);
+      const items = testEditor.parseRegionItems('test-empty');
+      const indirectRef = items.find(i => i.type === 'indirect-ref') as IndirectRefItem;
+
+      expect(indirectRef).toBeDefined();
+      expect(indirectRef.path).toBe('@context/file.md');
+      expect(indirectRef.description).toBe('설명 첫 줄\n설명 둘째 줄');
+    });
   });
 
   describe('Auto Fix', () => {

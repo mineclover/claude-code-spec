@@ -187,5 +187,8 @@ Stream JSON 출력은 JSONL 형식 (JSON Lines):
 ## Development Tools
 
 
-`@context/usage/claude-execution-strategy.md` - 실행 전략 문서입니다. 필요 시 참조하세요.
+`@context/usage/claude-execution-strategy.md` 
+
+- 실행 전략 문서입니다. 필요 시 참조하세요.
+- 실행
 <!-- MEMORY_END: tools -->

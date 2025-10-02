@@ -817,6 +817,7 @@ export class MarkdownEditor {
 
       // Indirect reference (multi-line format)
       // `@context/path`
+      // (empty lines allowed)
       // - description line 1
       // - description line 2
       const indirectRefPathMatch = line.match(/^\s*`(@context\/[^`]+)`\s*$/);
@@ -826,9 +827,16 @@ export class MarkdownEditor {
         const descriptionLines: string[] = [];
         i++;
 
-        // Collect description lines starting with "- "
+        // Collect description lines starting with "- ", skip empty lines
         while (i < lines.length) {
           const descLine = lines[i];
+          
+          // Skip empty lines between path and description
+          if (descLine.trim() === '') {
+            i++;
+            continue;
+          }
+          
           const descMatch = descLine.match(/^\s*-\s+(.+)$/);
           if (descMatch) {
             descriptionLines.push(descMatch[1]);
