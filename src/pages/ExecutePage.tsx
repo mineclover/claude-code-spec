@@ -334,29 +334,17 @@ export const ExecutePage: React.FC = () => {
                               {new Date(session.lastModified).toLocaleString()}
                             </div>
                           </div>
-                          <div className={styles.sessionItemActions}>
-                            <button
-                              type="button"
-                              className={styles.loadButton}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleLoadSessionToOutput(session.sessionId);
-                              }}
-                            >
-                              Load to Output
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.resumeButton}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleResumeSession(session.sessionId);
-                              }}
-                              disabled={isRunning}
-                            >
-                              Resume
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            className={styles.loadArrowButton}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLoadSessionToOutput(session.sessionId);
+                            }}
+                            title="Load to Output"
+                          >
+                            →
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -389,14 +377,26 @@ export const ExecutePage: React.FC = () => {
           />
         </div>
 
-        <button
-          type="button"
-          onClick={handleExecute}
-          disabled={isRunning}
-          className={styles.executeButton}
-        >
-          {isRunning ? 'Running...' : 'Execute'}
-        </button>
+        <div className={styles.actionButtons}>
+          <button
+            type="button"
+            onClick={handleExecute}
+            disabled={isRunning}
+            className={styles.executeButton}
+          >
+            {isRunning ? 'Running...' : 'Execute'}
+          </button>
+          {selectedSessionId && (
+            <button
+              type="button"
+              onClick={() => handleResumeSession(selectedSessionId)}
+              disabled={isRunning}
+              className={styles.resumeButton}
+            >
+              Resume
+            </button>
+          )}
+        </div>
 
         {error && <div className={styles.error}>{error}</div>}
 
