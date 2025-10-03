@@ -1,10 +1,17 @@
 /**
  * Agent-related IPC handlers
  */
-import * as fs from 'fs/promises';
-import * as os from 'os';
-import * as path from 'path';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { parseAgentMarkdown } from '../../lib/agentParser';
+import {
+  ensureDirectory,
+  fileExists,
+  listMarkdownFiles,
+  readMarkdownFile,
+  writeMarkdownFile,
+  deleteMarkdownFile,
+} from '../../lib/fileLoader';
 import type { AgentListItem } from '../../types/agent';
 import type { IPCRouter } from '../IPCRouter';
 
@@ -24,13 +31,6 @@ function getProjectAgentsDir(projectPath: string): string {
   return path.join(projectPath, PROJECT_AGENTS_DIR);
 }
 
-/**
- * Ensure agents directory exists
- */
-async function ensureAgentsDirectory(agentsPath: string): Promise<void> {
-  await fs.mkdir(agentsPath, { recursive: true });
-}
-
 // Removed: Using parseAgentMarkdown from agentParser.ts instead
 
 /**
@@ -44,60 +44,50 @@ export function registerAgentHandlers(router: IPCRouter): void {
 
       // Get project-level agents
       const projectAgentsDir = getProjectAgentsDir(projectPath);
-      try {
-        await ensureAgentsDirectory(projectAgentsDir);
-        const projectFiles = await fs.readdir(projectAgentsDir);
-        const projectAgentFiles = projectFiles.filter((f) => f.endsWith('.md'));
+      const projectFiles = await listMarkdownFiles(projectAgentsDir);
 
-        for (const file of projectAgentFiles) {
-          try {
-            const filePath = path.join(projectAgentsDir, file);
-            const content = await fs.readFile(filePath, 'utf-8');
-            const agent = parseAgentMarkdown(content, filePath, 'project');
+      for (const filePath of projectFiles) {
+        try {
+          const content = await readMarkdownFile(filePath);
+          if (!content) continue;
 
-            agents.push({
-              name: agent.name,
-              description: agent.description,
-              source: 'project',
-              filePath: path.relative(projectPath, filePath),
-              allowedToolsCount: agent.allowedTools?.length || 0,
-              hasPermissions: !!agent.permissions,
-            });
-          } catch (error) {
-            console.warn(`[AgentHandlers] Failed to parse agent ${file}:`, error);
-          }
+          const agent = parseAgentMarkdown(content, filePath, 'project');
+
+          agents.push({
+            name: agent.name,
+            description: agent.description,
+            source: 'project',
+            filePath: path.relative(projectPath, filePath),
+            allowedToolsCount: agent.allowedTools?.length || 0,
+            hasPermissions: !!agent.permissions,
+          });
+        } catch (error) {
+          console.warn(`[AgentHandlers] Failed to parse agent ${filePath}:`, error);
         }
-      } catch (error) {
-        console.warn('[AgentHandlers] Failed to read project agents:', error);
       }
 
       // Get user-level agents
       const userAgentsDir = getUserAgentsDir();
-      try {
-        await ensureAgentsDirectory(userAgentsDir);
-        const userFiles = await fs.readdir(userAgentsDir);
-        const userAgentFiles = userFiles.filter((f) => f.endsWith('.md'));
+      const userFiles = await listMarkdownFiles(userAgentsDir);
 
-        for (const file of userAgentFiles) {
-          try {
-            const filePath = path.join(userAgentsDir, file);
-            const content = await fs.readFile(filePath, 'utf-8');
-            const agent = parseAgentMarkdown(content, filePath, 'user');
+      for (const filePath of userFiles) {
+        try {
+          const content = await readMarkdownFile(filePath);
+          if (!content) continue;
 
-            agents.push({
-              name: agent.name,
-              description: agent.description,
-              source: 'user',
-              filePath: filePath,
-              allowedToolsCount: agent.allowedTools?.length || 0,
-              hasPermissions: !!agent.permissions,
-            });
-          } catch (error) {
-            console.warn(`[AgentHandlers] Failed to parse agent ${file}:`, error);
-          }
+          const agent = parseAgentMarkdown(content, filePath, 'user');
+
+          agents.push({
+            name: agent.name,
+            description: agent.description,
+            source: 'user',
+            filePath: filePath,
+            allowedToolsCount: agent.allowedTools?.length || 0,
+            hasPermissions: !!agent.permissions,
+          });
+        } catch (error) {
+          console.warn(`[AgentHandlers] Failed to parse agent ${filePath}:`, error);
         }
-      } catch (error) {
-        console.warn('[AgentHandlers] Failed to read user agents:', error);
       }
 
       // Sort by name
@@ -128,8 +118,7 @@ export function registerAgentHandlers(router: IPCRouter): void {
       }
 
       const filePath = path.join(agentsDir, `${agentName}.md`);
-      const content = await fs.readFile(filePath, 'utf-8');
-      return content;
+      return await readMarkdownFile(filePath);
     } catch (error) {
       console.error(`[AgentHandlers] Failed to get agent ${agentName}:`, error);
       return null;
@@ -153,18 +142,15 @@ export function registerAgentHandlers(router: IPCRouter): void {
         agentsDir = getUserAgentsDir();
       }
 
-      await ensureAgentsDirectory(agentsDir);
+      await ensureDirectory(agentsDir);
       const filePath = path.join(agentsDir, `${agentName}.md`);
 
       // Check if file already exists
-      try {
-        await fs.access(filePath);
+      if (await fileExists(filePath)) {
         return { success: false, error: 'Agent already exists' };
-      } catch {
-        // File doesn't exist, proceed with creation
       }
 
-      await fs.writeFile(filePath, content, 'utf-8');
+      await writeMarkdownFile(filePath, content);
       return { success: true };
     } catch (error) {
       console.error(`[AgentHandlers] Failed to create agent ${agentName}:`, error);
@@ -190,7 +176,7 @@ export function registerAgentHandlers(router: IPCRouter): void {
       }
 
       const filePath = path.join(agentsDir, `${agentName}.md`);
-      await fs.writeFile(filePath, content, 'utf-8');
+      await writeMarkdownFile(filePath, content);
       return { success: true };
     } catch (error) {
       console.error(`[AgentHandlers] Failed to update agent ${agentName}:`, error);
@@ -216,7 +202,7 @@ export function registerAgentHandlers(router: IPCRouter): void {
       }
 
       const filePath = path.join(agentsDir, `${agentName}.md`);
-      await fs.unlink(filePath);
+      await deleteMarkdownFile(filePath);
       return { success: true };
     } catch (error) {
       console.error(`[AgentHandlers] Failed to delete agent ${agentName}:`, error);
