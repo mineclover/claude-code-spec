@@ -94,3 +94,7 @@ out/
 # Claude Code
 .claude/settings.local.json
 *.backup
+
+# Obsidian
+.obsidian/
+*.canvas
