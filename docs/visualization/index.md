@@ -4,7 +4,7 @@ Claude Code 실행 로그 시각화 관련 문서입니다.
 
 ## 카테고리
 
-### [Session Logs](./session-logs/)
+### [Session Logs](./session-logs/index.md)
 세션 로그 시각화 및 분석
 
 - Task 추적 전략
