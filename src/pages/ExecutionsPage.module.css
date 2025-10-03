@@ -1,33 +1,17 @@
 .container {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   height: 100%;
-  background: #fff;
-  gap: 0;
+  background: #f8f9fa;
 }
 
 .controls {
-  flex: 0 0 400px;
-  min-width: 320px;
-  max-width: 500px;
+  flex: 1;
   padding: 24px;
-  border-right: 1px solid #e9ecef;
-  background: #f8f9fa;
   overflow-y: auto;
-}
-
-@media (max-width: 1024px) {
-  .container {
-    flex-direction: column;
-  }
-
-  .controls {
-    flex: 0 0 auto;
-    min-width: unset;
-    max-width: unset;
-    border-right: none;
-    border-bottom: 1px solid #e9ecef;
-  }
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .inputGroup {
@@ -151,6 +135,10 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .actionButtons .resumeButton:hover:not(:disabled) {
@@ -163,6 +151,19 @@
   cursor: not-allowed;
 }
 
+.resumeButtonText {
+  font-weight: 600;
+}
+
+.resumeButtonSession {
+  font-family: "SF Mono", Monaco, monospace;
+  font-size: 11px;
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
 .error {
   margin-top: 12px;
   padding: 10px 12px;
@@ -171,24 +172,6 @@
   border: 1px solid #f5c6cb;
   border-radius: 4px;
   font-size: 12px;
-}
-
-.status {
-  margin-top: 12px;
-  padding: 10px 12px;
-  background: #d1ecf1;
-  color: #0c5460;
-  border: 1px solid #bee5eb;
-  border-radius: 4px;
-  font-size: 12px;
-  font-family: "SF Mono", Monaco, monospace;
-}
-
-.output {
-  flex: 1;
-  overflow-y: auto;
-  background: #fff;
-  min-height: 0;
 }
 
 .sessionsList {
@@ -202,12 +185,10 @@
   margin-bottom: 8px;
 }
 
-.sessionsHeader label {
-  display: block;
+.sessionsLabel {
   font-size: 13px;
   font-weight: 500;
   color: #212529;
-  margin: 0;
 }
 
 .sessionsHeaderActions {
@@ -345,7 +326,7 @@
   border-top: 1px solid #e9ecef;
 }
 
-.loadArrowButton {
+.resumeArrowButton {
   padding: 8px 16px;
   border: none;
   border-left: 1px solid #dee2e6;
@@ -362,16 +343,16 @@
   flex-shrink: 0;
 }
 
-.loadArrowButton:hover {
-  background: #007bff;
+.resumeArrowButton:hover {
+  background: #17a2b8;
   color: #fff;
 }
 
-.sessionItem.selected .loadArrowButton {
+.sessionItem.selected .resumeArrowButton {
   background: #d4edff;
 }
 
-.sessionItem.selected .loadArrowButton:hover {
-  background: #007bff;
+.sessionItem.selected .resumeArrowButton:hover {
+  background: #17a2b8;
   color: #fff;
 }

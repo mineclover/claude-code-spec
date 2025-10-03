@@ -1,0 +1,145 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background-color: var(--color-surface);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.backButton {
+  padding: 8px 16px;
+  background-color: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.backButton:hover {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.metadata {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  font-size: 14px;
+}
+
+.sessionId,
+.pid,
+.projectPath {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.label {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.sessionId {
+  font-family: "Courier New", monospace;
+  color: var(--color-text-primary);
+}
+
+.pid {
+  color: var(--color-text-primary);
+}
+
+.projectPath {
+  color: var(--color-text-primary);
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status.pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status.running {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.status.completed {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status.failed {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.killButton,
+.cleanupButton {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.killButton {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.killButton:hover {
+  background-color: #fca5a5;
+}
+
+.cleanupButton {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.cleanupButton:hover {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.error {
+  padding: 12px;
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-radius: 6px;
+  border: 1px solid #fca5a5;
+}
+
+.output {
+  flex: 1;
+  overflow: auto;
+}

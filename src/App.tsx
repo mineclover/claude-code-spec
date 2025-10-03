@@ -7,7 +7,8 @@ import { ClaudeProjectsListPage } from './pages/ClaudeProjectsListPage';
 import { ClaudeSessionDetailPage } from './pages/ClaudeSessionDetailPage';
 import { ClaudeSessionsListPage } from './pages/ClaudeSessionsListPage';
 import { ControllerDocsPage } from './pages/ControllerDocsPage';
-import { ExecutePage } from './pages/ExecutePage';
+import { ExecutionDetailPage } from './pages/ExecutionDetailPage';
+import { ExecutionsPage } from './pages/ExecutionsPage';
 import { IndexPage } from './pages/IndexPage';
 import { McpConfigsPage } from './pages/McpConfigsPage';
 import { MemoryPage } from './pages/MemoryPage';
@@ -20,7 +21,8 @@ function App() {
         <Toaster position="top-right" />
         <Layout>
           <Routes>
-            <Route path="/" element={<ExecutePage />} />
+            <Route path="/" element={<ExecutionsPage />} />
+            <Route path="/executions/:sessionId" element={<ExecutionDetailPage />} />
             <Route path="/index" element={<IndexPage />} />
             <Route path="/claude-projects" element={<ClaudeProjectsListPage />} />
             <Route path="/claude-projects/:projectDirName" element={<ClaudeSessionsListPage />} />

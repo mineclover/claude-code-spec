@@ -76,7 +76,7 @@
   flex: 1;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, max-content));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
   padding: 16px;
   align-content: start;
@@ -93,10 +93,11 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 280px;
   position: relative;
   text-align: left;
   font: inherit;
+  min-width: 280px;
+  height: fit-content;
 }
 
 .sessionCard.loading {
@@ -145,11 +146,9 @@
   font-size: 12px;
   font-family: "SF Mono", Monaco, monospace;
   color: #212529;
-  word-break: break-all;
   font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
+  word-break: break-all;
 }
 
 .copyButton {
@@ -176,24 +175,20 @@
   padding: 8px;
   background: #f8f9fa;
   border-radius: 3px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .sessionCwd {
   font-size: 11px;
   color: #6c757d;
   font-family: "SF Mono", Monaco, monospace;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   padding: 6px 8px;
   background: #e7f3ff;
   border-radius: 3px;
   border: 1px solid #d0e8ff;
+  overflow-wrap: break-word;
+  word-break: break-all;
 }
 
 .emptyBadge {

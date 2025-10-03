@@ -210,6 +210,6 @@
 
 .mainContent {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   min-height: 0;
 }
