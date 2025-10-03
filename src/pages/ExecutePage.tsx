@@ -2,10 +2,12 @@ import type React from 'react';
 import { useCallback, useEffect, useId, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Pagination } from '../components/common/Pagination';
+import { ExecutionsList } from '../components/execution/ExecutionsList';
 import { StreamOutput } from '../components/stream/StreamOutput';
 import { useProject } from '../contexts/ProjectContext';
 import type { StreamEvent } from '../lib/types';
 import { getCachedSessionsPage, setCachedSessionsPage } from '../services/cache';
+import type { ExecutionInfo } from '../types/api';
 import styles from './ExecutePage.module.css';
 
 export const ExecutePage: React.FC = () => {
@@ -32,6 +34,8 @@ export const ExecutePage: React.FC = () => {
   const [totalSessions, setTotalSessions] = useState(0);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsExpanded, setSessionsExpanded] = useState(true);
+  const [activeExecutions, setActiveExecutions] = useState<Array<Omit<ExecutionInfo, 'events'>>>([]);
+  const [executionsExpanded, setExecutionsExpanded] = useState(true);
   const SESSIONS_PAGE_SIZE = 5;
 
   const loadMcpConfigs = useCallback(async () => {
@@ -271,6 +275,44 @@ export const ExecutePage: React.FC = () => {
     }
   };
 
+  // Load active executions
+  const loadActiveExecutions = useCallback(async () => {
+    try {
+      const executions = await window.claudeAPI.getActiveExecutions();
+      setActiveExecutions(executions);
+    } catch (err) {
+      console.error('[ExecutePage] Failed to load active executions:', err);
+    }
+  }, []);
+
+  // Switch to a different execution
+  const switchToExecution = useCallback(async (sessionId: string) => {
+    try {
+      // Get full execution info with events
+      const execution = await window.claudeAPI.getExecution(sessionId);
+
+      if (!execution) {
+        setError('Execution not found');
+        return;
+      }
+
+      // Update current session
+      setCurrentSessionId(sessionId);
+      setCurrentPid(execution.pid);
+      setIsRunning(execution.status === 'running' || execution.status === 'pending');
+
+      // Load events
+      setEvents(execution.events);
+      setErrors([]);
+      setError(null);
+
+      console.log('[ExecutePage] Switched to execution:', sessionId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to switch execution');
+      console.error('[ExecutePage] Failed to switch execution:', err);
+    }
+  }, []);
+
   // Event listeners - filter by currentSessionId
   useEffect(() => {
     window.claudeAPI.onClaudeStarted((data) => {
@@ -280,6 +322,8 @@ export const ExecutePage: React.FC = () => {
         setIsRunning(true);
         setCurrentPid(data.pid);
       }
+      // Refresh active executions list
+      loadActiveExecutions();
     });
 
     window.claudeAPI.onClaudeStream((data) => {
@@ -305,8 +349,21 @@ export const ExecutePage: React.FC = () => {
         setIsRunning(false);
         setCurrentPid(null);
       }
+      // Refresh active executions list
+      loadActiveExecutions();
     });
-  }, [currentSessionId]);
+  }, [currentSessionId, loadActiveExecutions]);
+
+  // Periodic refresh of active executions
+  useEffect(() => {
+    loadActiveExecutions(); // Initial load
+
+    const interval = setInterval(() => {
+      loadActiveExecutions();
+    }, 2000); // Refresh every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [loadActiveExecutions]);
 
   return (
     <div className={styles.container}>
@@ -327,6 +384,16 @@ export const ExecutePage: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {activeExecutions.length > 0 && (
+          <ExecutionsList
+            executions={activeExecutions}
+            currentSessionId={currentSessionId}
+            onSelectExecution={switchToExecution}
+            expanded={executionsExpanded}
+            onToggleExpanded={() => setExecutionsExpanded(!executionsExpanded)}
+          />
+        )}
 
         {projectPath && (
           <div className={styles.sessionsList}>

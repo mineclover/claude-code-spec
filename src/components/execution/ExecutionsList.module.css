@@ -1,0 +1,168 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--color-surface-elevated);
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.header:hover {
+  background: var(--color-surface-hover);
+}
+
+.title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.toggleButton {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.emptyMessage {
+  padding: 24px;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.item:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-primary);
+}
+
+.item.active {
+  background: var(--color-primary-alpha-10);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-alpha-20);
+}
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sessionId {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.status {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.statusRunning {
+  background: #22c55e20;
+  color: #22c55e;
+}
+
+.statusPending {
+  background: #f59e0b20;
+  color: #f59e0b;
+}
+
+.statusCompleted {
+  background: #3b82f620;
+  color: #3b82f6;
+}
+
+.statusFailed {
+  background: #ef444420;
+  color: #ef4444;
+}
+
+.statusKilled {
+  background: #71717a20;
+  color: #71717a;
+}
+
+.itemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.query {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.itemMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.duration,
+.pid {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Scrollbar styling */
+.list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.list::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+.list::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
