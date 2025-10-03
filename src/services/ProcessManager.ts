@@ -87,8 +87,10 @@ export class ProcessManager {
 
     // Create a promise to wait for sessionId from system:init event
     let resolveSessionId: (sessionId: string) => void;
-    const sessionIdPromise = new Promise<string>((resolve) => {
+    let rejectSessionId: (error: Error) => void;
+    const sessionIdPromise = new Promise<string>((resolve, reject) => {
       resolveSessionId = resolve;
+      rejectSessionId = reject;
     });
 
     // Temporary execution info (will be updated with sessionId)
@@ -247,12 +249,36 @@ export class ProcessManager {
         error: errorMsg,
       });
 
+      // Reject sessionId promise if not resuming
+      if (!params.sessionId) {
+        rejectSessionId!(new Error(`Execution failed to start: ${errorMsg}`));
+      }
+
       throw error;
     }
 
-    // Wait for sessionId (will resolve immediately if resuming)
-    const finalSessionId = await sessionIdPromise;
-    return finalSessionId;
+    // Wait for sessionId with timeout (will resolve immediately if resuming)
+    const timeoutPromise = new Promise<string>((_, reject) =>
+      setTimeout(
+        () => reject(new Error('Timeout waiting for sessionId from Claude CLI')),
+        10000, // 10 second timeout
+      ),
+    );
+
+    try {
+      const finalSessionId = await Promise.race([sessionIdPromise, timeoutPromise]);
+      return finalSessionId;
+    } catch (error) {
+      // Cleanup on timeout or error
+      if (tempExecution) {
+        tempExecution.status = 'failed';
+        tempExecution.endTime = Date.now();
+        tempExecution.errors.push(
+          error instanceof Error ? error.message : 'SessionId resolution failed',
+        );
+      }
+      throw error;
+    }
   }
 
   /**
