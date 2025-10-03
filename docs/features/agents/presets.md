@@ -4,6 +4,8 @@
 
 Agent 생성 시 자주 사용하는 도구(allowedTools)와 권한(permissions) 조합을 프리셋으로 관리하여 일관성과 재사용성을 높입니다.
 
+**중요**: Preset은 `allowedTools`와 `permissions`만 제공합니다. Agent의 필수 필드인 `name`과 `description`은 반드시 직접 작성해야 합니다.
+
 ## 목적
 
 - **일관성**: 동일한 역할의 Agent는 동일한 도구와 권한 사용
@@ -282,8 +284,8 @@ AgentsPage에서 새 Agent 생성 시:
 │  Create New Agent                                       │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  Name: test-generator                                   │
-│  Description: TypeScript 테스트 생성 전문               │
+│  Name: * test-generator                (필수)          │
+│  Description: * TypeScript 테스트 생성 전문  (필수)    │
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐   │
 │  │ Use Preset (Optional)                           │   │
@@ -315,6 +317,8 @@ AgentsPage에서 새 Agent 생성 시:
 │                                                         │
 │  [Create Agent] [Cancel]                                │
 └─────────────────────────────────────────────────────────┘
+
+* = 필수 필드 (직접 입력 필요)
 ```
 
 ## 아키텍처
@@ -452,7 +456,9 @@ interface PresetSelectorProps {
 ```
 1. AgentsPage에서 "New Agent" 클릭
    ↓
-2. Agent 기본 정보 입력 (name, description)
+2. Agent 기본 정보 입력 (필수)
+   → name: Agent 고유 식별자
+   → description: Agent 역할 및 목적
    ↓
 3. (선택) Combined Preset 적용
    → allowedTools와 permissions 자동 입력
@@ -462,9 +468,12 @@ interface PresetSelectorProps {
    → Permission Preset 적용 (permissions만)
    ↓
 5. 필요시 추가 수정
+   → Preset으로 채워진 도구/권한을 수정 가능
    ↓
 6. Agent 저장
 ```
+
+**중요**: name과 description은 Preset에서 제공되지 않으므로 반드시 직접 입력해야 합니다.
 
 ## 구현 단계
 

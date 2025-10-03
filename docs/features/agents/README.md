@@ -88,18 +88,20 @@ Agent 생성 시 `allowedTools`와 `permissions`를 매번 수동으로 작성�
 
 ### Preset 사용 예시
 
+**중요**: `name`과 `description`은 Agent의 필수 필드이므로 반드시 직접 작성해야 합니다. Preset은 `allowedTools`와 `permissions`만 자동으로 채워줍니다.
+
 ```markdown
 ---
-name: my-test-generator
-description: 내 프로젝트용 테스트 생성 Agent
-preset: test-generator  # Combined Preset 사용
+name: my-test-generator           # 필수: 직접 작성
+description: 내 프로젝트용 테스트 생성 Agent  # 필수: 직접 작성
+preset: test-generator             # 선택: allowedTools, permissions 자동 적용
 ---
 
 # Role
-...
+우리 프로젝트의 테스트 컨벤션에 맞춰 테스트를 생성합니다...
 ```
 
-위처럼 `preset` 필드를 사용하면 `allowedTools`와 `permissions`가 자동으로 적용됩니다.
+위처럼 `preset` 필드를 사용하면 `allowedTools`와 `permissions`가 자동으로 적용되어, 도구와 권한을 일일이 작성할 필요가 없습니다.
 
 **상세 문서**: [Agent Presets 가이드](./presets.md)
 
