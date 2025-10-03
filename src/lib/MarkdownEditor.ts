@@ -36,9 +36,9 @@ export interface ManagedRegion {
   type: 'section' | 'code' | 'mixed';
   content: string;
   startLine: number; // Line with <!-- MEMORY_START -->
-  endLine: number;   // Line with <!-- MEMORY_END -->
+  endLine: number; // Line with <!-- MEMORY_END -->
   contentStartLine: number; // First line after START comment
-  contentEndLine: number;   // Last line before END comment
+  contentEndLine: number; // Last line before END comment
 }
 
 export interface ContextReference {
@@ -48,36 +48,51 @@ export interface ContextReference {
 }
 
 // Region 내 개별 항목 타입
-export type RegionItemType = 
-  | 'heading'      // ## 제목
-  | 'direct-ref'   // @context/path (직접 참조, 로드됨)
+export type RegionItemType =
+  | 'heading' // ## 제목
+  | 'direct-ref' // @context/path (직접 참조, 로드됨)
   | 'indirect-ref' // `@context/path` - 설명 (간접 참조, 로드 안됨)
-  | 'code-block'   // ```language ... ```
-  | 'text';        // 일반 텍스트
+  | 'code-block' // ```language ... ```
+  | 'text'; // 일반 텍스트
+
+// JSON export 타입
+export interface RegionJSON {
+  name: string;
+  items: Array<{
+    id: string;
+    type: RegionItemType;
+    line: number;
+    [key: string]: unknown;
+  }>;
+}
+
+export interface AllRegionsJSON {
+  regions: RegionJSON[];
+}
 
 export interface RegionItem {
-  id: string;           // 고유 ID (line number 기반)
+  id: string; // 고유 ID (line number 기반)
   type: RegionItemType;
-  line: number;         // 시작 라인
-  endLine: number;      // 종료 라인
-  raw: string;          // 원본 텍스트
+  line: number; // 시작 라인
+  endLine: number; // 종료 라인
+  raw: string; // 원본 텍스트
 }
 
 export interface HeadingItem extends RegionItem {
   type: 'heading';
-  level: number;        // 1-6
+  level: number; // 1-6
   text: string;
 }
 
 export interface DirectRefItem extends RegionItem {
   type: 'direct-ref';
-  path: string;         // @context/... 경로
+  path: string; // @context/... 경로
 }
 
 export interface IndirectRefItem extends RegionItem {
   type: 'indirect-ref';
-  path: string;         // @context/... 경로
-  description: string;  // 설명
+  path: string; // @context/... 경로
+  description: string; // 설명
 }
 
 export interface CodeBlockItem extends RegionItem {
@@ -101,17 +116,18 @@ export interface ReferenceValidation {
 export class MarkdownEditor {
   private lines: string[];
 
-  
   /**
    * Cache for parsed region items
    * Key: region name
    * Value: { content hash, parsed items }
    */
-  private itemsCache = new Map<string, {
-    contentHash: string;
-    items: RegionItem[];
-  }>();
-
+  private itemsCache = new Map<
+    string,
+    {
+      contentHash: string;
+      items: RegionItem[];
+    }
+  >();
 
   /**
    * Generate a unique ID for region items
@@ -132,14 +148,14 @@ export class MarkdownEditor {
 
   /**
    * Generate stable ID based on item content
-   * 
+   *
    * 항목 내용 기반의 안정적인 ID를 생성합니다 (FNV-1a 해시 알고리즘 사용).
    * 같은 내용이면 같은 ID가 생성되어 위치 변경에도 안정적입니다.
-   * 
+   *
    * @param type - 항목 타입 (heading, direct-ref, indirect-ref, code-block, text)
    * @param content - 항목 내용
    * @returns 8자리 hex 해시를 포함한 ID (예: "direct-ref-a1b2c3d4")
-   * 
+   *
    * @example
    * generateStableItemId('direct-ref', '@context/memory/index.md')
    * // "direct-ref-3f2a1b4c"
@@ -149,12 +165,12 @@ export class MarkdownEditor {
     // Simple hash function (FNV-1a)
     let hash = 2166136261;
     const str = `${type}:${content}`;
-    
+
     for (let i = 0; i < str.length; i++) {
       hash ^= str.charCodeAt(i);
       hash = Math.imul(hash, 16777619);
     }
-    
+
     // Convert to hex and take first 8 chars
     return `${type}-${(hash >>> 0).toString(16).substring(0, 8)}`;
   }
@@ -175,7 +191,7 @@ export class MarkdownEditor {
    */
   findSection(heading: string): MarkdownSection | null {
     const headingPattern = `## ${heading}`;
-    const startLine = this.lines.findIndex(line => line.trim() === headingPattern);
+    const startLine = this.lines.findIndex((line) => line.trim() === headingPattern);
 
     if (startLine === -1) return null;
 
@@ -194,7 +210,7 @@ export class MarkdownEditor {
       heading,
       content,
       startLine,
-      endLine
+      endLine,
     };
   }
 
@@ -212,7 +228,7 @@ export class MarkdownEditor {
         items.push({
           text: trimmed.substring(2), // Remove "- "
           level: Math.floor(level),
-          line: section.startLine + 1 + idx
+          line: section.startLine + 1 + idx,
         });
       }
     });
@@ -299,7 +315,7 @@ export class MarkdownEditor {
               language: blockLang,
               content: blockContent.join('\n'),
               startLine: blockStart,
-              endLine: idx
+              endLine: idx,
             });
           }
           inBlock = false;
@@ -317,12 +333,7 @@ export class MarkdownEditor {
    */
   addCodeBlock(language: string, content: string, afterSection?: string): void {
     const lines = content.split('\n');
-    const block = [
-      `\`\`\`${language}`,
-      ...lines,
-      '```',
-      ''
-    ];
+    const block = [`\`\`\`${language}`, ...lines, '```', ''];
 
     if (afterSection) {
       const section = this.findSection(afterSection);
@@ -357,11 +368,7 @@ export class MarkdownEditor {
 
     const language = newLanguage || this.lines[startLine].trim().substring(3).trim();
     const contentLines = newContent.split('\n');
-    const newBlock = [
-      `\`\`\`${language}`,
-      ...contentLines,
-      '```'
-    ];
+    const newBlock = [`\`\`\`${language}`, ...contentLines, '```'];
 
     this.lines.splice(startLine, endLine - startLine + 1, ...newBlock);
   }
@@ -401,7 +408,10 @@ export class MarkdownEditor {
   /**
    * Create or ensure a section exists at a specific position
    */
-  ensureSection(heading: string, position: 'start' | 'end' | { after: string } = 'end'): MarkdownSection {
+  ensureSection(
+    heading: string,
+    position: 'start' | 'end' | { after: string } = 'end',
+  ): MarkdownSection {
     const existing = this.findSection(heading);
     if (existing) return existing;
 
@@ -490,7 +500,7 @@ export class MarkdownEditor {
    */
   findManagedRegion(name: string): ManagedRegion | null {
     const regions = this.findAllManagedRegions();
-    return regions.find(r => r.name === name) || null;
+    return regions.find((r) => r.name === name) || null;
   }
 
   /**
@@ -499,13 +509,13 @@ export class MarkdownEditor {
   addManagedRegion(
     name: string,
     content: string,
-    position: 'start' | 'end' | { after: string } = 'end'
+    position: 'start' | 'end' | { after: string } = 'end',
   ): void {
     const regionLines = [
       `<!-- MEMORY_START: ${name} -->`,
       ...content.split('\n'),
       `<!-- MEMORY_END: ${name} -->`,
-      ''
+      '',
     ];
 
     if (position === 'start') {
@@ -737,13 +747,13 @@ export class MarkdownEditor {
 
   /**
    * Parse region content into structured items
-   * 
+   *
    * Region 내 콘텐츠를 구조화된 항목으로 파싱합니다.
    * 각 항목은 content hash 기반의 안정적인 ID를 가집니다.
-   * 
+   *
    * @param regionName - Region 이름
    * @returns 파싱된 항목 배열
-   * 
+   *
    * @example
    * const items = editor.parseRegionItems('references');
    * // [
@@ -770,7 +780,7 @@ export class MarkdownEditor {
     // Parse items
     const items: RegionItem[] = [];
     const lines = contentLines;
-    
+
     let i = 0;
     while (i < lines.length) {
       const line = lines[i];
@@ -830,13 +840,13 @@ export class MarkdownEditor {
         // Collect description lines starting with "- ", skip empty lines
         while (i < lines.length) {
           const descLine = lines[i];
-          
+
           // Skip empty lines between path and description
           if (descLine.trim() === '') {
             i++;
             continue;
           }
-          
+
           const descMatch = descLine.match(/^\s*-\s+(.+)$/);
           if (descMatch) {
             descriptionLines.push(descMatch[1]);
@@ -849,7 +859,7 @@ export class MarkdownEditor {
         const description = descriptionLines.join('\n');
         const content = `${path}:${description}`;
         const endLine = region.contentStartLine + i - 1;
-        
+
         items.push({
           id: MarkdownEditor.generateStableItemId('indirect-ref', content),
           type: 'indirect-ref',
@@ -857,7 +867,7 @@ export class MarkdownEditor {
           description,
           line: startLine,
           endLine,
-          raw: `\`${path}\`\n${descriptionLines.map(d => `- ${d}`).join('\n')}`,
+          raw: `\`${path}\`\n${descriptionLines.map((d) => `- ${d}`).join('\n')}`,
         } as IndirectRefItem);
         continue;
       }
@@ -934,7 +944,7 @@ export class MarkdownEditor {
    * Convert a managed region and its items to JSON format
    * Useful for data-driven operations and export
    */
-  regionToJSON(regionName: string): object {
+  regionToJSON(regionName: string): RegionJSON {
     const region = this.findManagedRegion(regionName);
     if (!region) {
       throw new Error(`Managed region '${regionName}' not found`);
@@ -944,12 +954,12 @@ export class MarkdownEditor {
 
     return {
       name: region.name,
-      items: items.map(item => ({
+      items: items.map((item) => ({
         id: item.id,
         type: item.type,
         line: item.line,
-        ...this.itemToJSONData(item)
-      }))
+        ...this.itemToJSONData(item),
+      })),
     };
   }
 
@@ -958,26 +968,31 @@ export class MarkdownEditor {
    */
   private itemToJSONData(item: RegionItem): object {
     switch (item.type) {
-      case 'heading':
+      case 'heading': {
         const heading = item as HeadingItem;
         return { level: heading.level, text: heading.text };
-      
-      case 'direct-ref':
+      }
+
+      case 'direct-ref': {
         const directRef = item as DirectRefItem;
         return { path: directRef.path };
-      
-      case 'indirect-ref':
+      }
+
+      case 'indirect-ref': {
         const indirectRef = item as IndirectRefItem;
         return { path: indirectRef.path, description: indirectRef.description };
-      
-      case 'code-block':
+      }
+
+      case 'code-block': {
         const codeBlock = item as CodeBlockItem;
         return { language: codeBlock.language, content: codeBlock.content };
-      
-      case 'text':
+      }
+
+      case 'text': {
         const text = item as TextItem;
         return { content: text.content };
-      
+      }
+
       default:
         return {};
     }
@@ -995,7 +1010,7 @@ export class MarkdownEditor {
 
     // Convert JSON items to markdown lines
     const markdownLines: string[] = [];
-    
+
     for (const item of jsonData.items) {
       const lines = this.itemToMarkdown(item);
       markdownLines.push(...lines);
@@ -1008,10 +1023,10 @@ export class MarkdownEditor {
   /**
    * Export all managed regions as JSON
    */
-  exportAllRegionsJSON(): object {
+  exportAllRegionsJSON(): AllRegionsJSON {
     const regions = this.findAllManagedRegions();
     return {
-      regions: regions.map(region => this.regionToJSON(region.name))
+      regions: regions.map((region) => this.regionToJSON(region.name)),
     };
   }
 
@@ -1027,12 +1042,12 @@ export class MarkdownEditor {
         // Create new region if it doesn't exist
         const items = regionData.items || [];
         const markdownLines: string[] = [];
-        
+
         for (const item of items) {
           const lines = this.itemToMarkdown(item);
           markdownLines.push(...lines);
         }
-        
+
         this.addManagedRegion(regionData.name, markdownLines.join('\n'), 'end');
       }
     }
@@ -1044,15 +1059,15 @@ export class MarkdownEditor {
 
   /**
    * Add a new item to region at specified position
-   * 
+   *
    * Region에 새 항목을 추가합니다. 여러 줄 항목(code block)도 올바르게 처리됩니다.
-   * 
+   *
    * @param regionName - Region 이름
    * @param item - 추가할 항목 (id, line, endLine 제외)
    * @param position - 삽입 위치 ('start', 'end', 또는 라인 번호)
-   * 
+   *
    * @throws {Error} Region을 찾을 수 없는 경우
-   * 
+   *
    * @example
    * editor.addRegionItem('tools', {
    *   type: 'code-block',
@@ -1064,13 +1079,13 @@ export class MarkdownEditor {
   addRegionItem(
     regionName: string,
     item: Omit<RegionItem, 'id' | 'line' | 'endLine'>,
-    position: 'start' | 'end' | number = 'end'
+    position: 'start' | 'end' | number = 'end',
   ): void {
     const region = this.findManagedRegion(regionName);
     if (!region) throw new Error(`Region '${regionName}' not found`);
 
     let insertLine: number;
-    
+
     if (position === 'start') {
       insertLine = region.contentStartLine;
     } else if (position === 'end') {
@@ -1092,15 +1107,15 @@ export class MarkdownEditor {
 
   /**
    * Update an existing item in region
-   * 
+   *
    * Region 내 기존 항목을 업데이트합니다. 여러 줄 항목의 경우 이전 줄을 모두 제거하고 새 내용으로 교체합니다.
-   * 
+   *
    * @param regionName - Region 이름
    * @param itemId - 항목 ID (content hash 기반)
    * @param newItem - 업데이트할 내용 (일부 필드만 가능)
-   * 
+   *
    * @throws {Error} Region 또는 항목을 찾을 수 없는 경우
-   * 
+   *
    * @example
    * editor.updateRegionItem('tools', 'code-block-a1b2c3d4', {
    *   content: 'npm run build'
@@ -1110,16 +1125,16 @@ export class MarkdownEditor {
   updateRegionItem(
     regionName: string,
     itemId: string,
-    newItem: Partial<Omit<RegionItem, 'id' | 'line' | 'endLine'>>
+    newItem: Partial<Omit<RegionItem, 'id' | 'line' | 'endLine'>>,
   ): void {
     const items = this.parseRegionItems(regionName);
-    const item = items.find(i => i.id === itemId);
-    
+    const item = items.find((i) => i.id === itemId);
+
     if (!item) throw new Error(`Item '${itemId}' not found in region '${regionName}'`);
 
     const updated = { ...item, ...newItem };
     const newLines = this.itemToMarkdown(updated);
-    
+
     // Replace lines (delete old lines and insert new ones)
     const deleteCount = item.endLine - item.line + 1;
     this.lines.splice(item.line, deleteCount, ...newLines);
@@ -1134,22 +1149,22 @@ export class MarkdownEditor {
 
   /**
    * Delete an item from region
-   * 
+   *
    * Region에서 항목을 삭제합니다. 여러 줄 항목도 모두 제거됩니다.
-   * 
+   *
    * @param regionName - Region 이름
    * @param itemId - 삭제할 항목 ID
-   * 
+   *
    * @throws {Error} Region 또는 항목을 찾을 수 없는 경우
-   * 
+   *
    * @example
    * editor.deleteRegionItem('tools', 'code-block-a1b2c3d4');
    */
 
   deleteRegionItem(regionName: string, itemId: string): void {
     const items = this.parseRegionItems(regionName);
-    const item = items.find(i => i.id === itemId);
-    
+    const item = items.find((i) => i.id === itemId);
+
     if (!item) throw new Error(`Item '${itemId}' not found in region '${regionName}'`);
 
     const deleteCount = item.endLine - item.line + 1;
@@ -1164,35 +1179,33 @@ export class MarkdownEditor {
    */
   private itemToMarkdown(item: Partial<RegionItem>): string[] {
     switch (item.type) {
-      case 'heading':
+      case 'heading': {
         const heading = item as HeadingItem;
         return [`${'#'.repeat(heading.level)} ${heading.text}`, ''];
-      
-      case 'direct-ref':
+      }
+
+      case 'direct-ref': {
         const directRef = item as DirectRefItem;
         return [directRef.path];
-      
-      case 'indirect-ref':
+      }
+
+      case 'indirect-ref': {
         const indirectRef = item as IndirectRefItem;
         // Multi-line format
         const descLines = indirectRef.description.split('\n');
-        return [
-          `\`${indirectRef.path}\``,
-          ...descLines.map(line => `- ${line}`)
-        ];
-      
-      case 'code-block':
+        return [`\`${indirectRef.path}\``, ...descLines.map((line) => `- ${line}`)];
+      }
+
+      case 'code-block': {
         const codeBlock = item as CodeBlockItem;
-        return [
-          `\`\`\`${codeBlock.language}`,
-          ...codeBlock.content.split('\n'),
-          '```'
-        ];
-      
-      case 'text':
+        return [`\`\`\`${codeBlock.language}`, ...codeBlock.content.split('\n'), '```'];
+      }
+
+      case 'text': {
         const text = item as TextItem;
         return [text.content];
-      
+      }
+
       default:
         return item.raw ? [item.raw] : [''];
     }
@@ -1205,10 +1218,10 @@ export class MarkdownEditor {
 
   /**
    * Remove duplicate context references from all managed regions
-   * 
+   *
    * 모든 Managed Region에서 중복된 직접 참조를 제거합니다.
    * 첫 번째 출현만 유지하고 이후 중복은 삭제됩니다.
-   * 
+   *
    * @example
    * // Before: @context/file.md가 여러 번 나타남
    * // After: 첫 번째만 유지
@@ -1248,11 +1261,11 @@ export class MarkdownEditor {
 
   /**
    * Remove invalid context references (files that don't exist)
-   * 
+   *
    * 존재하지 않는 파일을 참조하는 항목을 제거합니다.
-   * 
+   *
    * @param projectRoot - 프로젝트 루트 디렉토리 (파일 경로 해석용)
-   * 
+   *
    * @example
    * await editor.removeInvalidReferences('/path/to/project');
    */
@@ -1268,7 +1281,7 @@ export class MarkdownEditor {
         if (item.type === 'direct-ref') {
           const directRef = item as DirectRefItem;
           const filePath = MarkdownEditor.contextPathToFilePath(directRef.path, projectRoot);
-          
+
           try {
             await window.fileAPI.readFile(filePath);
             // File exists, keep it
@@ -1293,14 +1306,14 @@ export class MarkdownEditor {
 
   /**
    * Auto-fix all issues: remove duplicates, remove invalid refs, reorganize regions
-   * 
+   *
    * 자동 수정을 실행합니다:
    * 1. 중복 참조 제거
    * 2. 유효하지 않은 참조 제거
    * 3. Region을 문서 하단으로 재배치
-   * 
+   *
    * @param projectRoot - 프로젝트 루트 디렉토리
-   * 
+   *
    * @example
    * await editor.autoFix('/path/to/project');
    */
@@ -1308,10 +1321,10 @@ export class MarkdownEditor {
   async autoFix(projectRoot: string): Promise<void> {
     // 1. Remove duplicate references
     this.removeDuplicateReferences();
-    
+
     // 2. Remove invalid references
     await this.removeInvalidReferences(projectRoot);
-    
+
     // 3. Reorganize regions to bottom
     if (!this.areRegionsAtBottom()) {
       this.reorganizeManagedRegions();

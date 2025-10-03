@@ -11,7 +11,12 @@ interface StreamOutputProps {
   sessionId?: string | null;
 }
 
-export const StreamOutput: React.FC<StreamOutputProps> = ({ events, errors, currentPid, sessionId }) => {
+export const StreamOutput: React.FC<StreamOutputProps> = ({
+  events,
+  errors,
+  currentPid,
+  sessionId,
+}) => {
   const outputEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

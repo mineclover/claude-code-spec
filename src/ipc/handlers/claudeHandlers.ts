@@ -129,7 +129,14 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
   // Execute Claude CLI
   router.handle(
     'execute',
-    async (event: IpcMainInvokeEvent, projectPath: string, query: string, sessionId?: string, mcpConfig?: string, model?: 'sonnet' | 'opus') => {
+    async (
+      event: IpcMainInvokeEvent,
+      projectPath: string,
+      query: string,
+      sessionId?: string,
+      mcpConfig?: string,
+      model?: 'sonnet' | 'opus',
+    ) => {
       return executeClaudeCommand(event, projectPath, query, sessionId, mcpConfig, model);
     },
   );

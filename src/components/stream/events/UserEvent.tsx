@@ -13,7 +13,13 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
   // Handle tool_result content (array type)
   if (Array.isArray(content)) {
     return (
-      <EventBox type="user" icon="🔧" title="Tool Result" rawData={event} isSidechain={event.isSidechain}>
+      <EventBox
+        type="user"
+        icon="🔧"
+        title="Tool Result"
+        rawData={event}
+        isSidechain={event.isSidechain}
+      >
         {content.map((item, index) => {
           // Safely extract text from content that might be a string or object
           const extractContent = (content: unknown): string => {
@@ -78,7 +84,13 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
 
   // Regular user message
   return (
-    <EventBox type="user" icon="👤" title="User Message" rawData={event} isSidechain={event.isSidechain}>
+    <EventBox
+      type="user"
+      icon="👤"
+      title="User Message"
+      rawData={event}
+      isSidechain={event.isSidechain}
+    >
       <div className={styles.content}>{content}</div>
     </EventBox>
   );

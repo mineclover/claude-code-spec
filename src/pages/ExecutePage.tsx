@@ -13,13 +13,15 @@ import styles from './ExecutePage.module.css';
 export const ExecutePage: React.FC = () => {
   const projectPathInputId = useId();
   const queryInputId = useId();
+  const mcpConfigSelectId = useId();
+  const modelSelectId = useId();
   const { projectPath: contextProjectPath, updateProject } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const [projectPath, setProjectPath] = useState('');
   const [query, setQuery] = useState('');
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [errors, setErrors] = useState<Array<{ id: string; message: string }>>([]);
-  const [isRunning, setIsRunning] = useState(false);
+  const [_isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [currentPid, setCurrentPid] = useState<number | null>(null);
@@ -312,7 +314,13 @@ export const ExecutePage: React.FC = () => {
       setCurrentPid(execution.pid);
       setIsRunning(execution.status === 'running' || execution.status === 'pending');
 
-      console.log('[ExecutePage] Switched to execution:', sessionId, 'with', execution.events.length, 'events');
+      console.log(
+        '[ExecutePage] Switched to execution:',
+        sessionId,
+        'with',
+        execution.events.length,
+        'events',
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to switch execution');
       console.error('[ExecutePage] Failed to switch execution:', err);
@@ -404,7 +412,10 @@ export const ExecutePage: React.FC = () => {
       // Only update state if this is our current execution
       if (data.sessionId === currentSessionIdRef.current) {
         setIsRunning(false);
-        console.log('[ExecutePage] Execution completed for current session:', currentSessionIdRef.current);
+        console.log(
+          '[ExecutePage] Execution completed for current session:',
+          currentSessionIdRef.current,
+        );
       }
     };
 
@@ -551,9 +562,9 @@ export const ExecutePage: React.FC = () => {
         )}
 
         <div className={styles.inputGroup}>
-          <label htmlFor="mcpConfigSelect">MCP Configuration</label>
+          <label htmlFor={mcpConfigSelectId}>MCP Configuration</label>
           <select
-            id="mcpConfigSelect"
+            id={mcpConfigSelectId}
             value={selectedMcpConfig}
             onChange={(e) => setSelectedMcpConfig(e.target.value)}
             className={styles.select}
@@ -568,9 +579,9 @@ export const ExecutePage: React.FC = () => {
         </div>
 
         <div className={styles.inputGroup}>
-          <label htmlFor="modelSelect">Model</label>
+          <label htmlFor={modelSelectId}>Model</label>
           <select
-            id="modelSelect"
+            id={modelSelectId}
             value={selectedModel}
             onChange={(e) => setSelectedModel(e.target.value as 'sonnet' | 'opus')}
             className={styles.select}
@@ -617,13 +628,19 @@ export const ExecutePage: React.FC = () => {
 
         {currentSessionId && (
           <div className={styles.status}>
-            Running (Session: {currentSessionId.slice(0, 8)}...{currentPid ? `, PID: ${currentPid}` : ''})
+            Running (Session: {currentSessionId.slice(0, 8)}...
+            {currentPid ? `, PID: ${currentPid}` : ''})
           </div>
         )}
       </div>
 
       <div className={styles.output}>
-        <StreamOutput events={events} errors={errors} currentPid={currentPid} sessionId={currentSessionId} />
+        <StreamOutput
+          events={events}
+          errors={errors}
+          currentPid={currentPid}
+          sessionId={currentSessionId}
+        />
       </div>
     </div>
   );

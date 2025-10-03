@@ -79,25 +79,13 @@ export const ExecutionsList: React.FC<ExecutionsListProps> = ({
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.headerContent} onClick={onToggleExpanded}>
-          <h3 className={styles.title}>
-            Executions ({displayedExecutions.length})
-          </h3>
+          <h3 className={styles.title}>Executions ({displayedExecutions.length})</h3>
           <div className={styles.stats}>
-            {activeCount > 0 && (
-              <span className={styles.statActive}>
-                {activeCount} active
-              </span>
-            )}
+            {activeCount > 0 && <span className={styles.statActive}>{activeCount} active</span>}
             {stats.completed > 0 && (
-              <span className={styles.statCompleted}>
-                {stats.completed} completed
-              </span>
+              <span className={styles.statCompleted}>{stats.completed} completed</span>
             )}
-            {stats.failed > 0 && (
-              <span className={styles.statFailed}>
-                {stats.failed} failed
-              </span>
-            )}
+            {stats.failed > 0 && <span className={styles.statFailed}>{stats.failed} failed</span>}
           </div>
         </div>
         <div className={styles.headerActions}>
@@ -160,9 +148,7 @@ export const ExecutionsList: React.FC<ExecutionsListProps> = ({
                 onClick={() => onSelectExecution(execution.sessionId)}
               >
                 <div className={styles.itemHeader}>
-                  <span className={styles.sessionId}>
-                    {execution.sessionId.slice(0, 8)}...
-                  </span>
+                  <span className={styles.sessionId}>{execution.sessionId.slice(0, 8)}...</span>
                   <span className={`${styles.status} ${getStatusBadgeClass(execution.status)}`}>
                     {execution.status}
                   </span>
@@ -180,9 +166,7 @@ export const ExecutionsList: React.FC<ExecutionsListProps> = ({
                   <span className={styles.duration}>
                     {formatDuration(execution.startTime, execution.endTime)}
                   </span>
-                  {execution.pid && (
-                    <span className={styles.pid}>PID: {execution.pid}</span>
-                  )}
+                  {execution.pid && <span className={styles.pid}>PID: {execution.pid}</span>}
                 </div>
 
                 <div className={styles.itemActions}>
@@ -199,7 +183,9 @@ export const ExecutionsList: React.FC<ExecutionsListProps> = ({
                       Kill
                     </button>
                   )}
-                  {(execution.status === 'completed' || execution.status === 'failed' || execution.status === 'killed') && (
+                  {(execution.status === 'completed' ||
+                    execution.status === 'failed' ||
+                    execution.status === 'killed') && (
                     <button
                       type="button"
                       className={styles.cleanupButton}

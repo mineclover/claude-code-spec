@@ -121,11 +121,13 @@ export class ProcessManager {
         }
 
         // Get current sessionId
-        const currentSessionId = params.sessionId || this.executions.get(
-          Array.from(this.executions.keys()).find(
-            key => this.executions.get(key) === tempExecution
-          ) || ''
-        )?.sessionId;
+        const currentSessionId =
+          params.sessionId ||
+          this.executions.get(
+            Array.from(this.executions.keys()).find(
+              (key) => this.executions.get(key) === tempExecution,
+            ) || '',
+          )?.sessionId;
 
         // Store event
         if (tempExecution) {

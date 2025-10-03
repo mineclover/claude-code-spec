@@ -1,19 +1,19 @@
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { useProject } from '../contexts/ProjectContext';
-import { MarkdownEditor } from '../lib/MarkdownEditor';
 import type {
   BulletItem,
+  CodeBlockItem,
   CodeBlockReference,
   ContextReference,
+  DirectRefItem,
+  HeadingItem,
+  IndirectRefItem,
   ManagedRegion,
   RegionItem,
-  HeadingItem,
-  DirectRefItem,
-  IndirectRefItem,
-  CodeBlockItem,
   TextItem,
 } from '../lib/MarkdownEditor';
+import { MarkdownEditor } from '../lib/MarkdownEditor';
 import styles from './MemoryPage.module.css';
 
 export const MemoryPage: React.FC = () => {
@@ -141,7 +141,10 @@ export const MemoryPage: React.FC = () => {
   // Auto-fix: remove duplicates, invalid refs, and reorganize
   const handleAutoFix = useCallback(async () => {
     if (!editor || !projectPath) return;
-    if (!confirm('중복 참조 제거, 유효하지 않은 참조 제거, 영역 재배치를 자동으로 수행하시겠습니까?')) return;
+    if (
+      !confirm('중복 참조 제거, 유효하지 않은 참조 제거, 영역 재배치를 자동으로 수행하시겠습니까?')
+    )
+      return;
 
     await editor.autoFix(projectPath);
     saveClaudeMd();
@@ -164,16 +167,26 @@ export const MemoryPage: React.FC = () => {
         </div>
         <div className={styles.headerActions}>
           {isReorganizeNeeded && (
-            <button onClick={handleReorganize} className={styles.buttonWarning} title="Memory 영역을 문서 하단으로 재배치">
+            <button
+              type="button"
+              onClick={handleReorganize}
+              className={styles.buttonWarning}
+              title="Memory 영역을 문서 하단으로 재배치"
+            >
               🔄 Reorganize
             </button>
           )}
           {(duplicateRefs.size > 0 || invalidRefs.length > 0 || isReorganizeNeeded) && (
-            <button onClick={handleAutoFix} className={styles.buttonWarning} title="중복/유효하지 않은 참조 제거 및 영역 재배치">
+            <button
+              type="button"
+              onClick={handleAutoFix}
+              className={styles.buttonWarning}
+              title="중복/유효하지 않은 참조 제거 및 영역 재배치"
+            >
               ✨ Auto Fix
             </button>
           )}
-          <button onClick={loadClaudeMd} className={styles.buttonSecondary}>
+          <button type="button" onClick={loadClaudeMd} className={styles.buttonSecondary}>
             Reload
           </button>
         </div>
@@ -341,7 +354,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
   const handleDeleteItem = (itemId: string) => {
     if (!editor) return;
     if (!confirm('이 항목을 삭제하시겠습니까?')) return;
-    
+
     editor.deleteRegionItem(region.name, itemId);
     onSave();
   };
@@ -349,7 +362,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
   const handleAddItem = (type: 'heading' | 'direct-ref' | 'indirect-ref' | 'code-block') => {
     if (!editor) return;
 
-    const newItem: any = { type };
+    const newItem: Record<string, unknown> = { type };
 
     switch (type) {
       case 'heading':
@@ -377,7 +390,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
   const handleMoveItem = (itemId: string, direction: 'up' | 'down') => {
     if (!editor) return;
 
-    const currentIndex = items.findIndex(item => item.id === itemId);
+    const currentIndex = items.findIndex((item) => item.id === itemId);
     if (currentIndex === -1) return;
 
     const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
@@ -401,7 +414,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
       setShowJSONView(false);
       onSave();
     } catch (err) {
-      alert('Invalid JSON: ' + (err as Error).message);
+      alert(`Invalid JSON: ${(err as Error).message}`);
     }
   };
 
@@ -420,11 +433,16 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
 
   const getItemIcon = (type: string) => {
     switch (type) {
-      case 'heading': return '📌';
-      case 'direct-ref': return '🔗';
-      case 'indirect-ref': return '💡';
-      case 'code-block': return '💻';
-      default: return '📝';
+      case 'heading':
+        return '📌';
+      case 'direct-ref':
+        return '🔗';
+      case 'indirect-ref':
+        return '💡';
+      case 'code-block':
+        return '💻';
+      default:
+        return '📝';
     }
   };
 
@@ -459,7 +477,10 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
             <div className={styles.itemsHeader}>
               <h4>Region Items ({items.length})</h4>
               <div>
-                <button onClick={() => setShowJSONView(!showJSONView)} className={styles.buttonSmall}>
+                <button
+                  onClick={() => setShowJSONView(!showJSONView)}
+                  className={styles.buttonSmall}
+                >
                   {showJSONView ? '📝 List View' : '{ } JSON View'}
                 </button>
                 <button onClick={handleExportJSON} className={styles.buttonSmall}>
@@ -488,72 +509,73 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
               </div>
             )}
 
-            {!showJSONView && items.map((item, idx) => (
-              <div key={item.id} className={styles.itemCard}>
-                <div className={styles.itemHeader}>
-                  <div className={styles.itemInfo}>
-                    <span className={styles.itemIcon}>{getItemIcon(item.type)}</span>
-                    <span className={styles.itemType}>{item.type}</span>
-                    <span className={styles.itemLine}>Line {item.line + 1}</span>
-                  </div>
-                  <div className={styles.itemActions}>
-                    <button
-                      onClick={() => handleMoveItem(item.id, 'up')}
-                      disabled={idx === 0}
-                      className={styles.buttonSmall}
-                      title="Move up"
-                    >
-                      ⬆️
-                    </button>
-                    <button
-                      onClick={() => handleMoveItem(item.id, 'down')}
-                      disabled={idx === items.length - 1}
-                      className={styles.buttonSmall}
-                      title="Move down"
-                    >
-                      ⬇️
-                    </button>
-                    <button
-                      onClick={() => handleDeleteItem(item.id)}
-                      className={styles.buttonDangerSmall}
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-                <div className={styles.itemContent}>
-                  {item.type === 'heading' && (
-                    <h4 className={styles.headingText}>{(item as HeadingItem).text}</h4>
-                  )}
-                  {item.type === 'direct-ref' && (
-                    <div className={styles.refItem}>
-                      <code>{(item as DirectRefItem).path}</code>
+            {!showJSONView &&
+              items.map((item, idx) => (
+                <div key={item.id} className={styles.itemCard}>
+                  <div className={styles.itemHeader}>
+                    <div className={styles.itemInfo}>
+                      <span className={styles.itemIcon}>{getItemIcon(item.type)}</span>
+                      <span className={styles.itemType}>{item.type}</span>
+                      <span className={styles.itemLine}>Line {item.line + 1}</span>
                     </div>
-                  )}
-                  {item.type === 'indirect-ref' && (
-                    <div className={styles.indirectRefItem}>
-                      <code className={styles.refPath}>{(item as IndirectRefItem).path}</code>
-                      <div className={styles.refDescList}>
-                        {(item as IndirectRefItem).description.split('\n').map((line, idx) => (
-                          <div key={idx} className={styles.refDescLine}>
-                            • {line}
-                          </div>
-                        ))}
+                    <div className={styles.itemActions}>
+                      <button
+                        onClick={() => handleMoveItem(item.id, 'up')}
+                        disabled={idx === 0}
+                        className={styles.buttonSmall}
+                        title="Move up"
+                      >
+                        ⬆️
+                      </button>
+                      <button
+                        onClick={() => handleMoveItem(item.id, 'down')}
+                        disabled={idx === items.length - 1}
+                        className={styles.buttonSmall}
+                        title="Move down"
+                      >
+                        ⬇️
+                      </button>
+                      <button
+                        onClick={() => handleDeleteItem(item.id)}
+                        className={styles.buttonDangerSmall}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                  <div className={styles.itemContent}>
+                    {item.type === 'heading' && (
+                      <h4 className={styles.headingText}>{(item as HeadingItem).text}</h4>
+                    )}
+                    {item.type === 'direct-ref' && (
+                      <div className={styles.refItem}>
+                        <code>{(item as DirectRefItem).path}</code>
                       </div>
-                    </div>
-                  )}
-                  {item.type === 'code-block' && (
-                    <div className={styles.codeItem}>
-                      <div className={styles.codeLang}>{(item as CodeBlockItem).language}</div>
-                      <pre className={styles.codeContent}>{(item as CodeBlockItem).content}</pre>
-                    </div>
-                  )}
-                  {item.type === 'text' && (
-                    <div className={styles.textItem}>{(item as TextItem).content}</div>
-                  )}
+                    )}
+                    {item.type === 'indirect-ref' && (
+                      <div className={styles.indirectRefItem}>
+                        <code className={styles.refPath}>{(item as IndirectRefItem).path}</code>
+                        <div className={styles.refDescList}>
+                          {(item as IndirectRefItem).description.split('\n').map((line, idx) => (
+                            <div key={idx} className={styles.refDescLine}>
+                              • {line}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {item.type === 'code-block' && (
+                      <div className={styles.codeItem}>
+                        <div className={styles.codeLang}>{(item as CodeBlockItem).language}</div>
+                        <pre className={styles.codeContent}>{(item as CodeBlockItem).content}</pre>
+                      </div>
+                    )}
+                    {item.type === 'text' && (
+                      <div className={styles.textItem}>{(item as TextItem).content}</div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
             {showJSONView && (
               <div className={styles.jsonEditor}>
@@ -571,7 +593,8 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
                   style={{ fontFamily: 'monospace', fontSize: '12px' }}
                 />
                 <p className={styles.hint}>
-                  Edit items array to add, remove, or reorder items. Changes will be applied to markdown when saved.
+                  Edit items array to add, remove, or reorder items. Changes will be applied to
+                  markdown when saved.
                 </p>
               </div>
             )}
@@ -579,8 +602,9 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
 
           {/* Raw Content Editor */}
           <div className={styles.rawEditor}>
-            <label>Raw Content:</label>
+            <label htmlFor="raw-content-editor">Raw Content:</label>
             <textarea
+              id="raw-content-editor"
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               className={styles.textarea}

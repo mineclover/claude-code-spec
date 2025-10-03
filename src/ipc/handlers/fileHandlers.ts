@@ -10,7 +10,9 @@ export function registerFileHandlers(router: IPCRouter): void {
       const content = await fs.readFile(filePath, 'utf-8');
       return content;
     } catch (error) {
-      throw new Error(`Failed to read file: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to read file: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   });
 
@@ -18,7 +20,9 @@ export function registerFileHandlers(router: IPCRouter): void {
     try {
       await fs.writeFile(filePath, content, 'utf-8');
     } catch (error) {
-      throw new Error(`Failed to write file: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to write file: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   });
 }

@@ -305,7 +305,7 @@
 }
 
 .sectionItem li::before {
-  content: '•';
+  content: "•";
   position: absolute;
   left: 0;
   color: #0366d6;
@@ -341,8 +341,8 @@
   padding: 1rem;
   margin: 0;
   overflow-x: auto;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New',
-    monospace;
+  font-family:
+    "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
   font-size: 0.9rem;
   line-height: 1.5;
 }
@@ -381,8 +381,8 @@
   padding: 1rem;
   border-radius: 6px;
   overflow-x: auto;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New',
-    monospace;
+  font-family:
+    "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
   font-size: 0.85rem;
   line-height: 1.6;
   max-height: 600px;
@@ -397,8 +397,8 @@
   border: 1px solid #d1d5da;
   border-radius: 4px;
   font-size: 0.9rem;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial,
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
 }
 
 .input:focus {
@@ -428,8 +428,8 @@
   border: 1px solid #d1d5da;
   border-radius: 4px;
   font-size: 0.9rem;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New',
-    monospace;
+  font-family:
+    "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
   resize: vertical;
   margin-bottom: 0.75rem;
 }
@@ -632,7 +632,9 @@
   border-radius: 6px;
   padding: 1rem;
   margin-bottom: 0.75rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .itemCard:last-child {
@@ -781,7 +783,7 @@
   padding: 0.75rem;
   margin: 0;
   overflow-x: auto;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+  font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace;
   font-size: 0.85rem;
   line-height: 1.5;
 }

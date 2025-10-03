@@ -1,6 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type {
+  AllRegionsJSON,
+  CodeBlockItem,
+  DirectRefItem,
+  IndirectRefItem,
+  RegionJSON,
+} from './MarkdownEditor';
 import { MarkdownEditor } from './MarkdownEditor';
-import type { RegionItem, HeadingItem, DirectRefItem, IndirectRefItem, CodeBlockItem } from './MarkdownEditor';
 
 describe('MarkdownEditor - Managed Regions', () => {
   let editor: MarkdownEditor;
@@ -68,35 +74,38 @@ More content.
       const originalId = originalItem.id;
 
       // Add item at start
-      editor.addRegionItem('test-region', {
-        type: 'direct-ref',
-        path: '@context/new.md',
-        raw: '@context/new.md'
-      }, 'start');
+      editor.addRegionItem(
+        'test-region',
+        {
+          type: 'direct-ref',
+          path: '@context/new.md',
+          raw: '@context/new.md',
+        },
+        'start',
+      );
 
       // Find same item by ID (content-based)
       const newItems = editor.parseRegionItems('test-region');
-      const sameItem = newItems.find(i =>
-        i.type === 'direct-ref' &&
-        (i as DirectRefItem).path === originalItem.path
+      const sameItem = newItems.find(
+        (i) => i.type === 'direct-ref' && (i as DirectRefItem).path === originalItem.path,
       );
 
       expect(sameItem).toBeDefined();
-      expect(sameItem!.id).toBe(originalId);
+      expect(sameItem?.id).toBe(originalId);
     });
   });
 
   describe('Multi-line item handling', () => {
     it('should correctly update code block (multi-line item)', () => {
       const items = editor.parseRegionItems('test-region');
-      const codeBlock = items.find(i => i.type === 'code-block') as CodeBlockItem;
+      const codeBlock = items.find((i) => i.type === 'code-block') as CodeBlockItem;
 
       editor.updateRegionItem('test-region', codeBlock.id, {
-        content: 'npm run build'
+        content: 'npm run build',
       });
 
       const updated = editor.parseRegionItems('test-region');
-      const updatedBlock = updated.find(i => i.type === 'code-block') as CodeBlockItem;
+      const updatedBlock = updated.find((i) => i.type === 'code-block') as CodeBlockItem;
 
       expect(updatedBlock.content).toBe('npm run build');
 
@@ -107,12 +116,12 @@ More content.
 
     it('should correctly delete code block (multi-line item)', () => {
       const items = editor.parseRegionItems('test-region');
-      const codeBlock = items.find(i => i.type === 'code-block') as CodeBlockItem;
+      const codeBlock = items.find((i) => i.type === 'code-block') as CodeBlockItem;
 
       editor.deleteRegionItem('test-region', codeBlock.id);
 
       const updated = editor.parseRegionItems('test-region');
-      expect(updated.find(i => i.type === 'code-block')).toBeUndefined();
+      expect(updated.find((i) => i.type === 'code-block')).toBeUndefined();
 
       // All lines of code block should be removed
       const content = editor.getContent();
@@ -122,7 +131,7 @@ More content.
 
     it('should parse multi-line indirect reference', () => {
       const items = editor.parseRegionItems('test-region');
-      const indirectRef = items.find(i => i.type === 'indirect-ref') as IndirectRefItem;
+      const indirectRef = items.find((i) => i.type === 'indirect-ref') as IndirectRefItem;
 
       expect(indirectRef).toBeDefined();
       expect(indirectRef.path).toBe('@context/optional.md');
@@ -133,14 +142,14 @@ More content.
 
     it('should correctly update multi-line indirect reference', () => {
       const items = editor.parseRegionItems('test-region');
-      const indirectRef = items.find(i => i.type === 'indirect-ref') as IndirectRefItem;
+      const indirectRef = items.find((i) => i.type === 'indirect-ref') as IndirectRefItem;
 
       editor.updateRegionItem('test-region', indirectRef.id, {
-        description: '새로운 설명\n두 번째 줄\n세 번째 줄'
+        description: '새로운 설명\n두 번째 줄\n세 번째 줄',
       });
 
       const updated = editor.parseRegionItems('test-region');
-      const updatedRef = updated.find(i => i.type === 'indirect-ref') as IndirectRefItem;
+      const updatedRef = updated.find((i) => i.type === 'indirect-ref') as IndirectRefItem;
 
       expect(updatedRef.description).toBe('새로운 설명\n두 번째 줄\n세 번째 줄');
 
@@ -160,7 +169,7 @@ More content.
 
       const testEditor = new MarkdownEditor(contentWithEmptyLines);
       const items = testEditor.parseRegionItems('test-empty');
-      const indirectRef = items.find(i => i.type === 'indirect-ref') as IndirectRefItem;
+      const indirectRef = items.find((i) => i.type === 'indirect-ref') as IndirectRefItem;
 
       expect(indirectRef).toBeDefined();
       expect(indirectRef.path).toBe('@context/file.md');
@@ -180,7 +189,7 @@ More content.
       dupEditor.removeDuplicateReferences();
 
       const items = dupEditor.parseRegionItems('test');
-      const refs = items.filter(i => i.type === 'direct-ref');
+      const refs = items.filter((i) => i.type === 'direct-ref');
 
       expect(refs).toHaveLength(2); // Only unique refs remain
       expect((refs[0] as DirectRefItem).path).toBe('@context/file.md');
@@ -203,7 +212,7 @@ More content.
       editor.addRegionItem('test-region', {
         type: 'text',
         content: 'New text',
-        raw: 'New text'
+        raw: 'New text',
       });
 
       const items2 = editor.parseRegionItems('test-region');
@@ -216,7 +225,7 @@ More content.
 
   describe('JSON Data Handling', () => {
     it('should export region to JSON format', () => {
-      const json = editor.regionToJSON('test-region') as any;
+      const json: RegionJSON = editor.regionToJSON('test-region');
 
       expect(json.name).toBe('test-region');
       expect(json.items).toBeInstanceOf(Array);
@@ -230,15 +239,15 @@ More content.
     });
 
     it('should update region from JSON data', () => {
-      const originalJSON = editor.regionToJSON('test-region') as any;
+      const _originalJSON: RegionJSON = editor.regionToJSON('test-region');
 
       // Modify JSON: remove all items and add new ones
       const newJSON = {
         items: [
           { type: 'heading', level: 2, text: 'New Section' },
           { type: 'direct-ref', path: '@context/new.md' },
-          { type: 'code-block', language: 'bash', content: 'echo "test"' }
-        ]
+          { type: 'code-block', language: 'bash', content: 'echo "test"' },
+        ],
       };
 
       editor.updateRegionFromJSON('test-region', newJSON);
@@ -251,7 +260,7 @@ More content.
     });
 
     it('should export all regions as JSON', () => {
-      const allJSON = editor.exportAllRegionsJSON() as any;
+      const allJSON: AllRegionsJSON = editor.exportAllRegionsJSON();
 
       expect(allJSON).toHaveProperty('regions');
       expect(allJSON.regions).toBeInstanceOf(Array);
@@ -263,12 +272,12 @@ More content.
     });
 
     it('should reorder items via JSON', () => {
-      const json = editor.regionToJSON('test-region') as any;
+      const json: RegionJSON = editor.regionToJSON('test-region');
       const items = json.items;
 
       // Reverse order
       const reorderedJSON = {
-        items: items.reverse()
+        items: items.reverse(),
       };
 
       editor.updateRegionFromJSON('test-region', reorderedJSON);
@@ -282,8 +291,8 @@ More content.
       const partialJSON = {
         items: [
           { type: 'heading', level: 3, text: 'Partial Section' },
-          { type: 'text', content: 'Some text' }
-        ]
+          { type: 'text', content: 'Some text' },
+        ],
       };
 
       editor.updateRegionFromJSON('test-region', partialJSON);

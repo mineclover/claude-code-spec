@@ -11,8 +11,13 @@ import type {
 
 export function exposeClaudeAPI(): void {
   contextBridge.exposeInMainWorld('claudeAPI', {
-    executeClaudeCommand: (projectPath: string, query: string, sessionId?: string, mcpConfig?: string, model?: 'sonnet' | 'opus') =>
-      ipcRenderer.invoke('claude:execute', projectPath, query, sessionId, mcpConfig, model),
+    executeClaudeCommand: (
+      projectPath: string,
+      query: string,
+      sessionId?: string,
+      mcpConfig?: string,
+      model?: 'sonnet' | 'opus',
+    ) => ipcRenderer.invoke('claude:execute', projectPath, query, sessionId, mcpConfig, model),
 
     selectDirectory: () => ipcRenderer.invoke('dialog:selectDirectory'),
 
@@ -34,7 +39,8 @@ export function exposeClaudeAPI(): void {
 
     killExecution: (sessionId: string) => ipcRenderer.invoke('claude:kill-execution', sessionId),
 
-    cleanupExecution: (sessionId: string) => ipcRenderer.invoke('claude:cleanup-execution', sessionId),
+    cleanupExecution: (sessionId: string) =>
+      ipcRenderer.invoke('claude:cleanup-execution', sessionId),
 
     getExecutionStats: () => ipcRenderer.invoke('claude:get-execution-stats'),
 
