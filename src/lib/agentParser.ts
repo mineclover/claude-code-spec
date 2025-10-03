@@ -31,16 +31,17 @@ export function parseAgentMarkdown(
 
     // Array item
     if (trimmedLine.startsWith('- ')) {
-      if (isParsingArray && currentKey) {
+      // If we encounter an array item and currentKey is set, start array parsing
+      if (currentKey && !isParsingObject) {
+        if (!isParsingArray) {
+          isParsingArray = true;
+          currentArray = [];
+        }
         currentArray.push(trimmedLine.substring(2).trim().replace(/['"]/g, ''));
       }
-    }
-    // Object property
-    else if (isParsingObject && trimmedLine.startsWith('- ')) {
-      const [key, ...valueParts] = trimmedLine.substring(2).split(':');
-      if (key && valueParts.length > 0) {
-        const value = valueParts.join(':').trim().replace(/['"]/g, '');
-        currentObject[key.trim()] = value;
+      // Nested array items under object
+      else if (isParsingObject && objectKey) {
+        currentObject[objectKey].push(trimmedLine.substring(2).trim().replace(/['"]/g, ''));
       }
     }
     // New key-value pair
@@ -49,20 +50,32 @@ export function parseAgentMarkdown(
       if (isParsingArray && currentKey && currentArray.length > 0) {
         (metadata as any)[currentKey] = currentArray;
         currentArray = [];
+        isParsingArray = false;
       }
       if (isParsingObject && currentKey && Object.keys(currentObject).length > 0) {
         (metadata as any)[currentKey] = currentObject;
         currentObject = {};
+        isParsingObject = false;
       }
 
       const [key, ...valueParts] = trimmedLine.split(':');
       const value = valueParts.join(':').trim();
 
       if (value === '') {
-        // This might be start of array or object
-        currentKey = key.trim();
-        isParsingArray = false;
-        isParsingObject = false;
+        const keyName = key.trim();
+
+        // Special handling for nested objects (permissions)
+        if (currentKey === 'permissions') {
+          // This is a nested key like allowList or denyList
+          isParsingObject = true;
+          objectKey = keyName;
+          if (!currentObject[objectKey]) {
+            currentObject[objectKey] = [];
+          }
+        } else {
+          // Regular key for array or simple value
+          currentKey = keyName;
+        }
       } else {
         currentKey = key.trim();
         const cleanValue = value.replace(/['"]/g, '');
@@ -79,22 +92,6 @@ export function parseAgentMarkdown(
         isParsingArray = false;
         isParsingObject = false;
       }
-    }
-    // Check for nested keys (allowList, denyList under permissions)
-    else if (trimmedLine.endsWith(':') && currentKey === 'permissions') {
-      isParsingObject = true;
-      objectKey = trimmedLine.slice(0, -1).trim();
-      if (!currentObject[objectKey]) {
-        currentObject[objectKey] = [];
-      }
-    }
-    // Nested array items under object
-    else if (trimmedLine.startsWith('- ') && isParsingObject && objectKey) {
-      currentObject[objectKey].push(trimmedLine.substring(2).trim().replace(/['"]/g, ''));
-    }
-    // Check if this is an array key
-    else if (currentKey && !isParsingArray && !isParsingObject) {
-      isParsingArray = true;
     }
   });
 
