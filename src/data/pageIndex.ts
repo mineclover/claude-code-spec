@@ -101,7 +101,8 @@ export const PAGE_INDEX: PageIndex[] = [
     id: 'tasks',
     name: 'Tasks',
     displayName: '작업 관리',
-    description: '프로젝트 작업을 정의하고 에이전트에게 할당합니다. 리뷰어를 지정하여 결과를 검토할 수 있습니다.',
+    description:
+      '프로젝트 작업을 정의하고 에이전트에게 할당합니다. 리뷰어를 지정하여 결과를 검토할 수 있습니다.',
     route: '/tasks',
     icon: '✅',
     category: 'management',
@@ -111,11 +112,21 @@ export const PAGE_INDEX: PageIndex[] = [
     id: 'agents',
     name: 'Agents',
     displayName: 'Agent 관리',
-    description: 'Tasks를 수행할 전문화된 AI Agent를 생성하고 관리합니다. 도구 및 파일 권한을 제어할 수 있습니다.',
+    description:
+      'Tasks를 수행할 전문화된 AI Agent를 생성하고 관리합니다. 도구 및 파일 권한을 제어할 수 있습니다.',
     route: '/agents',
     icon: '🤖',
     category: 'management',
-    keywords: ['agents', 'sub-agent', 'ai', 'automation', 'permissions', '에이전트', '자동화', '권한'],
+    keywords: [
+      'agents',
+      'sub-agent',
+      'ai',
+      'automation',
+      'permissions',
+      '에이전트',
+      '자동화',
+      '권한',
+    ],
   },
   {
     id: 'settings',

@@ -2,11 +2,11 @@
  * Agent-related IPC handlers
  */
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import * as os from 'os';
-import type { IPCRouter } from '../IPCRouter';
+import * as path from 'path';
 import { parseAgentMarkdown } from '../../lib/agentParser';
 import type { AgentListItem } from '../../types/agent';
+import type { IPCRouter } from '../IPCRouter';
 
 const PROJECT_AGENTS_DIR = '.claude/agents';
 
@@ -27,9 +27,7 @@ function getProjectAgentsDir(projectPath: string): string {
 /**
  * Ensure agents directory exists
  */
-async function ensureAgentsDirectory(
-  agentsPath: string
-): Promise<void> {
+async function ensureAgentsDirectory(agentsPath: string): Promise<void> {
   await fs.mkdir(agentsPath, { recursive: true });
 }
 
@@ -78,9 +76,7 @@ export function registerAgentHandlers(router: IPCRouter): void {
           let allowedToolsCount = 0;
           const allowedToolsMatch = content.match(/allowedTools:\s*\[(.*?)\]/s);
           if (allowedToolsMatch) {
-            allowedToolsCount = allowedToolsMatch[1]
-              .split(',')
-              .filter((t) => t.trim()).length;
+            allowedToolsCount = allowedToolsMatch[1].split(',').filter((t) => t.trim()).length;
           }
 
           agents.push({
@@ -112,9 +108,7 @@ export function registerAgentHandlers(router: IPCRouter): void {
           let allowedToolsCount = 0;
           const allowedToolsMatch = content.match(/allowedTools:\s*\[(.*?)\]/s);
           if (allowedToolsMatch) {
-            allowedToolsCount = allowedToolsMatch[1]
-              .split(',')
-              .filter((t) => t.trim()).length;
+            allowedToolsCount = allowedToolsMatch[1].split(',').filter((t) => t.trim()).length;
           }
 
           agents.push({

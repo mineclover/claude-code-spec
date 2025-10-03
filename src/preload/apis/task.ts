@@ -25,8 +25,7 @@ export interface TaskAPI {
 
 export function exposeTaskAPI(): void {
   const taskAPI: TaskAPI = {
-    listTasks: (projectPath: string) =>
-      ipcRenderer.invoke('task:listTasks', { projectPath }),
+    listTasks: (projectPath: string) => ipcRenderer.invoke('task:listTasks', { projectPath }),
 
     getTask: (projectPath: string, taskId: string) =>
       ipcRenderer.invoke('task:getTask', { projectPath, taskId }),

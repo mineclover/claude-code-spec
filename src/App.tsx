@@ -2,6 +2,7 @@ import { Toaster } from 'react-hot-toast';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { ProjectProvider } from './contexts/ProjectContext';
+import { AgentsPage } from './pages/AgentsPage';
 import { ClaudeDocsPage } from './pages/ClaudeDocsPage';
 import { ClaudeProjectsListPage } from './pages/ClaudeProjectsListPage';
 import { ClaudeSessionDetailPage } from './pages/ClaudeSessionDetailPage';
@@ -36,6 +37,7 @@ function App() {
             <Route path="/controller-docs" element={<ControllerDocsPage />} />
             <Route path="/memory" element={<MemoryPage />} />
             <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/agents" element={<AgentsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </Layout>

@@ -6,7 +6,7 @@ import type { Agent, AgentMetadata } from '../types/agent';
 export function parseAgentMarkdown(
   content: string,
   filePath: string,
-  source: 'project' | 'user'
+  source: 'project' | 'user',
 ): Agent {
   // Extract frontmatter
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);

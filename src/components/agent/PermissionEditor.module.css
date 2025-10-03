@@ -1,0 +1,187 @@
+.permissionEditor {
+  padding: 20px;
+  background: #252526;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #d4d4d4;
+}
+
+.permissionEditor h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #d4d4d4;
+}
+
+.permissionEditor h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #d4d4d4;
+}
+
+.section {
+  margin-bottom: 30px;
+}
+
+.description {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: #858585;
+  line-height: 1.5;
+}
+
+.description code {
+  background: #1e1e1e;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  color: #4ec9b0;
+}
+
+/* Pattern List */
+.patternList {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 4px;
+  min-height: 60px;
+}
+
+.empty {
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+  color: #858585;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.patternItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  background: #252526;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.patternItem:last-child {
+  margin-bottom: 0;
+}
+
+.patternItem:hover {
+  border-color: #555;
+}
+
+.patternText {
+  flex: 1;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  color: #4ec9b0;
+  background: transparent;
+  padding: 0;
+}
+
+.removeButton {
+  padding: 4px 12px;
+  background: #d32f2f;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.removeButton:hover {
+  background: #f44336;
+}
+
+/* Add Pattern */
+.addPattern {
+  display: flex;
+  gap: 8px;
+}
+
+.patternInput {
+  flex: 1;
+  padding: 8px 12px;
+  background: #1e1e1e;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #d4d4d4;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+}
+
+.patternInput:focus {
+  outline: none;
+  border-color: #0e639c;
+}
+
+.patternInput::placeholder {
+  color: #858585;
+  font-style: italic;
+}
+
+.addButton {
+  padding: 8px 16px;
+  background: #0e639c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.addButton:hover {
+  background: #1177bb;
+}
+
+/* Examples */
+.examples {
+  margin-top: 20px;
+  padding: 15px;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 4px;
+}
+
+.examples h4 {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ce9178;
+}
+
+.examples ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style-type: disc;
+}
+
+.examples li {
+  margin: 6px 0;
+  font-size: 12px;
+  color: #858585;
+  line-height: 1.5;
+}
+
+.examples code {
+  background: #252526;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  color: #4ec9b0;
+}

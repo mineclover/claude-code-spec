@@ -100,10 +100,12 @@ export const TOOL_GROUPS: ToolGroup[] = [
 export function getAllTools(): string[] {
   const tools = new Set<string>();
 
-  TOOL_GROUPS.forEach((group) => {
-    if (group.id === 'all') return; // Skip 'all' group
-    group.tools.forEach((tool) => tools.add(tool));
-  });
+  for (const group of TOOL_GROUPS) {
+    if (group.id === 'all') continue; // Skip 'all' group
+    for (const tool of group.tools) {
+      tools.add(tool);
+    }
+  }
 
   return Array.from(tools).sort();
 }
@@ -117,12 +119,14 @@ export function getToolsByGroups(groupIds: string[]): string[] {
   }
 
   const tools = new Set<string>();
-  groupIds.forEach((groupId) => {
+  for (const groupId of groupIds) {
     const group = TOOL_GROUPS.find((g) => g.id === groupId);
     if (group) {
-      group.tools.forEach((tool) => tools.add(tool));
+      for (const tool of group.tools) {
+        tools.add(tool);
+      }
     }
-  });
+  }
 
   return Array.from(tools);
 }

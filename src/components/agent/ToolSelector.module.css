@@ -1,0 +1,154 @@
+.toolSelector {
+  padding: 20px;
+  background: #252526;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #d4d4d4;
+}
+
+.toolSelector h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #d4d4d4;
+}
+
+.toolSelector h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #d4d4d4;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.divider {
+  height: 1px;
+  background: #333;
+  margin: 20px 0;
+}
+
+/* Group List */
+.groupList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.groupItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.groupItem:hover {
+  background: #2a2d2e;
+}
+
+.groupItem input[type="checkbox"] {
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.groupName {
+  font-size: 14px;
+  font-weight: 500;
+  color: #d4d4d4;
+}
+
+.groupDescription {
+  font-size: 12px;
+  color: #858585;
+  margin-left: auto;
+}
+
+.mcpWarning {
+  font-size: 11px;
+  color: #f48771;
+  font-weight: 600;
+}
+
+/* Tool Grid */
+.toolGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 8px;
+}
+
+.toolItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 13px;
+}
+
+.toolItem:hover:not(.disabled) {
+  background: #2a2d2e;
+}
+
+.toolItem input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.toolItem.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolItem.disabled input[type="checkbox"] {
+  cursor: not-allowed;
+}
+
+.unavailable {
+  font-size: 11px;
+  color: #858585;
+  font-style: italic;
+}
+
+/* MCP Info */
+.mcpInfo {
+  margin-top: 20px;
+  padding: 15px;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 4px;
+}
+
+.mcpInfo h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mcpInfo p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #d4d4d4;
+}
+
+.mcpInfo ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style-type: disc;
+}
+
+.mcpInfo li {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #4ec9b0;
+}
+
+.warning {
+  color: #ce9178 !important;
+  font-style: italic;
+}

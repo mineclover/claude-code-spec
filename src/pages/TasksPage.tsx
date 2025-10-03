@@ -216,11 +216,7 @@ export const TasksPage: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      className={styles.deleteButton}
-                      onClick={handleDelete}
-                    >
+                    <button type="button" className={styles.deleteButton} onClick={handleDelete}>
                       Delete
                     </button>
                     <button
