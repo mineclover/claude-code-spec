@@ -79,9 +79,11 @@ Agent 생성 시 `allowedTools`를 투명하게 선택할 수 있도록 도구�
 2. **Read-only tools**: 읽기 전용 (Read, Grep, Glob, WebFetch, WebSearch)
 3. **Edit tools**: 편집 도구 (Write, Edit)
 4. **Execution tools**: 실행 도구 (Bash)
-5. **MCP tools**: MCP 서버 도구 (serena 등)
+5. **MCP tools**: MCP 서버 도구 (serena, magic, playwright 등) ⚠️ **MCP config 필요**
 6. **Task Management tools**: 작업 관리 (Task, TodoWrite)
 7. **Other tools**: 기타 도구 (NotebookEdit, SlashCommand 등)
+
+**중요**: MCP tools를 사용하려면 프로젝트의 `.claude/.mcp-*.json` 파일에서 해당 MCP 서버가 활성화되어 있어야 합니다.
 
 ### 장점
 

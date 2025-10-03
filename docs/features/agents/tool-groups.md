@@ -73,8 +73,11 @@ allowedTools:
 ### 5. MCP Tools
 MCP 서버에서 제공하는 도구들입니다.
 
+**중요**: MCP tools를 사용하려면 프로젝트의 MCP config (`.claude/.mcp-*.json`)에서 해당 MCP 서버가 활성화되어 있어야 합니다.
+
 ```yaml
 allowedTools:
+  # serena MCP 서버 도구 (코드 분석 및 편집)
   - mcp__serena__list_dir
   - mcp__serena__find_file
   - mcp__serena__search_for_pattern
@@ -84,12 +87,29 @@ allowedTools:
   - mcp__serena__replace_symbol_body
   - mcp__serena__insert_after_symbol
   - mcp__serena__insert_before_symbol
+
+  # magic MCP 서버 도구 (UI 컴포넌트)
+  - mcp__magic__21st_magic_component_builder
+  - mcp__magic__logo_search
+
+  # playwright MCP 서버 도구 (브라우저 자동화)
+  - mcp__playwright__browser_navigate
+  - mcp__playwright__browser_click
+  - mcp__playwright__browser_snapshot
+
   # ... (기타 MCP 도구)
 ```
 
 **사용 사례**:
-- 심볼 기반 코드 분석 Agent
-- 구조적 리팩토링 Agent
+- 심볼 기반 코드 분석 Agent (serena)
+- 구조적 리팩토링 Agent (serena)
+- UI 컴포넌트 생성 Agent (magic)
+- E2E 테스트 Agent (playwright)
+
+**의존성**:
+- serena tools → `.claude/.mcp-dev.json` 또는 `.claude/.mcp-analysis.json`
+- magic tools → `.claude/.mcp-dev.json`
+- playwright tools → `.claude/.mcp-dev.json`
 
 ### 6. Task Management Tools
 작업 및 할일 관리 도구입니다.
@@ -139,15 +159,36 @@ allowedTools:
 │  │ ☐ Read-only tools                               │   │
 │  │ ☐ Edit tools                                    │   │
 │  │ ☐ Execution tools                               │   │
-│  │ ☐ MCP tools                                     │   │
+│  │ ☐ MCP tools                    ⚠️ MCP 필요     │   │
 │  │ ☐ Task Management tools                         │   │
 │  │ ☐ Other tools                                   │   │
+│  │                                                 │   │
+│  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━   │   │
 │  │                                                 │   │
 │  │ Individual Tools:                               │   │
 │  │ ☑ Read          ☐ Write         ☐ Edit         │   │
 │  │ ☑ Grep          ☐ Bash          ☑ Glob         │   │
 │  │ ☐ WebFetch      ☐ WebSearch     ☐ Task         │   │
 │  │ ☐ TodoWrite     ☐ NotebookEdit  ...            │   │
+│  │                                                 │   │
+│  │ MCP Tools (⚠️ MCP config 필요):                │   │
+│  │ ☐ mcp__serena__find_symbol                      │   │
+│  │ ☐ mcp__magic__logo_search                       │   │
+│  │ ☐ mcp__playwright__browser_navigate   ...       │   │
+│  │                                                 │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ MCP Configuration                               │   │
+│  │                                                 │   │
+│  │ 현재 MCP Config: .claude/.mcp-dev.json          │   │
+│  │ 활성화된 MCP 서버:                              │   │
+│  │ • serena (코드 분석)                            │   │
+│  │ • magic (UI 컴포넌트)                           │   │
+│  │ • playwright (브라우저)                         │   │
+│  │                                                 │   │
+│  │ ℹ️ MCP tools는 위 서버가 활성화된 경우에만    │   │
+│  │   Execute 시 사용할 수 있습니다.               │   │
 │  │                                                 │   │
 │  └─────────────────────────────────────────────────┘   │
 │                                                         │
@@ -287,6 +328,7 @@ export interface ToolGroup {
   name: string;
   description: string;
   tools: string[];
+  requiresMcp?: boolean; // MCP config가 필요한 그룹인지 표시
 }
 
 export const TOOL_GROUPS: ToolGroup[] = [
@@ -317,8 +359,10 @@ export const TOOL_GROUPS: ToolGroup[] = [
   {
     id: 'mcp',
     name: 'MCP tools',
-    description: 'MCP 서버 도구',
+    description: 'MCP 서버 도구 (MCP config 필요)',
+    requiresMcp: true, // MCP config 필요
     tools: [
+      // serena
       'mcp__serena__list_dir',
       'mcp__serena__find_file',
       'mcp__serena__search_for_pattern',
@@ -328,6 +372,16 @@ export const TOOL_GROUPS: ToolGroup[] = [
       'mcp__serena__replace_symbol_body',
       'mcp__serena__insert_after_symbol',
       'mcp__serena__insert_before_symbol',
+      // magic
+      'mcp__magic__21st_magic_component_builder',
+      'mcp__magic__logo_search',
+      'mcp__magic__21st_magic_component_inspiration',
+      'mcp__magic__21st_magic_component_refiner',
+      // playwright
+      'mcp__playwright__browser_navigate',
+      'mcp__playwright__browser_click',
+      'mcp__playwright__browser_snapshot',
+      'mcp__playwright__browser_close',
       // ... 기타 MCP 도구
     ],
   },
@@ -380,25 +434,82 @@ export function getGroupsByTools(tools: string[]): string[] {
 }
 ```
 
+### MCP Config 검사 (`src/lib/mcpConfigHelper.ts`)
+
+```typescript
+/**
+ * 프로젝트의 MCP config 파일을 읽어 활성화된 MCP 서버 목록을 반환
+ */
+export async function getActiveMcpServers(projectPath: string): Promise<string[]> {
+  // .claude/.mcp-dev.json, .mcp-analysis.json 등 읽기
+  const mcpConfigFiles = [
+    '.claude/.mcp-dev.json',
+    '.claude/.mcp-analysis.json',
+  ];
+
+  const activeServers = new Set<string>();
+
+  for (const configFile of mcpConfigFiles) {
+    try {
+      const configPath = path.join(projectPath, configFile);
+      const config = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+
+      // MCP config에서 활성화된 서버 이름 추출
+      if (config.mcpServers) {
+        Object.keys(config.mcpServers).forEach(server => activeServers.add(server));
+      }
+    } catch (error) {
+      // 파일이 없으면 무시
+    }
+  }
+
+  return Array.from(activeServers);
+}
+
+/**
+ * MCP 도구가 사용 가능한지 확인 (해당 MCP 서버가 활성화되어 있는지)
+ */
+export function isMcpToolAvailable(tool: string, activeServers: string[]): boolean {
+  if (!tool.startsWith('mcp__')) return true; // MCP 도구가 아니면 항상 사용 가능
+
+  // 도구 이름에서 서버 이름 추출: mcp__serena__find_symbol -> serena
+  const serverName = tool.split('__')[1];
+  return activeServers.includes(serverName);
+}
+```
+
 ### UI 컴포넌트 (`src/components/agent/ToolSelector.tsx`)
 
 ```typescript
 interface ToolSelectorProps {
+  projectPath: string;
   selectedTools: string[];
   onToolsChange: (tools: string[]) => void;
 }
 
-export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps) {
+export function ToolSelector({ projectPath, selectedTools, onToolsChange }: ToolSelectorProps) {
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [activeMcpServers, setActiveMcpServers] = useState<string[]>([]);
 
   useEffect(() => {
     // 선택된 도구로부터 그룹 계산
     setSelectedGroups(getGroupsByTools(selectedTools));
   }, [selectedTools]);
 
+  useEffect(() => {
+    // MCP 서버 목록 가져오기
+    getActiveMcpServers(projectPath).then(setActiveMcpServers);
+  }, [projectPath]);
+
   const handleGroupToggle = (groupId: string) => {
     const group = TOOL_GROUPS.find(g => g.id === groupId);
     if (!group) return;
+
+    // MCP tools 그룹인데 활성화된 MCP 서버가 없으면 경고
+    if (group.requiresMcp && activeMcpServers.length === 0) {
+      alert('MCP tools를 사용하려면 프로젝트에 MCP config가 필요합니다.\n.claude/.mcp-dev.json 파일을 확인하세요.');
+      return;
+    }
 
     if (selectedGroups.includes(groupId)) {
       // 그룹 해제: 해당 그룹의 도구들 제거
@@ -412,6 +523,13 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
   };
 
   const handleIndividualToolToggle = (tool: string) => {
+    // MCP 도구인데 서버가 활성화되지 않았으면 경고
+    if (tool.startsWith('mcp__') && !isMcpToolAvailable(tool, activeMcpServers)) {
+      const serverName = tool.split('__')[1];
+      alert(`${serverName} MCP 서버가 활성화되지 않았습니다.\nMCP config를 확인하세요.`);
+      return;
+    }
+
     if (selectedTools.includes(tool)) {
       onToolsChange(selectedTools.filter(t => t !== tool));
     } else {
@@ -433,14 +551,17 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
               onChange={() => handleGroupToggle(group.id)}
             />
             {group.name}
+            {group.requiresMcp && (
+              <span className={styles.mcpWarning}> ⚠️ MCP 필요</span>
+            )}
           </label>
         ))}
       </div>
 
       <div className={styles.individualTools}>
         <h4>Individual Tools:</h4>
-        {/* 모든 사용 가능한 도구 목록 */}
-        {ALL_TOOLS.map(tool => (
+        {/* 일반 도구 */}
+        {ALL_TOOLS.filter(t => !t.startsWith('mcp__')).map(tool => (
           <label key={tool}>
             <input
               type="checkbox"
@@ -450,6 +571,43 @@ export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps
             {tool}
           </label>
         ))}
+
+        {/* MCP 도구 (별도 섹션) */}
+        <h4>MCP Tools (⚠️ MCP config 필요):</h4>
+        {ALL_TOOLS.filter(t => t.startsWith('mcp__')).map(tool => {
+          const isAvailable = isMcpToolAvailable(tool, activeMcpServers);
+          return (
+            <label key={tool} className={isAvailable ? '' : styles.disabled}>
+              <input
+                type="checkbox"
+                checked={selectedTools.includes(tool)}
+                onChange={() => handleIndividualToolToggle(tool)}
+                disabled={!isAvailable}
+              />
+              {tool}
+              {!isAvailable && <span className={styles.unavailable}> (비활성화)</span>}
+            </label>
+          );
+        })}
+      </div>
+
+      {/* MCP Config 정보 표시 */}
+      <div className={styles.mcpInfo}>
+        <h4>MCP Configuration</h4>
+        {activeMcpServers.length > 0 ? (
+          <>
+            <p>활성화된 MCP 서버:</p>
+            <ul>
+              {activeMcpServers.map(server => (
+                <li key={server}>{server}</li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className={styles.warning}>
+            ℹ️ MCP 서버가 활성화되지 않았습니다. MCP tools를 사용하려면 .claude/.mcp-*.json 파일을 설정하세요.
+          </p>
+        )}
       </div>
     </div>
   );
