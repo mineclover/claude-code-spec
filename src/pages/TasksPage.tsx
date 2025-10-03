@@ -2,6 +2,7 @@ import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AgentSelector } from '../components/task/AgentSelector';
+import { WorkAreaSelector } from '../components/task/WorkAreaSelector';
 import { useProject } from '../contexts/ProjectContext';
 import { generateTaskMarkdown, parseTaskMarkdown } from '../lib/taskParser';
 import type { Task, TaskListItem } from '../types/task';
@@ -301,15 +302,13 @@ export const TasksPage: React.FC = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor="area">Area:</label>
-                  <input
-                    id="area"
-                    type="text"
-                    className={styles.input}
-                    value={area}
-                    onChange={(e) => setArea(e.target.value)}
-                    placeholder="e.g., Backend/Authentication, Frontend/UI"
-                  />
+                  {projectPath && (
+                    <WorkAreaSelector
+                      projectPath={projectPath}
+                      selectedArea={area}
+                      onAreaChange={setArea}
+                    />
+                  )}
                 </div>
 
                 <div className={styles.formGroup}>

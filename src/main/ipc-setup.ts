@@ -14,6 +14,7 @@ import { registerLoggerHandlers } from '../ipc/handlers/loggerHandlers';
 import { registerMetadataHandlers } from '../ipc/handlers/metadataHandlers';
 import { registerSettingsHandlers } from '../ipc/handlers/settingsHandlers';
 import { registerTaskHandlers } from '../ipc/handlers/taskHandlers';
+import { registerWorkAreaHandlers } from '../ipc/handlers/workAreaHandlers';
 import { ipcRegistry } from '../ipc/IPCRouter';
 import { settingsService } from '../services/appSettings';
 import { logger, loggerConfig, sessionManager } from './app-context';
@@ -72,6 +73,10 @@ export function setupIPCHandlers(): void {
   // Agent handlers
   const agentRouter = ipcRegistry.router('agent');
   registerAgentHandlers(agentRouter);
+
+  // Work area handlers
+  const workAreaRouter = ipcRegistry.router('work-area');
+  registerWorkAreaHandlers(workAreaRouter);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }

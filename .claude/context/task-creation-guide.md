@@ -17,17 +17,40 @@ Task는 **실행 가능한 작업 단위**입니다. Agent가 이해하고 수�
 - ❌ "UI improvements" (너무 모호)
 - ❌ "Bugs" (구체적이지 않음)
 
-### 2. 적절한 Area 분류 ✓
-- [ ] 계층 구조 사용 (Category/Subcategory)
-- [ ] 프로젝트 구조와 일치
+### 2. 적절한 Work Area 선택 ✓
+- [ ] Work Area 드롭다운에서 선택
+- [ ] 작업의 성격에 맞는 영역 선택
+- [ ] 계층 구조 유지 (Category/Subcategory)
 
-**예시:**
+**사용 가능한 Work Areas** (`.claude/work-areas.json`):
+
+**Frontend (3개)**:
 - `Frontend/Pages` - 페이지 컴포넌트
 - `Frontend/Components` - 재사용 컴포넌트
+- `Frontend/Contexts` - React Context 및 상태 관리
+
+**Backend (3개)**:
 - `Backend/IPC` - IPC 핸들러
 - `Backend/Lib` - 유틸리티 라이브러리
+- `Backend/Process` - 프로세스 관리 및 실행
+
+**Infra (2개)**:
 - `Infra/Build` - 빌드 설정
+- `Infra/Deploy` - 배포 설정
+
+**Docs (3개)**:
 - `Docs/Features` - 기능 문서
+- `Docs/Architecture` - 아키텍처 문서
+- `Docs/Guides` - 사용 가이드
+
+**Test (2개)**:
+- `Test/Unit` - 유닛 테스트
+- `Test/Integration` - 통합 테스트
+
+**Work Area 선택 가이드:**
+- Task가 주로 수정할 파일들의 위치를 고려
+- 여러 영역에 걸쳐 있다면 가장 핵심적인 영역 선택
+- 새로운 Work Area가 필요하면 `.claude/work-areas.json` 편집
 
 ### 3. 상세한 Description ✓
 - [ ] 배경 (Why): 왜 필요한가?

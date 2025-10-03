@@ -15,6 +15,7 @@ import { exposeMetadataAPI } from './preload/apis/metadata';
 import { exposeSessionsAPI } from './preload/apis/sessions';
 import { exposeSettingsAPI } from './preload/apis/settings';
 import { exposeTaskAPI } from './preload/apis/task';
+import { exposeWorkAreaAPI } from './preload/apis/workArea';
 
 // Expose all APIs to the renderer
 exposeClaudeAPI();
@@ -28,6 +29,7 @@ exposeMetadataAPI();
 exposeFileAPI();
 exposeTaskAPI();
 exposeAgentAPI();
+exposeWorkAreaAPI();
 
 // Re-export types for convenience
 export * from './types/api';

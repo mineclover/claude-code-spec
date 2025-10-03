@@ -1,0 +1,95 @@
+{
+  "areas": [
+    {
+      "id": "frontend-pages",
+      "category": "Frontend",
+      "subcategory": "Pages",
+      "displayName": "Frontend/Pages",
+      "description": "페이지 컴포넌트"
+    },
+    {
+      "id": "frontend-components",
+      "category": "Frontend",
+      "subcategory": "Components",
+      "displayName": "Frontend/Components",
+      "description": "재사용 컴포넌트"
+    },
+    {
+      "id": "frontend-contexts",
+      "category": "Frontend",
+      "subcategory": "Contexts",
+      "displayName": "Frontend/Contexts",
+      "description": "React Context 및 상태 관리"
+    },
+    {
+      "id": "backend-ipc",
+      "category": "Backend",
+      "subcategory": "IPC",
+      "displayName": "Backend/IPC",
+      "description": "IPC 핸들러"
+    },
+    {
+      "id": "backend-lib",
+      "category": "Backend",
+      "subcategory": "Lib",
+      "displayName": "Backend/Lib",
+      "description": "유틸리티 라이브러리"
+    },
+    {
+      "id": "backend-process",
+      "category": "Backend",
+      "subcategory": "Process",
+      "displayName": "Backend/Process",
+      "description": "프로세스 관리 및 실행"
+    },
+    {
+      "id": "infra-build",
+      "category": "Infra",
+      "subcategory": "Build",
+      "displayName": "Infra/Build",
+      "description": "빌드 설정"
+    },
+    {
+      "id": "infra-deploy",
+      "category": "Infra",
+      "subcategory": "Deploy",
+      "displayName": "Infra/Deploy",
+      "description": "배포 설정"
+    },
+    {
+      "id": "docs-features",
+      "category": "Docs",
+      "subcategory": "Features",
+      "displayName": "Docs/Features",
+      "description": "기능 문서"
+    },
+    {
+      "id": "docs-architecture",
+      "category": "Docs",
+      "subcategory": "Architecture",
+      "displayName": "Docs/Architecture",
+      "description": "아키텍처 문서"
+    },
+    {
+      "id": "docs-guides",
+      "category": "Docs",
+      "subcategory": "Guides",
+      "displayName": "Docs/Guides",
+      "description": "사용 가이드"
+    },
+    {
+      "id": "test-unit",
+      "category": "Test",
+      "subcategory": "Unit",
+      "displayName": "Test/Unit",
+      "description": "유닛 테스트"
+    },
+    {
+      "id": "test-integration",
+      "category": "Test",
+      "subcategory": "Integration",
+      "displayName": "Test/Integration",
+      "description": "통합 테스트"
+    }
+  ]
+}

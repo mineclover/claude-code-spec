@@ -1,5 +1,6 @@
 import type { AgentAPI } from './preload/apis/agent';
 import type { TaskAPI } from './preload/apis/task';
+import type { WorkAreaAPI } from './preload/apis/workArea';
 import type {
   AppSettingsAPI,
   BookmarksAPI,
@@ -25,5 +26,6 @@ declare global {
     fileAPI: FileAPI;
     taskAPI: TaskAPI;
     agentAPI: AgentAPI;
+    workAreaAPI: WorkAreaAPI;
   }
 }

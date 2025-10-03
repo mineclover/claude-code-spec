@@ -24,15 +24,22 @@ npm run start
 ### 작업 관리 (Tasks) - Execute 최적화
 8. **의존성 분석**: 작업 수행에 필요한 파일 및 문서 의존성 사전 정의
 9. **컨텍스트 배정**: Execute 시 자동으로 필요한 컨텍스트 구성
-10. **작업 영역 할당**: Area 설정으로 불필요한 컨텍스트 차단
-11. **Execute 통합**: Task를 선택하여 최적화된 Claude CLI 실행
-12. **성공 기준 검증**: 체크리스트 기반 결과 검증
-13. **리뷰 시스템**: 리뷰어 지정 및 산출물 검토
+10. **작업 영역 관리**: 계층적 Work Area 시스템으로 작업 분류 및 필터링
+11. **작업 영역 할당**: Area 설정으로 불필요한 컨텍스트 차단
+12. **Execute 통합**: Task를 선택하여 최적화된 Claude CLI 실행
+13. **성공 기준 검증**: 체크리스트 기반 결과 검증
+14. **리뷰 시스템**: 리뷰어 지정 및 산출물 검토
+
+### Agent 관리
+15. **전문화된 Agent 정의**: 프로젝트 및 사용자 레벨 Agent 관리
+16. **도구 그룹 선택**: 7개 도구 그룹으로 투명한 권한 관리
+17. **Permission 패턴**: 파일 및 명령어 접근 제어
+18. **Agent 컨텍스트**: 프로젝트 아키텍처 및 코딩 규칙 문서 제공
 
 ### 문서 및 설정
-14. **Memory 편집기**: CLAUDE.md 파일의 참조 및 컨텍스트 관리
-15. **문서 탐색**: Claude Code 및 컨트롤러 문서 통합 뷰어
-16. **설정 관리**: 애플리케이션 설정 및 프로젝트 경로 관리
+19. **Memory 편집기**: CLAUDE.md 파일의 참조 및 컨텍스트 관리
+20. **문서 탐색**: Claude Code 및 컨트롤러 문서 통합 뷰어
+21. **설정 관리**: 애플리케이션 설정 및 프로젝트 경로 관리
 
 ## 예정 기능
 
@@ -82,6 +89,8 @@ npm run start
 - **claudeAPI**: Claude CLI 실행 및 이벤트 구독
 - **claudeSessionsAPI**: 프로젝트 세션 조회 및 관리
 - **taskAPI**: 작업 생성/조회/수정/삭제
+- **agentAPI**: Agent 생성/조회/수정/삭제
+- **workAreaAPI**: Work Area 조회 및 관리
 - **settingsAPI**: MCP 설정 관리
 - **bookmarksAPI**: 북마크 관리
 - **docsAPI**: 문서 조회
@@ -94,6 +103,7 @@ npm run start
 - **ExecutionsPage**: 실행 목록 및 새 실행 생성
 - **ExecutionDetailPage**: 실행 상세 및 실시간 스트림
 - **TasksPage**: 작업 정의 및 관리
+- **AgentsPage**: Agent 정의 및 관리
 - **ClaudeProjectsListPage**: 프로젝트 목록
 - **ClaudeSessionsListPage**: 세션 목록
 - **ClaudeSessionDetailPage**: 세션 상세
@@ -117,6 +127,43 @@ status: pending | in_progress | completed | cancelled
 ## Success Criteria
 ## Description
 ## Review Notes
+```
+
+**Agents** (`.claude/agents/*.md`):
+```markdown
+---
+name: task-creator
+description: 프로젝트 분석 후 구조화된 Task를 생성하는 전문 Agent
+allowedTools:
+  - Read
+  - Grep
+  - mcp__serena__*
+  - Write
+permissions:
+  allowList:
+    - "read:**"
+    - "write:.claude/tasks/**"
+  denyList:
+    - "read:.env"
+    - "write:src/**"
+---
+## Agent Instructions
+[Agent 역할 및 수행 방법 설명]
+```
+
+**Work Areas** (`.claude/work-areas.json`):
+```json
+{
+  "areas": [
+    {
+      "id": "frontend-pages",
+      "category": "Frontend",
+      "subcategory": "Pages",
+      "displayName": "Frontend/Pages",
+      "description": "페이지 컴포넌트"
+    }
+  ]
+}
 ```
 
 **Execution Info**:
@@ -148,6 +195,17 @@ status: pending | in_progress | completed | cancelled
 - `task:createTask`: 작업 생성
 - `task:updateTask`: 작업 수정
 - `task:deleteTask`: 작업 삭제
+
+### Agent 관리
+- `agent:listAgents`: Agent 목록 조회
+- `agent:getAgent`: Agent 상세 조회
+- `agent:createAgent`: Agent 생성
+- `agent:updateAgent`: Agent 수정
+- `agent:deleteAgent`: Agent 삭제
+
+### Work Area 관리
+- `work-area:getWorkAreas`: Work Area 목록 조회
+- `work-area:updateWorkAreas`: Work Area 설정 수정
 
 ### 기타
 - `dialog:selectDirectory`: 디렉토리 선택

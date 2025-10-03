@@ -49,6 +49,7 @@ src/
 ├── types/                  # TypeScript 타입 정의
 │   ├── agent.ts
 │   ├── task.ts
+│   ├── workArea.ts
 │   └── toolGroups.ts
 └── App.tsx                 # 앱 진입점
 
@@ -61,6 +62,7 @@ src/
 │   ├── project-architecture.md
 │   ├── coding-conventions.md
 │   └── ...
+├── work-areas.json         # Work Area 정의
 ├── settings.json           # 권한 설정
 └── .mcp-*.json            # MCP 서버 설정
 ```
@@ -138,12 +140,32 @@ Task content here...
 **주요 필드**:
 - `id`: 고유 식별자
 - `title`: 작업 제목
-- `area`: 작업 영역 (예: Backend/API)
+- `area`: 작업 영역 (Work Area displayName)
 - `assigned_agent`: 할당된 Agent
 - `reviewer`: 검토자
 - `status`: pending | in_progress | completed | cancelled
 - `references`: 참고 파일 경로
 - `successCriteria`: 완료 기준
+
+### Work Areas (작업 영역)
+
+**목적**: 계층적 작업 분류 및 컨텍스트 최적화
+
+**파일 위치**: `.claude/work-areas.json`
+
+**주요 필드**:
+- `id`: 고유 식별자 (예: `frontend-pages`)
+- `category`: 메인 카테고리 (예: `Frontend`)
+- `subcategory`: 서브 카테고리 (예: `Pages`)
+- `displayName`: 표시 이름 (예: `Frontend/Pages`)
+- `description`: 작업 영역 설명
+
+**기본 카테고리** (5개):
+- **Frontend**: Pages, Components, Contexts
+- **Backend**: IPC, Lib, Process
+- **Infra**: Build, Deploy
+- **Docs**: Features, Architecture, Guides
+- **Test**: Unit, Integration
 
 ### Executions (실행 관리)
 
