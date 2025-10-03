@@ -6,7 +6,7 @@
 
 ## 현재 구현 상태
 
-### ✅ 완료된 핵심 기능
+### ✅ 구현 완료
 
 #### 1. CLAUDE.md 파일 관리
 - [x] CLAUDE.md 읽기/쓰기 (IPC handlers: `file:read`, `file:write`)

@@ -109,7 +109,7 @@
 
 #### 2. Tool Groups Quick Select 상호작용
 - **구현됨**: 그룹 체크박스 클릭 시 해당 그룹의 모든 도구 선택/해제
-- **미구현**: Indeterminate 상태에서의 클릭 동작 (현재는 단순히 토글)
+- **❌ 미구현**: Indeterminate 상태에서의 클릭 동작 (현재는 단순히 토글)
 - **개선 가능**: All tools 선택 시 다른 그룹 체크박스도 자동으로 체크 표시
 
 ## 검증 결과
@@ -145,7 +145,7 @@
    - MCP 도구 선택 시 경고 메시지는 작동하지만 실제 확인은 안 됨
 
 2. **Agent 실행 통합**
-   - Agent 정의만 되어 있고, Execute와의 통합은 미구현
+   - Agent 정의만 되어 있고, Execute와의 통합은 ❌ 미구현
    - `--agent` 플래그로 Agent를 지정하는 CLI 실행은 아직 지원 안 됨
 
 3. **TasksPage 통합**
@@ -159,7 +159,7 @@
   - Task 생성/수정 시 Agent 할당 UI
   - assigned_agent, reviewer 필드 지원
 
-### Phase 4: Execute 통합 (미구현)
+### Phase 4: Execute 통합 (❌ 미구현)
 - [ ] Task 기반 Execute 명령 생성 로직
   ```typescript
   function buildExecuteCommand(task: Task, projectPath: string): string {
@@ -262,7 +262,7 @@
 ## 버그 및 이슈
 
 ### 🐛 확인된 버그
-1. **MCP 서버 활성화 확인 미구현**
+1. **MCP 서버 활성화 확인 ❌ 미구현**
    - `ToolSelector.tsx` 30-40줄: TODO 주석으로 표시됨
    - 모든 MCP 도구가 항상 비활성화로 표시됨
 
@@ -356,7 +356,7 @@
 | Phase 1 | 기본 인프라 | ✅ 완료 | 100% |
 | Phase 2 | Tool Groups 시스템 | ✅ 완료 | 100% |
 | Phase 3 | UI 컴포넌트 | ⚠️ 부분 완료 | 80% |
-| Phase 4 | Execute 통합 | ❌ 미구현 | 0% |
+| Phase 4 | Execute 통합 | ❌ ❌ 미구현 | 0% |
 | Phase 5 | 문서 및 예제 | ⚠️ 부분 완료 | 40% |
 
 **전체 진행률: ~64%**
