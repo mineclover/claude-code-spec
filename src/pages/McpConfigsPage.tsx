@@ -22,6 +22,7 @@ export function McpConfigsPage() {
   const [newConfigName, setNewConfigName] = useState('');
   const [selectedServers, setSelectedServers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [skipPermissions, setSkipPermissions] = useState(false);
 
   const loadConfigs = useCallback(async () => {
     if (!projectPath) return;
@@ -406,6 +407,25 @@ export function McpConfigsPage() {
               <div className={styles.usageSection}>
                 <div className={styles.formLabel}>Usage Scripts</div>
 
+                {/* Skip Permissions Checkbox */}
+                <div className={styles.formGroup} style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={skipPermissions}
+                      onChange={(e) => setSkipPermissions(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>
+                      Skip permissions (--dangerously-skip-permissions)
+                    </span>
+                  </label>
+                  <p className={styles.formHint} style={{ marginTop: '4px', marginLeft: '28px' }}>
+                    ⚠️ <strong>Use with caution:</strong> This bypasses all security checks. Only use with trusted MCP servers.
+                    Recommended: Configure permissions in .claude/settings.json instead.
+                  </p>
+                </div>
+
                 {/* Interactive Mode */}
                 <div className={styles.scriptVariant}>
                   <div className={styles.scriptVariantHeader}>
@@ -414,7 +434,8 @@ export function McpConfigsPage() {
                       type="button"
                       onClick={() => {
                         const relativePath = `.claude/${selectedConfig.name}`;
-                        const script = `claude --mcp-config ${relativePath} --strict-mcp-config --dangerously-skip-permissions`;
+                        const permissionsFlag = skipPermissions ? ' --dangerously-skip-permissions' : '';
+                        const script = `claude --mcp-config ${relativePath} --strict-mcp-config${permissionsFlag}`;
                         navigator.clipboard.writeText(script);
                         toast.success('Interactive script copied!');
                       }}
@@ -426,7 +447,7 @@ export function McpConfigsPage() {
                   <div className={styles.scriptBox}>
                     <code className={styles.scriptCode}>
                       claude --mcp-config .claude/{selectedConfig.name} --strict-mcp-config
-                      --dangerously-skip-permissions
+                      {skipPermissions && ' --dangerously-skip-permissions'}
                     </code>
                   </div>
                   <div className={styles.scriptHint}>
@@ -442,7 +463,8 @@ export function McpConfigsPage() {
                       type="button"
                       onClick={() => {
                         const relativePath = `.claude/${selectedConfig.name}`;
-                        const script = `claude -p "your query here" --mcp-config ${relativePath} --strict-mcp-config --dangerously-skip-permissions`;
+                        const permissionsFlag = skipPermissions ? ' --dangerously-skip-permissions' : '';
+                        const script = `claude -p "your query here" --mcp-config ${relativePath} --strict-mcp-config${permissionsFlag}`;
                         navigator.clipboard.writeText(script);
                         toast.success('Single query script copied!');
                       }}
@@ -454,7 +476,7 @@ export function McpConfigsPage() {
                   <div className={styles.scriptBox}>
                     <code className={styles.scriptCode}>
                       claude -p "your query here" --mcp-config .claude/{selectedConfig.name}{' '}
-                      --strict-mcp-config --dangerously-skip-permissions
+                      --strict-mcp-config{skipPermissions && ' --dangerously-skip-permissions'}
                     </code>
                   </div>
                   <div className={styles.scriptHint}>Executes a single query and exits</div>
