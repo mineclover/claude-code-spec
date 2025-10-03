@@ -4,6 +4,7 @@
  */
 
 // Import all API exposure functions
+import { exposeAgentAPI } from './preload/apis/agent';
 import { exposeAppSettingsAPI } from './preload/apis/app-settings';
 import { exposeBookmarksAPI } from './preload/apis/bookmarks';
 import { exposeClaudeAPI } from './preload/apis/claude';
@@ -26,6 +27,7 @@ exposeDocsAPI();
 exposeMetadataAPI();
 exposeFileAPI();
 exposeTaskAPI();
+exposeAgentAPI();
 
 // Re-export types for convenience
 export * from './types/api';

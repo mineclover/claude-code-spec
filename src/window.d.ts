@@ -1,3 +1,4 @@
+import type { AgentAPI } from './preload/apis/agent';
 import type { TaskAPI } from './preload/apis/task';
 import type {
   AppSettingsAPI,
@@ -23,5 +24,6 @@ declare global {
     metadataAPI: MetadataAPI;
     fileAPI: FileAPI;
     taskAPI: TaskAPI;
+    agentAPI: AgentAPI;
   }
 }

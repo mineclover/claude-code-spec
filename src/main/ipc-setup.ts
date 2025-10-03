@@ -2,6 +2,7 @@
  * IPC handlers setup
  */
 
+import { registerAgentHandlers } from '../ipc/handlers/agentHandlers';
 import { registerAppSettingsHandlers } from '../ipc/handlers/appSettingsHandlers';
 import { registerBookmarksHandlers } from '../ipc/handlers/bookmarksHandlers';
 import { registerClaudeHandlers } from '../ipc/handlers/claudeHandlers';
@@ -67,6 +68,10 @@ export function setupIPCHandlers(): void {
   // Task handlers
   const taskRouter = ipcRegistry.router('task');
   registerTaskHandlers(taskRouter);
+
+  // Agent handlers
+  const agentRouter = ipcRegistry.router('agent');
+  registerAgentHandlers(agentRouter);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }
