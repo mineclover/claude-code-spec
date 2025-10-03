@@ -31,25 +31,7 @@ async function ensureAgentsDirectory(agentsPath: string): Promise<void> {
   await fs.mkdir(agentsPath, { recursive: true });
 }
 
-/**
- * Parse frontmatter from markdown content (simplified)
- */
-function parseFrontmatter(content: string): Record<string, any> {
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!frontmatterMatch) {
-    return {};
-  }
-
-  const frontmatter: Record<string, any> = {};
-  frontmatterMatch[1].split('\n').forEach((line) => {
-    const [key, ...valueParts] = line.split(':');
-    if (key && valueParts.length > 0) {
-      frontmatter[key.trim()] = valueParts.join(':').trim();
-    }
-  });
-
-  return frontmatter;
-}
+// Removed: Using parseAgentMarkdown from agentParser.ts instead
 
 /**
  * Register agent-related IPC handlers
@@ -68,25 +50,22 @@ export function registerAgentHandlers(router: IPCRouter): void {
         const projectAgentFiles = projectFiles.filter((f) => f.endsWith('.md'));
 
         for (const file of projectAgentFiles) {
-          const filePath = path.join(projectAgentsDir, file);
-          const content = await fs.readFile(filePath, 'utf-8');
-          const metadata = parseFrontmatter(content);
+          try {
+            const filePath = path.join(projectAgentsDir, file);
+            const content = await fs.readFile(filePath, 'utf-8');
+            const agent = parseAgentMarkdown(content, filePath, 'project');
 
-          // Count allowed tools if array format
-          let allowedToolsCount = 0;
-          const allowedToolsMatch = content.match(/allowedTools:\s*\[(.*?)\]/s);
-          if (allowedToolsMatch) {
-            allowedToolsCount = allowedToolsMatch[1].split(',').filter((t) => t.trim()).length;
+            agents.push({
+              name: agent.name,
+              description: agent.description,
+              source: 'project',
+              filePath: path.relative(projectPath, filePath),
+              allowedToolsCount: agent.allowedTools?.length || 0,
+              hasPermissions: !!agent.permissions,
+            });
+          } catch (error) {
+            console.warn(`[AgentHandlers] Failed to parse agent ${file}:`, error);
           }
-
-          agents.push({
-            name: metadata.name || file.replace('.md', ''),
-            description: metadata.description || 'No description',
-            source: 'project',
-            filePath: path.relative(projectPath, filePath),
-            allowedToolsCount,
-            hasPermissions: content.includes('permissions:'),
-          });
         }
       } catch (error) {
         console.warn('[AgentHandlers] Failed to read project agents:', error);
@@ -100,25 +79,22 @@ export function registerAgentHandlers(router: IPCRouter): void {
         const userAgentFiles = userFiles.filter((f) => f.endsWith('.md'));
 
         for (const file of userAgentFiles) {
-          const filePath = path.join(userAgentsDir, file);
-          const content = await fs.readFile(filePath, 'utf-8');
-          const metadata = parseFrontmatter(content);
+          try {
+            const filePath = path.join(userAgentsDir, file);
+            const content = await fs.readFile(filePath, 'utf-8');
+            const agent = parseAgentMarkdown(content, filePath, 'user');
 
-          // Count allowed tools if array format
-          let allowedToolsCount = 0;
-          const allowedToolsMatch = content.match(/allowedTools:\s*\[(.*?)\]/s);
-          if (allowedToolsMatch) {
-            allowedToolsCount = allowedToolsMatch[1].split(',').filter((t) => t.trim()).length;
+            agents.push({
+              name: agent.name,
+              description: agent.description,
+              source: 'user',
+              filePath: filePath,
+              allowedToolsCount: agent.allowedTools?.length || 0,
+              hasPermissions: !!agent.permissions,
+            });
+          } catch (error) {
+            console.warn(`[AgentHandlers] Failed to parse agent ${file}:`, error);
           }
-
-          agents.push({
-            name: metadata.name || file.replace('.md', ''),
-            description: metadata.description || 'No description',
-            source: 'user',
-            filePath: filePath,
-            allowedToolsCount,
-            hasPermissions: content.includes('permissions:'),
-          });
         }
       } catch (error) {
         console.warn('[AgentHandlers] Failed to read user agents:', error);
