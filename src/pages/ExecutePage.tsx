@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Pagination } from '../components/common/Pagination';
 import { ExecutionsList } from '../components/execution/ExecutionsList';
@@ -38,6 +38,9 @@ export const ExecutePage: React.FC = () => {
   const [showAllExecutions, setShowAllExecutions] = useState(false);
   const [executionsExpanded, setExecutionsExpanded] = useState(true);
   const SESSIONS_PAGE_SIZE = 5;
+
+  // Ref to track current sessionId for event listeners
+  const currentSessionIdRef = useRef<string | null>(null);
 
   const loadMcpConfigs = useCallback(async () => {
     if (!projectPath) {
@@ -186,7 +189,7 @@ export const ExecutePage: React.FC = () => {
       return;
     }
 
-    setIsRunning(true);
+    // Clear current view
     setError(null);
     setEvents([]);
     setErrors([]);
@@ -204,15 +207,15 @@ export const ExecutePage: React.FC = () => {
       );
 
       if (result.success && result.sessionId) {
+        // Subscribe to the new execution
         setCurrentSessionId(result.sessionId);
         setCurrentPid(result.pid ?? null);
+        setIsRunning(true);
       } else if (!result.success) {
         setError(result.error || 'Failed to execute command');
-        setIsRunning(false);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
-      setIsRunning(false);
     }
   };
 
@@ -297,17 +300,19 @@ export const ExecutePage: React.FC = () => {
         return;
       }
 
-      // Update current session
-      setCurrentSessionId(sessionId);
-      setCurrentPid(execution.pid);
-      setIsRunning(execution.status === 'running' || execution.status === 'pending');
+      console.log('[ExecutePage] Switching to execution:', sessionId, 'status:', execution.status);
 
-      // Load events
+      // Load existing events from execution
       setEvents(execution.events);
       setErrors([]);
       setError(null);
 
-      console.log('[ExecutePage] Switched to execution:', sessionId);
+      // Update current session (this will trigger stream subscription in useEffect)
+      setCurrentSessionId(sessionId);
+      setCurrentPid(execution.pid);
+      setIsRunning(execution.status === 'running' || execution.status === 'pending');
+
+      console.log('[ExecutePage] Switched to execution:', sessionId, 'with', execution.events.length, 'events');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to switch execution');
       console.error('[ExecutePage] Failed to switch execution:', err);
@@ -358,42 +363,59 @@ export const ExecutePage: React.FC = () => {
     }
   }, []);
 
-  // Event listeners - filter by currentSessionId
+  // Update ref when currentSessionId changes
   useEffect(() => {
-    window.claudeAPI.onClaudeStarted((data) => {
+    currentSessionIdRef.current = currentSessionId;
+    console.log('[ExecutePage] Current sessionId updated to:', currentSessionId);
+  }, [currentSessionId]);
+
+  // Event listeners - register once, filter by ref
+  useEffect(() => {
+    console.log('[ExecutePage] Registering stream listeners');
+
+    const handleStarted = (data: { sessionId: string; pid: number | null }) => {
       console.log('[ExecutePage] Claude started:', data);
       // Update state if this is our current execution
-      if (data.sessionId === currentSessionId) {
+      if (data.sessionId === currentSessionIdRef.current) {
         setIsRunning(true);
         setCurrentPid(data.pid);
       }
-    });
+    };
 
-    window.claudeAPI.onClaudeStream((data) => {
+    const handleStream = (data: { sessionId: string; data: StreamEvent }) => {
       // Only process events for current execution
-      if (data.sessionId === currentSessionId) {
+      if (data.sessionId === currentSessionIdRef.current) {
+        console.log('[ExecutePage] Stream event for current session:', data.sessionId);
         setEvents((prev) => [...prev, data.data]);
       }
-    });
+    };
 
-    window.claudeAPI.onClaudeError((data) => {
+    const handleError = (data: { sessionId: string; error: string }) => {
       console.error('[ExecutePage] Claude error:', data);
       // Only process errors for current execution
-      if (data.sessionId === currentSessionId) {
+      if (data.sessionId === currentSessionIdRef.current) {
         setError(data.error);
         setErrors((prev) => [...prev, { id: Date.now().toString(), message: data.error }]);
       }
-    });
+    };
 
-    window.claudeAPI.onClaudeComplete((data) => {
+    const handleComplete = (data: { sessionId: string; code: number }) => {
       console.log('[ExecutePage] Claude complete:', data);
       // Only update state if this is our current execution
-      if (data.sessionId === currentSessionId) {
+      if (data.sessionId === currentSessionIdRef.current) {
         setIsRunning(false);
-        setCurrentPid(null);
+        console.log('[ExecutePage] Execution completed for current session:', currentSessionIdRef.current);
       }
-    });
-  }, [currentSessionId]);
+    };
+
+    window.claudeAPI.onClaudeStarted(handleStarted);
+    window.claudeAPI.onClaudeStream(handleStream);
+    window.claudeAPI.onClaudeError(handleError);
+    window.claudeAPI.onClaudeComplete(handleComplete);
+
+    // Listeners are registered once and filter by ref
+    // No cleanup needed as they persist for the component lifetime
+  }, []); // Empty dependency array - register only once
 
   // Subscribe to executions updates (event-based, no polling)
   useEffect(() => {
@@ -574,16 +596,16 @@ export const ExecutePage: React.FC = () => {
           <button
             type="button"
             onClick={handleExecute}
-            disabled={isRunning}
+            disabled={!projectPath || !query}
             className={styles.executeButton}
           >
-            {isRunning ? 'Running...' : 'Execute'}
+            Execute
           </button>
           {selectedSessionId && (
             <button
               type="button"
               onClick={() => handleResumeSession(selectedSessionId)}
-              disabled={isRunning}
+              disabled={!projectPath}
               className={styles.resumeButton}
             >
               Resume
