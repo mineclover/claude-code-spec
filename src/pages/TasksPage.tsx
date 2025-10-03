@@ -1,6 +1,7 @@
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { AgentSelector } from '../components/task/AgentSelector';
 import { useProject } from '../contexts/ProjectContext';
 import { generateTaskMarkdown, parseTaskMarkdown } from '../lib/taskParser';
 import type { Task, TaskListItem } from '../types/task';
@@ -14,6 +15,18 @@ export const TasksPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Form state for individual fields
+  const [title, setTitle] = useState('');
+  const [area, setArea] = useState('');
+  const [assignedAgent, setAssignedAgent] = useState('claude-sonnet-4');
+  const [reviewer, setReviewer] = useState('');
+  const [status, setStatus] = useState<Task['status']>('pending');
+  const [description, setDescription] = useState('');
+  const [references, setReferences] = useState<string[]>([]);
+  const [successCriteria, setSuccessCriteria] = useState<string[]>([]);
+  const [newReference, setNewReference] = useState('');
+  const [newCriterion, setNewCriterion] = useState('');
 
   // Load tasks list
   const loadTasks = useCallback(async () => {
@@ -43,9 +56,19 @@ export const TasksPage: React.FC = () => {
       try {
         const content = await window.taskAPI.getTask(projectPath, taskId);
         if (content) {
+          const task = parseTaskMarkdown(content);
           setTaskContent(content);
           setSelectedTaskId(taskId);
+          setTitle(task.title);
+          setArea(task.area);
+          setAssignedAgent(task.assigned_agent);
+          setReviewer(task.reviewer);
+          setStatus(task.status);
+          setDescription(task.description);
+          setReferences(task.references || []);
+          setSuccessCriteria(task.successCriteria || []);
           setIsEditing(false);
+          setIsCreating(false);
         } else {
           toast.error('Task not found');
         }
@@ -62,24 +85,16 @@ export const TasksPage: React.FC = () => {
   };
 
   const handleNewTask = () => {
-    const now = new Date().toISOString();
     const taskId = `task-${Date.now()}`;
-    const newTask: Task = {
-      id: taskId,
-      title: 'New Task',
-      area: '',
-      assigned_agent: 'claude-sonnet-4',
-      reviewer: '',
-      status: 'pending',
-      created: now,
-      updated: now,
-      references: [],
-      successCriteria: [],
-      description: '',
-    };
-
-    setTaskContent(generateTaskMarkdown(newTask));
     setSelectedTaskId(taskId);
+    setTitle('New Task');
+    setArea('');
+    setAssignedAgent('claude-sonnet-4');
+    setReviewer('');
+    setStatus('pending');
+    setDescription('');
+    setReferences([]);
+    setSuccessCriteria([]);
     setIsEditing(true);
     setIsCreating(true);
   };
@@ -87,10 +102,28 @@ export const TasksPage: React.FC = () => {
   const handleSave = async () => {
     if (!projectPath || !selectedTaskId) return;
 
+    // Validation
+    if (!title.trim()) {
+      toast.error('Title is required');
+      return;
+    }
+
     try {
-      // Update the 'updated' timestamp in the content
-      const task = parseTaskMarkdown(taskContent);
-      task.updated = new Date().toISOString();
+      const now = new Date().toISOString();
+      const task: Task = {
+        id: selectedTaskId,
+        title,
+        area,
+        assigned_agent: assignedAgent,
+        reviewer,
+        status,
+        created: isCreating ? now : parseTaskMarkdown(taskContent).created,
+        updated: now,
+        references,
+        successCriteria,
+        description,
+      };
+
       const updatedContent = generateTaskMarkdown(task);
 
       const result = isCreating
@@ -103,6 +136,7 @@ export const TasksPage: React.FC = () => {
         setIsEditing(false);
         setIsCreating(false);
         loadTasks();
+        loadTask(selectedTaskId);
       } else {
         toast.error(result.error || 'Failed to save task');
       }
@@ -139,7 +173,26 @@ export const TasksPage: React.FC = () => {
     if (isCreating) {
       setSelectedTaskId(null);
       setTaskContent('');
+      setTitle('');
+      setArea('');
+      setAssignedAgent('claude-sonnet-4');
+      setReviewer('');
+      setStatus('pending');
+      setDescription('');
+      setReferences([]);
+      setSuccessCriteria([]);
       setIsCreating(false);
+    } else if (selectedTaskId) {
+      // Restore from taskContent
+      const task = parseTaskMarkdown(taskContent);
+      setTitle(task.title);
+      setArea(task.area);
+      setAssignedAgent(task.assigned_agent);
+      setReviewer(task.reviewer);
+      setStatus(task.status);
+      setDescription(task.description);
+      setReferences(task.references || []);
+      setSuccessCriteria(task.successCriteria || []);
     }
     setIsEditing(false);
   };
@@ -232,12 +285,176 @@ export const TasksPage: React.FC = () => {
             </div>
 
             {isEditing ? (
-              <textarea
-                className={styles.editor}
-                value={taskContent}
-                onChange={(e) => setTaskContent(e.target.value)}
-                placeholder="Enter task content in markdown format..."
-              />
+              <div className={styles.editor}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="title">
+                    Title: <span className={styles.required}>*</span>
+                  </label>
+                  <input
+                    id="title"
+                    type="text"
+                    className={styles.input}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Task title"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="area">Area:</label>
+                  <input
+                    id="area"
+                    type="text"
+                    className={styles.input}
+                    value={area}
+                    onChange={(e) => setArea(e.target.value)}
+                    placeholder="e.g., Backend/Authentication, Frontend/UI"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  {projectPath && (
+                    <AgentSelector
+                      projectPath={projectPath}
+                      selectedAgent={assignedAgent}
+                      onAgentChange={setAssignedAgent}
+                    />
+                  )}
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="reviewer">Reviewer:</label>
+                  <input
+                    id="reviewer"
+                    type="text"
+                    className={styles.input}
+                    value={reviewer}
+                    onChange={(e) => setReviewer(e.target.value)}
+                    placeholder="e.g., claude-opus-4 or human:john@example.com"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="status">Status:</label>
+                  <select
+                    id="status"
+                    className={styles.select}
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as Task['status'])}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="description">Description:</label>
+                  <textarea
+                    id="description"
+                    className={styles.textarea}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Task description..."
+                    rows={6}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>References:</label>
+                  <div className={styles.listItems}>
+                    {references.map((ref, index) => (
+                      <div key={`ref-${index}`} className={styles.listItem}>
+                        <span>{ref}</span>
+                        <button
+                          type="button"
+                          className={styles.removeButton}
+                          onClick={() => setReferences(references.filter((_, i) => i !== index))}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={styles.addItem}>
+                    <input
+                      type="text"
+                      className={styles.input}
+                      placeholder="File path or URL"
+                      value={newReference}
+                      onChange={(e) => setNewReference(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newReference.trim()) {
+                          e.preventDefault();
+                          setReferences([...references, newReference.trim()]);
+                          setNewReference('');
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className={styles.addButton}
+                      onClick={() => {
+                        if (newReference.trim()) {
+                          setReferences([...references, newReference.trim()]);
+                          setNewReference('');
+                        }
+                      }}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Success Criteria:</label>
+                  <div className={styles.listItems}>
+                    {successCriteria.map((criterion, index) => (
+                      <div key={`criterion-${index}`} className={styles.listItem}>
+                        <span>{criterion}</span>
+                        <button
+                          type="button"
+                          className={styles.removeButton}
+                          onClick={() =>
+                            setSuccessCriteria(successCriteria.filter((_, i) => i !== index))
+                          }
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={styles.addItem}>
+                    <input
+                      type="text"
+                      className={styles.input}
+                      placeholder="Success criterion"
+                      value={newCriterion}
+                      onChange={(e) => setNewCriterion(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newCriterion.trim()) {
+                          e.preventDefault();
+                          setSuccessCriteria([...successCriteria, newCriterion.trim()]);
+                          setNewCriterion('');
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className={styles.addButton}
+                      onClick={() => {
+                        if (newCriterion.trim()) {
+                          setSuccessCriteria([...successCriteria, newCriterion.trim()]);
+                          setNewCriterion('');
+                        }
+                      }}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className={styles.preview}>
                 <pre>{taskContent}</pre>

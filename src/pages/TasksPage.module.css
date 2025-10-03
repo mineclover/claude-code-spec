@@ -230,21 +230,121 @@
 
 .editor {
   flex: 1;
-  margin: 16px 24px;
-  padding: 16px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-family: "SF Mono", Monaco, "Courier New", monospace;
-  font-size: 13px;
-  line-height: 1.6;
-  resize: none;
-  background: #fff;
+  overflow-y: auto;
+  padding: 20px;
 }
 
-.editor:focus {
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #212529;
+}
+
+.required {
+  color: #dc3545;
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  color: #212529;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: "SF Mono", Monaco, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.listItems {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  min-height: 60px;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+}
+
+.listItem:last-child {
+  margin-bottom: 0;
+}
+
+.listItem span {
+  flex: 1;
+  font-size: 13px;
+  color: #212529;
+}
+
+.removeButton {
+  padding: 4px 12px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.removeButton:hover {
+  background: #c82333;
+}
+
+.addItem {
+  display: flex;
+  gap: 8px;
+}
+
+.addButton {
+  padding: 8px 16px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.addButton:hover {
+  background: #0056b3;
 }
 
 .preview {
