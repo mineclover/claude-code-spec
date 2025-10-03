@@ -79,10 +79,18 @@ export const ExecutionDetailPage: React.FC = () => {
       }
     };
 
-    window.claudeAPI.onClaudeStarted(handleStarted);
-    window.claudeAPI.onClaudeStream(handleStream);
-    window.claudeAPI.onClaudeError(handleError);
-    window.claudeAPI.onClaudeComplete(handleComplete);
+    const unsubStarted = window.claudeAPI.onClaudeStarted(handleStarted);
+    const unsubStream = window.claudeAPI.onClaudeStream(handleStream);
+    const unsubError = window.claudeAPI.onClaudeError(handleError);
+    const unsubComplete = window.claudeAPI.onClaudeComplete(handleComplete);
+
+    // Cleanup: remove all event listeners on unmount
+    return () => {
+      unsubStarted();
+      unsubStream();
+      unsubError();
+      unsubComplete();
+    };
   }, []);
 
   const handleKill = async () => {

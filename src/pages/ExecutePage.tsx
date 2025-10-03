@@ -419,13 +419,18 @@ export const ExecutePage: React.FC = () => {
       }
     };
 
-    window.claudeAPI.onClaudeStarted(handleStarted);
-    window.claudeAPI.onClaudeStream(handleStream);
-    window.claudeAPI.onClaudeError(handleError);
-    window.claudeAPI.onClaudeComplete(handleComplete);
+    const unsubStarted = window.claudeAPI.onClaudeStarted(handleStarted);
+    const unsubStream = window.claudeAPI.onClaudeStream(handleStream);
+    const unsubError = window.claudeAPI.onClaudeError(handleError);
+    const unsubComplete = window.claudeAPI.onClaudeComplete(handleComplete);
 
-    // Listeners are registered once and filter by ref
-    // No cleanup needed as they persist for the component lifetime
+    // Cleanup: remove all event listeners on unmount
+    return () => {
+      unsubStarted();
+      unsubStream();
+      unsubError();
+      unsubComplete();
+    };
   }, []); // Empty dependency array - register only once
 
   // Subscribe to executions updates (event-based, no polling)
@@ -433,10 +438,15 @@ export const ExecutePage: React.FC = () => {
     loadAllExecutions(); // Initial load
 
     // Subscribe to real-time updates
-    window.claudeAPI.onExecutionsUpdated((executions) => {
+    const unsubExecutionsUpdated = window.claudeAPI.onExecutionsUpdated((executions) => {
       console.log('[ExecutePage] Executions updated:', executions.length);
       setAllExecutions(executions);
     });
+
+    // Cleanup: remove event listener on unmount
+    return () => {
+      unsubExecutionsUpdated();
+    };
   }, [loadAllExecutions]);
 
   return (

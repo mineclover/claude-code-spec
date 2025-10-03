@@ -309,19 +309,32 @@ export const ExecutionsPage: React.FC = () => {
       console.log('[ExecutionsPage] Claude complete:', data);
     };
 
-    window.claudeAPI.onClaudeStarted(handleStarted);
-    window.claudeAPI.onClaudeStream(handleStream);
-    window.claudeAPI.onClaudeError(handleError);
-    window.claudeAPI.onClaudeComplete(handleComplete);
+    const unsubStarted = window.claudeAPI.onClaudeStarted(handleStarted);
+    const unsubStream = window.claudeAPI.onClaudeStream(handleStream);
+    const unsubError = window.claudeAPI.onClaudeError(handleError);
+    const unsubComplete = window.claudeAPI.onClaudeComplete(handleComplete);
+
+    // Cleanup: remove all event listeners on unmount
+    return () => {
+      unsubStarted();
+      unsubStream();
+      unsubError();
+      unsubComplete();
+    };
   }, []);
 
   useEffect(() => {
     loadAllExecutions();
 
-    window.claudeAPI.onExecutionsUpdated((executions) => {
+    const unsubExecutionsUpdated = window.claudeAPI.onExecutionsUpdated((executions) => {
       console.log('[ExecutionsPage] Executions updated:', executions.length);
       setAllExecutions(executions);
     });
+
+    // Cleanup: remove event listener on unmount
+    return () => {
+      unsubExecutionsUpdated();
+    };
   }, [loadAllExecutions]);
 
   return (
