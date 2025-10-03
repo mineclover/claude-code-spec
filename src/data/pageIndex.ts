@@ -108,6 +108,16 @@ export const PAGE_INDEX: PageIndex[] = [
     keywords: ['tasks', 'todo', 'agent', 'review', 'assignment', '작업', '할당', '리뷰'],
   },
   {
+    id: 'agents',
+    name: 'Agents',
+    displayName: 'Agent 관리',
+    description: 'Tasks를 수행할 전문화된 AI Agent를 생성하고 관리합니다. 도구 및 파일 권한을 제어할 수 있습니다.',
+    route: '/agents',
+    icon: '🤖',
+    category: 'management',
+    keywords: ['agents', 'sub-agent', 'ai', 'automation', 'permissions', '에이전트', '자동화', '권한'],
+  },
+  {
     id: 'settings',
     name: 'Settings',
     displayName: '설정',

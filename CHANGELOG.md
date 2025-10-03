@@ -17,6 +17,13 @@ All notable changes to this project will be documented in this file.
 - **Task IPC API**: 작업 CRUD를 위한 IPC 핸들러
 - **Task 마크다운 파서**: Task 객체 ↔ 마크다운 변환
 
+#### Agents 기능 - 전문화된 AI 어시스턴트 (계획 단계)
+- **Agent 시스템 설계**: Tasks를 수행할 전문화된 Agent 정의 및 관리
+- **권한 제어**: Agent별 허용 도구 및 파일 접근 권한 제한
+- **Agent 저장소**: 프로젝트 레벨(`.claude/agents/`)과 사용자 레벨(`~/.claude/agents/`) 지원
+- **Tasks 통합**: Tasks에서 assigned_agent 및 reviewer 선택 기능
+- **Execute 통합**: `claude --agent <name>` 명령으로 Agent 실행
+
 #### 실행 관리 개선
 - **ExecutionsPage**: 모든 실행 목록을 한눈에 확인
 - **ExecutionDetailPage**: 개별 실행의 상세 정보 및 실시간 스트림
@@ -42,6 +49,7 @@ All notable changes to this project will be documented in this file.
 - **CLAUDE.md**: 현재 기능 목록 업데이트, 아키텍처 섹션 개선
 - **README.md**: 주요 특징 재구성, Tasks 기능 섹션 추가, 프로젝트 구조 업데이트
 - **Tasks 문서**: 상세한 Tasks 기능 사용 가이드 추가
+- **Agents 문서**: Agents 기능 설계 및 구현 계획 문서 작성
 
 ### Fixed
 - **세션 아이템 overflow**: ExecutePage와 ExecutionsPage의 sessionItem 내용 잘림 현상 해결
