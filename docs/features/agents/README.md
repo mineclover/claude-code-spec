@@ -69,41 +69,37 @@ permissions:
   - **allowList**: 허용된 작업 패턴 목록
   - **denyList**: 명시적으로 차단된 작업 패턴 목록
 
-## Agent Presets (권장)
+## Tool Groups (도구 선택)
 
-Agent 생성 시 `allowedTools`와 `permissions`를 매번 수동으로 작성하는 대신, **프리셋**을 사용하여 빠르고 일관되게 Agent를 생성할 수 있습니다.
+Agent 생성 시 `allowedTools`를 투명하게 선택할 수 있도록 도구를 그룹화하여 제공합니다.
 
-### Preset의 장점
+### Tool Groups 종류
 
-- **일관성**: 동일한 역할의 Agent는 동일한 도구와 권한 사용
-- **빠른 생성**: 검증된 프리셋으로 빠르게 Agent 생성
-- **안전성**: 실수로 과도한 권한 부여 방지
-- **재사용**: 자주 사용하는 조합을 프리셋으로 저장
+1. **All tools**: 모든 도구 허용
+2. **Read-only tools**: 읽기 전용 (Read, Grep, Glob, WebFetch, WebSearch)
+3. **Edit tools**: 편집 도구 (Write, Edit)
+4. **Execution tools**: 실행 도구 (Bash)
+5. **MCP tools**: MCP 서버 도구 (serena 등)
+6. **Task Management tools**: 작업 관리 (Task, TodoWrite)
+7. **Other tools**: 기타 도구 (NotebookEdit, SlashCommand 등)
 
-### Preset 종류
+### 장점
 
-1. **Tool Presets**: 도구 조합 (analyzer, developer, reviewer 등)
-2. **Permission Presets**: 권한 조합 (read-only, test-writer 등)
-3. **Combined Presets**: 도구 + 권한 통합 (test-generator, code-reviewer 등)
+- **투명성**: 정확히 어떤 도구가 허용되는지 명확함
+- **유연성**: 그룹 단위 빠른 선택 + 개별 도구 세밀 조정
+- **안전성**: 불필요한 도구를 실수로 허용하는 것 방지
 
-### Preset 사용 예시
+### 사용 예시
 
-**중요**: `name`과 `description`은 Agent의 필수 필드이므로 반드시 직접 작성해야 합니다. Preset은 `allowedTools`와 `permissions`만 자동으로 채워줍니다.
-
-```markdown
----
-name: my-test-generator           # 필수: 직접 작성
-description: 내 프로젝트용 테스트 생성 Agent  # 필수: 직접 작성
-preset: test-generator             # 선택: allowedTools, permissions 자동 적용
----
-
-# Role
-우리 프로젝트의 테스트 컨벤션에 맞춰 테스트를 생성합니다...
+```
+☑ Read-only tools  → Read, Grep, Glob, WebFetch, WebSearch
+☑ Edit tools       → Write, Edit
+☐ Execution tools
+  ↓
+결과: Read, Grep, Glob, WebFetch, WebSearch, Write, Edit
 ```
 
-위처럼 `preset` 필드를 사용하면 `allowedTools`와 `permissions`가 자동으로 적용되어, 도구와 권한을 일일이 작성할 필요가 없습니다.
-
-**상세 문서**: [Agent Presets 가이드](./presets.md)
+**상세 문서**: [Tool Groups 가이드](./tool-groups.md)
 
 ## Agents와 Tasks 통합
 
@@ -367,17 +363,14 @@ Agent는 이 정보를 바탕으로 작업을 수행하고, 결과를 생성합�
 - [ ] Agent IPC 핸들러 구현 (`src/ipc/handlers/agentHandlers.ts`)
 - [ ] Agent API 노출 (`src/preload/apis/agent.ts`)
 
-### Phase 2: Preset 시스템
-- [ ] Preset 타입 정의 (`src/types/preset.ts`)
-- [ ] YAML 파서 (js-yaml 라이브러리 사용)
-- [ ] Preset IPC 핸들러 (`src/ipc/handlers/presetHandlers.ts`)
-- [ ] Preset API 노출 (`src/preload/apis/preset.ts`)
-- [ ] 기본 프리셋 파일 생성 (`.claude/presets/*.yaml`)
+### Phase 2: Tool Groups 시스템
+- [ ] Tool Groups 타입 정의 (`src/types/toolGroups.ts`)
+- [ ] Tool Groups 상수 및 유틸리티 함수
+- [ ] ToolSelector 컴포넌트 (그룹 + 개별 도구 선택)
 
 ### Phase 3: UI 컴포넌트
-- [ ] PresetsPage 구현 (Preset 관리 페이지)
-- [ ] PresetSelector 컴포넌트 (Agent 생성 시 사용)
-- [ ] AgentsPage 구현 (Agent 관리 페이지, PresetSelector 포함)
+- [ ] AgentsPage 구현 (Agent 관리 페이지, ToolSelector 포함)
+- [ ] PermissionEditor 컴포넌트 (allowList/denyList 관리)
 - [ ] AgentSelector 컴포넌트 (Tasks에서 사용)
 - [ ] TasksPage에 AgentSelector 통합
 

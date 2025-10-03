@@ -1,6 +1,14 @@
-# Agent Presets
+# Agent Presets (Deprecated)
 
-## 개요
+> **⚠️ 이 문서는 더 이상 사용되지 않습니다.**
+>
+> Preset 방식은 불투명하고 사용자가 정확히 무엇이 선택되는지 알기 어려워 **Tool Groups**로 대체되었습니다.
+>
+> **새로운 방식**: [Tool Groups 가이드](./tool-groups.md)
+
+---
+
+## 개요 (과거 설계)
 
 Agent 생성 시 자주 사용하는 도구(allowedTools)와 권한(permissions) 조합을 프리셋으로 관리하여 일관성과 재사용성을 높입니다.
 

@@ -118,16 +118,6 @@ export const PAGE_INDEX: PageIndex[] = [
     keywords: ['agents', 'sub-agent', 'ai', 'automation', 'permissions', '에이전트', '자동화', '권한'],
   },
   {
-    id: 'presets',
-    name: 'Presets',
-    displayName: 'Agent Presets',
-    description: 'Agent의 도구 및 권한 조합을 프리셋으로 관리합니다. 일관되고 안전한 Agent 생성을 지원합니다.',
-    route: '/presets',
-    icon: '🎨',
-    category: 'configuration',
-    keywords: ['presets', 'templates', 'tools', 'permissions', 'agent-presets', '프리셋', '템플릿', '도구', '권한'],
-  },
-  {
     id: 'settings',
     name: 'Settings',
     displayName: '설정',
