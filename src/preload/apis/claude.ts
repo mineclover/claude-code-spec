@@ -26,21 +26,21 @@ export function exposeClaudeAPI(): void {
     clearSessions: () => ipcRenderer.invoke('claude:clear-sessions'),
 
     // Execution management (ProcessManager)
-    getExecution: (sessionId: string) => ipcRenderer.invoke('get-execution', sessionId),
+    getExecution: (sessionId: string) => ipcRenderer.invoke('claude:get-execution', sessionId),
 
-    getAllExecutions: () => ipcRenderer.invoke('get-all-executions'),
+    getAllExecutions: () => ipcRenderer.invoke('claude:get-all-executions'),
 
-    getActiveExecutions: () => ipcRenderer.invoke('get-active-executions'),
+    getActiveExecutions: () => ipcRenderer.invoke('claude:get-active-executions'),
 
-    killExecution: (sessionId: string) => ipcRenderer.invoke('kill-execution', sessionId),
+    killExecution: (sessionId: string) => ipcRenderer.invoke('claude:kill-execution', sessionId),
 
-    cleanupExecution: (sessionId: string) => ipcRenderer.invoke('cleanup-execution', sessionId),
+    cleanupExecution: (sessionId: string) => ipcRenderer.invoke('claude:cleanup-execution', sessionId),
 
-    getExecutionStats: () => ipcRenderer.invoke('get-execution-stats'),
+    getExecutionStats: () => ipcRenderer.invoke('claude:get-execution-stats'),
 
-    killAllExecutions: () => ipcRenderer.invoke('kill-all-executions'),
+    killAllExecutions: () => ipcRenderer.invoke('claude:kill-all-executions'),
 
-    cleanupAllCompleted: () => ipcRenderer.invoke('cleanup-all-completed'),
+    cleanupAllCompleted: () => ipcRenderer.invoke('claude:cleanup-all-completed'),
 
     onClaudeStarted: (callback: (data: ClaudeStartedData) => void) => {
       ipcRenderer.on('claude:started', (_event, data) => callback(data));
