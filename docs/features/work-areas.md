@@ -7,7 +7,7 @@ Work Area는 작업(Task)을 계층적으로 분류하고 관리하는 시스템
 ## 목적
 
 1. **일관된 분류**: 프로젝트 전체에서 일관된 작업 영역 분류
-2. **컨텍스트 최적화**: 작업 영역에 따른 필요 컨텍스트 자동 제한
+2. **컨텍스트 최적화**: 향후 작업 영역에 따른 필요 컨텍스트 자동 제한 지원 예정
 3. **필터링 지원**: 작업 영역별 작업 필터링 및 검색
 4. **팀 협업**: 팀원 간 작업 영역 용어 통일
 
@@ -180,13 +180,13 @@ assigned_agent: claude-sonnet-4
 ---
 ```
 
-### 컨텍스트 제한
+### 컨텍스트 제한 (향후 계획)
 
-Work Area에 따라 필요한 컨텍스트를 자동으로 제한할 수 있습니다:
+향후 Work Area에 따라 필요한 컨텍스트를 자동으로 제한하는 기능이 추가될 예정입니다:
 
-- **Frontend/Pages** → `src/pages/**` 파일에 집중
-- **Backend/IPC** → `src/ipc/handlers/**` 파일에 집중
-- **Docs/Features** → `docs/features/**` 파일에 집중
+- **Frontend/Pages** → `src/pages/**` 파일에 집중 예정
+- **Backend/IPC** → `src/ipc/handlers/**` 파일에 집중 예정
+- **Docs/Features** → `docs/features/**` 파일에 집중 예정
 
 ## Work Area 커스터마이징
 

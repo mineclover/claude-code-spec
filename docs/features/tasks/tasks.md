@@ -673,36 +673,7 @@ const task: Task = {
 };
 ```
 
-### 🐛 버그 2: Success Criteria 체크박스 파싱
-**파일**: `taskParser.ts:43-47`
-
-**문제:**
-```typescript
-.filter((line) => line.trim().startsWith('- ['))
-.map((line) => line.trim().substring(2).trim());
-```
-`- [ ]` 또는 `- [x]`에서 체크박스 부분까지 제거하지 못함
-
-**현재 출력:**
-```
-[ ] JWT 토큰 생성 및 검증 구현  // 잘못됨
-```
-
-**해결 방안:**
-```typescript
-const successCriteriaMatch = body.match(/## Success Criteria\n([\s\S]*?)(?=\n## |$)/);
-if (successCriteriaMatch) {
-  sections.successCriteria = successCriteriaMatch[1]
-    .split('\n')
-    .filter((line) => line.trim().startsWith('- ['))
-    .map((line) => {
-      // "- [ ] text" or "- [x] text" -> "text"
-      return line.trim().replace(/^- \[[x\s]\]\s*/, '');
-    });
-}
-```
-
-### 🐛 버그 3: References URL 필터링
+### 🐛 버그 2: References URL 필터링
 **파일**: `taskParser.ts:36-39`
 
 **문제:**
@@ -852,10 +823,9 @@ const handleSave = async () => {
 **예상 작업량**: 1일
 
 **작업 항목:**
-1. [ ] Success Criteria 파싱 버그 수정
-2. [ ] Created 타임스탬프 오버라이드 버그 수정
-3. [ ] References URL/파일 구분 로직
-4. [ ] 동시 편집 감지 및 경고
+1. [ ] Created 타임스탬프 오버라이드 버그 수정
+2. [ ] References URL/파일 구분 로직
+3. [ ] 동시 편집 감지 및 경고
 
 **구현 파일:**
 - `src/lib/taskParser.ts`
