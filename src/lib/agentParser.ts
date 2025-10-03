@@ -65,7 +65,17 @@ export function parseAgentMarkdown(
         isParsingObject = false;
       } else {
         currentKey = key.trim();
-        (metadata as any)[currentKey] = value.replace(/['"]/g, '');
+        const cleanValue = value.replace(/['"]/g, '');
+
+        // Handle "tools" field (Claude Code format) - convert to allowedTools array
+        if (currentKey === 'tools') {
+          // Split by comma and trim each tool name
+          const toolsArray = cleanValue.split(',').map(t => t.trim()).filter(t => t);
+          (metadata as any)['allowedTools'] = toolsArray;
+        } else {
+          (metadata as any)[currentKey] = cleanValue;
+        }
+
         isParsingArray = false;
         isParsingObject = false;
       }
