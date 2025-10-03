@@ -87,12 +87,12 @@ export interface ClaudeAPI {
   killAllExecutions: () => Promise<{ success: boolean; count: number }>;
   cleanupAllCompleted: () => Promise<{ success: boolean; count: number }>;
 
-  // Event listeners
-  onClaudeStarted: (callback: (data: ClaudeStartedData) => void) => void;
-  onClaudeStream: (callback: (data: ClaudeStreamData) => void) => void;
-  onClaudeError: (callback: (data: ClaudeErrorData) => void) => void;
-  onClaudeComplete: (callback: (data: ClaudeCompleteData) => void) => void;
+  // Event listeners (return unsubscribe function)
+  onClaudeStarted: (callback: (data: ClaudeStartedData) => void) => () => void;
+  onClaudeStream: (callback: (data: ClaudeStreamData) => void) => () => void;
+  onClaudeError: (callback: (data: ClaudeErrorData) => void) => () => void;
+  onClaudeComplete: (callback: (data: ClaudeCompleteData) => void) => () => void;
   onExecutionsUpdated: (
     callback: (executions: Array<Omit<ExecutionInfo, 'events'>>) => void,
-  ) => void;
+  ) => () => void;
 }

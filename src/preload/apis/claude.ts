@@ -49,23 +49,48 @@ export function exposeClaudeAPI(): void {
     cleanupAllCompleted: () => ipcRenderer.invoke('claude:cleanup-all-completed'),
 
     onClaudeStarted: (callback: (data: ClaudeStartedData) => void) => {
-      ipcRenderer.on('claude:started', (_event, data) => callback(data));
+      const handler = (_event: Electron.IpcRendererEvent, data: ClaudeStartedData) => callback(data);
+      ipcRenderer.on('claude:started', handler);
+      // Return unsubscribe function
+      return () => {
+        ipcRenderer.removeListener('claude:started', handler);
+      };
     },
 
     onClaudeStream: (callback: (data: ClaudeStreamData) => void) => {
-      ipcRenderer.on('claude:stream', (_event, data) => callback(data));
+      const handler = (_event: Electron.IpcRendererEvent, data: ClaudeStreamData) => callback(data);
+      ipcRenderer.on('claude:stream', handler);
+      // Return unsubscribe function
+      return () => {
+        ipcRenderer.removeListener('claude:stream', handler);
+      };
     },
 
     onClaudeError: (callback: (data: ClaudeErrorData) => void) => {
-      ipcRenderer.on('claude:error', (_event, data) => callback(data));
+      const handler = (_event: Electron.IpcRendererEvent, data: ClaudeErrorData) => callback(data);
+      ipcRenderer.on('claude:error', handler);
+      // Return unsubscribe function
+      return () => {
+        ipcRenderer.removeListener('claude:error', handler);
+      };
     },
 
     onClaudeComplete: (callback: (data: ClaudeCompleteData) => void) => {
-      ipcRenderer.on('claude:complete', (_event, data) => callback(data));
+      const handler = (_event: Electron.IpcRendererEvent, data: ClaudeCompleteData) => callback(data);
+      ipcRenderer.on('claude:complete', handler);
+      // Return unsubscribe function
+      return () => {
+        ipcRenderer.removeListener('claude:complete', handler);
+      };
     },
 
     onExecutionsUpdated: (callback: (executions: Array<Omit<ExecutionInfo, 'events'>>) => void) => {
-      ipcRenderer.on('executions:updated', (_event, executions) => callback(executions));
+      const handler = (_event: Electron.IpcRendererEvent, executions: Array<Omit<ExecutionInfo, 'events'>>) => callback(executions);
+      ipcRenderer.on('executions:updated', handler);
+      // Return unsubscribe function
+      return () => {
+        ipcRenderer.removeListener('executions:updated', handler);
+      };
     },
   } as ClaudeAPI);
 }
