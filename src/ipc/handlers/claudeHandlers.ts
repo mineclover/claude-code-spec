@@ -21,7 +21,7 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
 
   // Setup ProcessManager listener to broadcast execution changes
   processManager.setExecutionsChangeListener(() => {
-    const activeExecutions = processManager.getActiveExecutions().map((exec) => ({
+    const allExecutions = processManager.getAllExecutions().map((exec) => ({
       sessionId: exec.sessionId,
       projectPath: exec.projectPath,
       query: exec.query,
@@ -37,7 +37,7 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
 
     // Broadcast to all renderer windows
     BrowserWindow.getAllWindows().forEach((window) => {
-      window.webContents.send('executions:updated', activeExecutions);
+      window.webContents.send('executions:updated', allExecutions);
     });
   });
 

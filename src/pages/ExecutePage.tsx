@@ -34,7 +34,8 @@ export const ExecutePage: React.FC = () => {
   const [totalSessions, setTotalSessions] = useState(0);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsExpanded, setSessionsExpanded] = useState(true);
-  const [activeExecutions, setActiveExecutions] = useState<Array<Omit<ExecutionInfo, 'events'>>>([]);
+  const [allExecutions, setAllExecutions] = useState<Array<Omit<ExecutionInfo, 'events'>>>([]);
+  const [showAllExecutions, setShowAllExecutions] = useState(false);
   const [executionsExpanded, setExecutionsExpanded] = useState(true);
   const SESSIONS_PAGE_SIZE = 5;
 
@@ -275,13 +276,13 @@ export const ExecutePage: React.FC = () => {
     }
   };
 
-  // Load active executions (only called on initial mount)
-  const loadActiveExecutions = useCallback(async () => {
+  // Load all executions (only called on initial mount)
+  const loadAllExecutions = useCallback(async () => {
     try {
-      const executions = await window.claudeAPI.getActiveExecutions();
-      setActiveExecutions(executions);
+      const executions = await window.claudeAPI.getAllExecutions();
+      setAllExecutions(executions);
     } catch (err) {
-      console.error('[ExecutePage] Failed to load active executions:', err);
+      console.error('[ExecutePage] Failed to load executions:', err);
     }
   }, []);
 
@@ -310,6 +311,50 @@ export const ExecutePage: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to switch execution');
       console.error('[ExecutePage] Failed to switch execution:', err);
+    }
+  }, []);
+
+  // Kill a specific execution
+  const handleKillExecution = useCallback(async (sessionId: string) => {
+    try {
+      await window.claudeAPI.killExecution(sessionId);
+      console.log('[ExecutePage] Killed execution:', sessionId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to kill execution');
+      console.error('[ExecutePage] Failed to kill execution:', err);
+    }
+  }, []);
+
+  // Cleanup a specific execution
+  const handleCleanupExecution = useCallback(async (sessionId: string) => {
+    try {
+      await window.claudeAPI.cleanupExecution(sessionId);
+      console.log('[ExecutePage] Cleaned up execution:', sessionId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cleanup execution');
+      console.error('[ExecutePage] Failed to cleanup execution:', err);
+    }
+  }, []);
+
+  // Kill all active executions
+  const handleKillAll = useCallback(async () => {
+    try {
+      await window.claudeAPI.killAllExecutions();
+      console.log('[ExecutePage] Killed all executions');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to kill all executions');
+      console.error('[ExecutePage] Failed to kill all executions:', err);
+    }
+  }, []);
+
+  // Cleanup all completed executions
+  const handleCleanupAll = useCallback(async () => {
+    try {
+      await window.claudeAPI.cleanupAllCompleted();
+      console.log('[ExecutePage] Cleaned up all completed executions');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cleanup all');
+      console.error('[ExecutePage] Failed to cleanup all:', err);
     }
   }, []);
 
@@ -352,14 +397,14 @@ export const ExecutePage: React.FC = () => {
 
   // Subscribe to executions updates (event-based, no polling)
   useEffect(() => {
-    loadActiveExecutions(); // Initial load
+    loadAllExecutions(); // Initial load
 
     // Subscribe to real-time updates
     window.claudeAPI.onExecutionsUpdated((executions) => {
       console.log('[ExecutePage] Executions updated:', executions.length);
-      setActiveExecutions(executions);
+      setAllExecutions(executions);
     });
-  }, [loadActiveExecutions]);
+  }, [loadAllExecutions]);
 
   return (
     <div className={styles.container}>
@@ -381,15 +426,19 @@ export const ExecutePage: React.FC = () => {
           </div>
         </div>
 
-        {activeExecutions.length > 0 && (
-          <ExecutionsList
-            executions={activeExecutions}
-            currentSessionId={currentSessionId}
-            onSelectExecution={switchToExecution}
-            expanded={executionsExpanded}
-            onToggleExpanded={() => setExecutionsExpanded(!executionsExpanded)}
-          />
-        )}
+        <ExecutionsList
+          executions={allExecutions}
+          currentSessionId={currentSessionId}
+          onSelectExecution={switchToExecution}
+          onKillExecution={handleKillExecution}
+          onCleanupExecution={handleCleanupExecution}
+          onKillAll={handleKillAll}
+          onCleanupAll={handleCleanupAll}
+          showAll={showAllExecutions}
+          onToggleShowAll={() => setShowAllExecutions(!showAllExecutions)}
+          expanded={executionsExpanded}
+          onToggleExpanded={() => setExecutionsExpanded(!executionsExpanded)}
+        />
 
         {projectPath && (
           <div className={styles.sessionsList}>

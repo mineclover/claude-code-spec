@@ -22,11 +22,98 @@
   background: var(--color-surface-hover);
 }
 
+.headerContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
 .title {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text);
+}
+
+.stats {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.statActive,
+.statCompleted,
+.statFailed {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.statActive {
+  background: #22c55e20;
+  color: #22c55e;
+}
+
+.statCompleted {
+  background: #3b82f620;
+  color: #3b82f6;
+}
+
+.statFailed {
+  background: #ef444420;
+  color: #ef4444;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterButton,
+.killAllButton,
+.cleanupAllButton {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.2s ease;
+}
+
+.filterButton {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.filterButton:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-primary);
+}
+
+.killAllButton {
+  background: transparent;
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.killAllButton:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.cleanupAllButton {
+  background: transparent;
+  color: #71717a;
+  border-color: #71717a;
+}
+
+.cleanupAllButton:hover {
+  background: #71717a;
+  color: white;
 }
 
 .toggleButton {
@@ -147,6 +234,45 @@
 .duration,
 .pid {
   font-family: 'JetBrains Mono', monospace;
+}
+
+.itemActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.killButton,
+.cleanupButton {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.2s ease;
+}
+
+.killButton {
+  background: transparent;
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.killButton:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.cleanupButton {
+  background: transparent;
+  color: #71717a;
+  border-color: #71717a;
+}
+
+.cleanupButton:hover {
+  background: #71717a;
+  color: white;
 }
 
 /* Scrollbar styling */
