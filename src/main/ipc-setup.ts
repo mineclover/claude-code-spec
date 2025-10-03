@@ -14,7 +14,7 @@ import { registerMetadataHandlers } from '../ipc/handlers/metadataHandlers';
 import { registerSettingsHandlers } from '../ipc/handlers/settingsHandlers';
 import { ipcRegistry } from '../ipc/IPCRouter';
 import { settingsService } from '../services/appSettings';
-import { activeClients, logger, loggerConfig, sessionManager } from './app-context';
+import { logger, loggerConfig, sessionManager } from './app-context';
 
 /**
  * Register all IPC handlers
@@ -29,7 +29,6 @@ export function setupIPCHandlers(): void {
   registerClaudeHandlers(claudeRouter, {
     sessionManager,
     logger,
-    activeClients,
   });
 
   // Logger handlers

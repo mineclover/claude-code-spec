@@ -8,9 +8,10 @@ interface StreamOutputProps {
   events: StreamEvent[];
   errors: Array<{ id: string; message: string }>;
   currentPid: number | null;
+  sessionId?: string | null;
 }
 
-export const StreamOutput: React.FC<StreamOutputProps> = ({ events, errors, currentPid }) => {
+export const StreamOutput: React.FC<StreamOutputProps> = ({ events, errors, currentPid, sessionId }) => {
   const outputEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,6 +24,7 @@ export const StreamOutput: React.FC<StreamOutputProps> = ({ events, errors, curr
       <div className={styles.header}>
         <h3 className={styles.title}>
           Stream Output
+          {sessionId && <span className={styles.pidBadge}>Session: {sessionId.slice(0, 8)}</span>}
           {currentPid && <span className={styles.pidBadge}>PID: {currentPid}</span>}
         </h3>
         <div className={styles.stats}>

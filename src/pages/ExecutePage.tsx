@@ -19,6 +19,7 @@ export const ExecutePage: React.FC = () => {
   const [errors, setErrors] = useState<Array<{ id: string; message: string }>>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [currentPid, setCurrentPid] = useState<number | null>(null);
   const [mcpConfigs, setMcpConfigs] = useState<Array<{ name: string; path: string }>>([]);
   const [selectedMcpConfig, setSelectedMcpConfig] = useState<string>('');
@@ -184,6 +185,7 @@ export const ExecutePage: React.FC = () => {
     setError(null);
     setEvents([]);
     setErrors([]);
+    setCurrentSessionId(null);
     setCurrentPid(null);
 
     try {
@@ -196,8 +198,9 @@ export const ExecutePage: React.FC = () => {
         selectedModel, // Pass selected model
       );
 
-      if (result.success && result.pid) {
-        setCurrentPid(result.pid);
+      if (result.success && result.sessionId) {
+        setCurrentSessionId(result.sessionId);
+        setCurrentPid(result.pid ?? null);
       } else if (!result.success) {
         setError(result.error || 'Failed to execute command');
         setIsRunning(false);
@@ -219,6 +222,7 @@ export const ExecutePage: React.FC = () => {
     setError(null);
     setEvents([]);
     setErrors([]);
+    setCurrentSessionId(null);
     setCurrentPid(null);
 
     try {
@@ -231,8 +235,9 @@ export const ExecutePage: React.FC = () => {
         selectedModel, // Pass selected model
       );
 
-      if (result.success && result.pid) {
-        setCurrentPid(result.pid);
+      if (result.success && result.sessionId) {
+        setCurrentSessionId(result.sessionId);
+        setCurrentPid(result.pid ?? null);
       } else if (!result.success) {
         setError(result.error || 'Failed to resume session');
         setIsRunning(false);
@@ -266,30 +271,42 @@ export const ExecutePage: React.FC = () => {
     }
   };
 
-  // Event listeners - setup once
+  // Event listeners - filter by currentSessionId
   useEffect(() => {
     window.claudeAPI.onClaudeStarted((data) => {
       console.log('[ExecutePage] Claude started:', data);
-      setIsRunning(true);
-      setCurrentPid(data.pid);
+      // Update state if this is our current execution
+      if (data.sessionId === currentSessionId) {
+        setIsRunning(true);
+        setCurrentPid(data.pid);
+      }
     });
 
     window.claudeAPI.onClaudeStream((data) => {
-      setEvents((prev) => [...prev, data.data]);
+      // Only process events for current execution
+      if (data.sessionId === currentSessionId) {
+        setEvents((prev) => [...prev, data.data]);
+      }
     });
 
     window.claudeAPI.onClaudeError((data) => {
       console.error('[ExecutePage] Claude error:', data);
-      setError(data.error);
-      setErrors((prev) => [...prev, { id: Date.now().toString(), message: data.error }]);
+      // Only process errors for current execution
+      if (data.sessionId === currentSessionId) {
+        setError(data.error);
+        setErrors((prev) => [...prev, { id: Date.now().toString(), message: data.error }]);
+      }
     });
 
     window.claudeAPI.onClaudeComplete((data) => {
       console.log('[ExecutePage] Claude complete:', data);
-      setIsRunning(false);
-      setCurrentPid(null);
+      // Only update state if this is our current execution
+      if (data.sessionId === currentSessionId) {
+        setIsRunning(false);
+        setCurrentPid(null);
+      }
     });
-  }, []);
+  }, [currentSessionId]);
 
   return (
     <div className={styles.container}>
@@ -464,11 +481,15 @@ export const ExecutePage: React.FC = () => {
 
         {error && <div className={styles.error}>{error}</div>}
 
-        {currentPid && <div className={styles.status}>Running (PID: {currentPid})</div>}
+        {currentSessionId && (
+          <div className={styles.status}>
+            Running (Session: {currentSessionId.slice(0, 8)}...{currentPid ? `, PID: ${currentPid}` : ''})
+          </div>
+        )}
       </div>
 
       <div className={styles.output}>
-        <StreamOutput events={events} errors={errors} currentPid={currentPid} />
+        <StreamOutput events={events} errors={errors} currentPid={currentPid} sessionId={currentSessionId} />
       </div>
     </div>
   );

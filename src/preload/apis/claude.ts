@@ -5,6 +5,8 @@ import type {
   ClaudeErrorData,
   ClaudeStartedData,
   ClaudeStreamData,
+  ExecutionInfo,
+  ExecutionStats,
 } from '../../types/api';
 
 export function exposeClaudeAPI(): void {
@@ -22,6 +24,23 @@ export function exposeClaudeAPI(): void {
       ipcRenderer.invoke('claude:resume-session', sessionId, projectPath, query),
 
     clearSessions: () => ipcRenderer.invoke('claude:clear-sessions'),
+
+    // Execution management (ProcessManager)
+    getExecution: (sessionId: string) => ipcRenderer.invoke('get-execution', sessionId),
+
+    getAllExecutions: () => ipcRenderer.invoke('get-all-executions'),
+
+    getActiveExecutions: () => ipcRenderer.invoke('get-active-executions'),
+
+    killExecution: (sessionId: string) => ipcRenderer.invoke('kill-execution', sessionId),
+
+    cleanupExecution: (sessionId: string) => ipcRenderer.invoke('cleanup-execution', sessionId),
+
+    getExecutionStats: () => ipcRenderer.invoke('get-execution-stats'),
+
+    killAllExecutions: () => ipcRenderer.invoke('kill-all-executions'),
+
+    cleanupAllCompleted: () => ipcRenderer.invoke('cleanup-all-completed'),
 
     onClaudeStarted: (callback: (data: ClaudeStartedData) => void) => {
       ipcRenderer.on('claude:started', (_event, data) => callback(data));

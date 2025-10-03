@@ -8,23 +8,50 @@ export interface SessionInfo {
   lastResult?: string;
 }
 
+export interface ExecutionInfo {
+  sessionId: string;
+  projectPath: string;
+  query: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'killed';
+  pid: number | null;
+  events: StreamEvent[];
+  errors: string[];
+  startTime: number;
+  endTime: number | null;
+  mcpConfig?: string;
+  model?: 'sonnet' | 'opus';
+}
+
+export interface ExecutionStats {
+  total: number;
+  running: number;
+  pending: number;
+  completed: number;
+  failed: number;
+  killed: number;
+}
+
 export interface ClaudeStreamData {
-  pid: number;
+  sessionId: string;
+  pid: number | null;
   data: StreamEvent;
 }
 
 export interface ClaudeErrorData {
-  pid?: number;
+  sessionId: string;
+  pid?: number | null;
   error: string;
 }
 
 export interface ClaudeCompleteData {
-  pid: number;
+  sessionId: string;
+  pid: number | null;
   code: number;
 }
 
 export interface ClaudeStartedData {
-  pid: number;
+  sessionId: string;
+  pid: number | null;
 }
 
 export interface ClaudeAPI {
@@ -35,7 +62,7 @@ export interface ClaudeAPI {
     sessionId?: string,
     mcpConfig?: string,
     model?: 'sonnet' | 'opus',
-  ) => Promise<{ success: boolean; pid?: number; error?: string }>;
+  ) => Promise<{ success: boolean; sessionId?: string; pid?: number; error?: string }>;
 
   // Directory selection
   selectDirectory: () => Promise<string | null>;
@@ -47,8 +74,18 @@ export interface ClaudeAPI {
     sessionId: string,
     projectPath: string,
     query: string,
-  ) => Promise<{ success: boolean; pid?: number; error?: string }>;
+  ) => Promise<{ success: boolean; sessionId?: string; pid?: number; error?: string }>;
   clearSessions: () => Promise<{ success: boolean }>;
+
+  // Execution management (ProcessManager)
+  getExecution: (sessionId: string) => Promise<ExecutionInfo | null>;
+  getAllExecutions: () => Promise<Array<Omit<ExecutionInfo, 'events'>>>;
+  getActiveExecutions: () => Promise<Array<Omit<ExecutionInfo, 'events'>>>;
+  killExecution: (sessionId: string) => Promise<{ success: boolean }>;
+  cleanupExecution: (sessionId: string) => Promise<{ success: boolean }>;
+  getExecutionStats: () => Promise<ExecutionStats>;
+  killAllExecutions: () => Promise<{ success: boolean; count: number }>;
+  cleanupAllCompleted: () => Promise<{ success: boolean; count: number }>;
 
   // Event listeners
   onClaudeStarted: (callback: (data: ClaudeStartedData) => void) => void;

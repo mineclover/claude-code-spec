@@ -1,27 +1,25 @@
 /**
  * Claude IPC Handlers
- * Handles Claude CLI execution and session management
+ * Handles Claude CLI execution and session management with ProcessManager
  */
 
 import type { IpcMainInvokeEvent } from 'electron';
-import type { ClaudeClient } from '../../lib/ClaudeClient';
-import { ClaudeClient as ClaudeClientClass } from '../../lib/ClaudeClient';
 import type { SessionManager } from '../../lib/SessionManager';
 import type { StreamEvent } from '../../lib/StreamParser';
 import { extractSessionId, isResultEvent, isSystemInitEvent } from '../../lib/types';
 import type { SessionLogger } from '../../services/logger';
+import { processManager } from '../../services/ProcessManager';
 import type { IPCRouter } from '../IPCRouter';
 
 interface ClaudeHandlersContext {
   sessionManager: SessionManager;
   logger: SessionLogger;
-  activeClients: Map<number, ClaudeClient>;
 }
 
 export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandlersContext): void {
-  const { sessionManager, logger, activeClients } = context;
+  const { sessionManager, logger } = context;
 
-  // Shared execution logic
+  // Shared execution logic using ProcessManager
   const executeClaudeCommand = async (
     event: IpcMainInvokeEvent,
     projectPath: string,
@@ -33,16 +31,17 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
     console.log('[Main] Execute request:', { projectPath, query, sessionId, mcpConfig, model });
 
     try {
-      // Create Claude client
-      const client = new ClaudeClientClass({
-        cwd: projectPath,
-        model: model || 'sonnet', // Use Sonnet by default for better speed/cost balance
-        sessionId: sessionId || undefined,
-        mcpConfig: mcpConfig || undefined,
-        onStream: (streamEvent: StreamEvent) => {
-          // Forward stream event to renderer
+      // Start execution using ProcessManager (returns sessionId)
+      const resultSessionId = await processManager.startExecution({
+        projectPath,
+        query,
+        sessionId, // Resume sessionId if provided
+        mcpConfig,
+        model: model || 'sonnet',
+        onStream: (sid: string, streamEvent: StreamEvent) => {
+          // Forward stream event to renderer with sessionId
           event.sender.send('claude:stream', {
-            pid: client.isRunning() ? process.pid : null,
+            sessionId: sid,
             data: streamEvent,
           });
 
@@ -63,43 +62,40 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
 
           // Save result from result event
           if (isResultEvent(streamEvent)) {
-            const currentSessionId = client.getSessionId();
-            if (currentSessionId) {
-              sessionManager.updateSessionResult(currentSessionId, streamEvent.result);
-            }
+            sessionManager.updateSessionResult(sid, streamEvent.result);
             // Close logging session
             logger.closeSession();
           }
         },
-        onError: (error: string) => {
+        onError: (sid: string, error: string) => {
           event.sender.send('claude:error', {
-            pid: client.isRunning() ? process.pid : null,
+            sessionId: sid,
             error,
           });
         },
-        onClose: (code: number) => {
-          const pid = process.pid;
-          console.log('[Main] Client closed:', code);
-          event.sender.send('claude:complete', { pid, code });
-          activeClients.delete(pid);
+        onComplete: (sid: string, code: number) => {
+          console.log('[Main] Execution completed:', { sessionId: sid, code });
+          event.sender.send('claude:complete', {
+            sessionId: sid,
+            code,
+          });
         },
       });
 
-      // Execute query
-      const childProcess = client.execute(query);
-      const pid = childProcess.pid;
-
-      if (!pid) {
-        throw new Error('Failed to get process PID');
-      }
-
-      // Store active client
-      activeClients.set(pid, client);
+      // Get execution info
+      const execution = processManager.getExecution(resultSessionId);
 
       // Notify renderer
-      event.sender.send('claude:started', { pid });
+      event.sender.send('claude:started', {
+        sessionId: resultSessionId,
+        pid: execution?.pid || null,
+      });
 
-      return { success: true, pid };
+      return {
+        success: true,
+        sessionId: resultSessionId,
+        pid: execution?.pid || null,
+      };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('[Main] Execution error:', error);
@@ -145,5 +141,108 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
     sessionManager.clearSessions();
     console.log('[Main] Sessions cleared');
     return { success: true };
+  });
+
+  // ProcessManager handlers
+  router.handle('get-execution', async (_, sessionId: string) => {
+    const execution = processManager.getExecution(sessionId);
+    if (!execution) {
+      return null;
+    }
+
+    // Return execution info without the client object (not serializable)
+    return {
+      sessionId: execution.sessionId,
+      projectPath: execution.projectPath,
+      query: execution.query,
+      status: execution.status,
+      pid: execution.pid,
+      events: execution.events,
+      errors: execution.errors,
+      startTime: execution.startTime,
+      endTime: execution.endTime,
+      mcpConfig: execution.mcpConfig,
+      model: execution.model,
+    };
+  });
+
+  router.handle('get-all-executions', async () => {
+    const executions = processManager.getAllExecutions();
+
+    return executions.map((exec) => ({
+      sessionId: exec.sessionId,
+      projectPath: exec.projectPath,
+      query: exec.query,
+      status: exec.status,
+      pid: exec.pid,
+      eventsCount: exec.events.length,
+      errorsCount: exec.errors.length,
+      startTime: exec.startTime,
+      endTime: exec.endTime,
+      mcpConfig: exec.mcpConfig,
+      model: exec.model,
+    }));
+  });
+
+  router.handle('get-active-executions', async () => {
+    const executions = processManager.getActiveExecutions();
+
+    return executions.map((exec) => ({
+      sessionId: exec.sessionId,
+      projectPath: exec.projectPath,
+      query: exec.query,
+      status: exec.status,
+      pid: exec.pid,
+      eventsCount: exec.events.length,
+      errorsCount: exec.errors.length,
+      startTime: exec.startTime,
+      endTime: exec.endTime,
+      mcpConfig: exec.mcpConfig,
+      model: exec.model,
+    }));
+  });
+
+  router.handle('kill-execution', async (_, sessionId: string) => {
+    try {
+      processManager.killExecution(sessionId);
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, error: errorMessage };
+    }
+  });
+
+  router.handle('cleanup-execution', async (_, sessionId: string) => {
+    try {
+      processManager.cleanupExecution(sessionId);
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, error: errorMessage };
+    }
+  });
+
+  router.handle('get-execution-stats', async () => {
+    return processManager.getStats();
+  });
+
+  router.handle('kill-all-executions', async () => {
+    try {
+      processManager.killAll();
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, error: errorMessage };
+    }
+  });
+
+  router.handle('cleanup-all-completed', async () => {
+    try {
+      const count = processManager.cleanupAllCompleted();
+      return { success: true, count };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, error: errorMessage };
+    }
   });
 }
