@@ -1,0 +1,282 @@
+.container {
+  display: flex;
+  height: 100%;
+  background: #f8f9fa;
+}
+
+.sidebar {
+  flex: 0 0 320px;
+  background: #fff;
+  border-right: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebarHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e9ecef;
+  flex-shrink: 0;
+}
+
+.sidebarHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #212529;
+}
+
+.newButton {
+  padding: 6px 12px;
+  border: 1px solid #007bff;
+  border-radius: 4px;
+  background: #007bff;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.newButton:hover {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+.tasksList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.taskItem {
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.taskItem:hover {
+  background: #f8f9fa;
+  border-color: #17a2b8;
+}
+
+.taskItem.selected {
+  background: #e7f3ff;
+  border-color: #17a2b8;
+  border-width: 2px;
+}
+
+.taskItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.taskTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #212529;
+}
+
+.taskStatus {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.taskStatus.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.taskStatus.in_progress {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.taskStatus.completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.taskStatus.cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.taskArea {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 6px;
+}
+
+.taskMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: #6c757d;
+}
+
+.loading,
+.empty {
+  padding: 24px;
+  text-align: center;
+  color: #6c757d;
+  font-size: 13px;
+}
+
+.noProject {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 16px;
+  color: #6c757d;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.contentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: #fff;
+  border-bottom: 1px solid #e9ecef;
+  flex-shrink: 0;
+}
+
+.contentHeader h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #212529;
+}
+
+.contentActions {
+  display: flex;
+  gap: 8px;
+}
+
+.editButton,
+.saveButton,
+.cancelButton,
+.deleteButton {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.editButton {
+  background: #007bff;
+  color: #fff;
+  border: 1px solid #007bff;
+}
+
+.editButton:hover {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+.saveButton {
+  background: #28a745;
+  color: #fff;
+  border: 1px solid #28a745;
+}
+
+.saveButton:hover {
+  background: #218838;
+  border-color: #218838;
+}
+
+.cancelButton {
+  background: #fff;
+  color: #6c757d;
+  border: 1px solid #ced4da;
+}
+
+.cancelButton:hover {
+  background: #f8f9fa;
+  border-color: #6c757d;
+}
+
+.deleteButton {
+  background: #dc3545;
+  color: #fff;
+  border: 1px solid #dc3545;
+}
+
+.deleteButton:hover {
+  background: #c82333;
+  border-color: #bd2130;
+}
+
+.editor {
+  flex: 1;
+  margin: 16px 24px;
+  padding: 16px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: none;
+  background: #fff;
+}
+
+.editor:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.preview {
+  flex: 1;
+  margin: 16px 24px;
+  padding: 16px;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  background: #fff;
+  overflow-y: auto;
+}
+
+.preview pre {
+  margin: 0;
+  font-family: "SF Mono", Monaco, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6c757d;
+  font-size: 16px;
+  gap: 8px;
+}
+
+.placeholder p {
+  margin: 0;
+}

@@ -1,3 +1,4 @@
+import type { TaskAPI } from './preload/apis/task';
 import type {
   AppSettingsAPI,
   BookmarksAPI,
@@ -21,5 +22,6 @@ declare global {
     docsAPI: DocsAPI;
     metadataAPI: MetadataAPI;
     fileAPI: FileAPI;
+    taskAPI: TaskAPI;
   }
 }

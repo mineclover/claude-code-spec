@@ -10,10 +10,29 @@ npm run start
 
 ## 현재 기능
 
-1. **프로젝트 디렉토리 선택**: Browse 버튼 또는 직접 입력으로 프로젝트 경로 지정
-2. **Claude CLI 실행**: 선택한 디렉토리에서 `claude -p "쿼리"` 명령 실행 (headless 모드)
-3. **실시간 응답 스트리밍**: Claude CLI의 stdout/stderr를 실시간으로 화면에 표시
-4. **에러 핸들링**: 에러 메시지를 별도로 표시
+### 실행 및 모니터링
+1. **병렬 실행 관리**: 여러 Claude CLI 프로세스를 동시에 실행하고 모니터링
+2. **실시간 스트리밍**: Stream JSON 형식의 실시간 응답을 파싱하여 표시
+3. **실행 이력 관리**: 모든 실행 내역을 세션 ID로 추적 및 조회
+4. **프로세스 제어**: 실행 중인 프로세스 종료 및 정리 기능
+
+### 프로젝트 관리
+5. **Claude 프로젝트 탐색**: 프로젝트별 세션 로그 조회 및 관리
+6. **세션 이어가기**: 이전 세션을 선택하여 대화 재개
+7. **MCP 설정 관리**: 프로젝트별 MCP 서버 설정 생성 및 편집
+
+### 작업 관리 (Tasks) - Execute 최적화
+8. **의존성 분석**: 작업 수행에 필요한 파일 및 문서 의존성 사전 정의
+9. **컨텍스트 배정**: Execute 시 자동으로 필요한 컨텍스트 구성
+10. **작업 영역 할당**: Area 설정으로 불필요한 컨텍스트 차단
+11. **Execute 통합**: Task를 선택하여 최적화된 Claude CLI 실행
+12. **성공 기준 검증**: 체크리스트 기반 결과 검증
+13. **리뷰 시스템**: 리뷰어 지정 및 산출물 검토
+
+### 문서 및 설정
+14. **Memory 편집기**: CLAUDE.md 파일의 참조 및 컨텍스트 관리
+15. **문서 탐색**: Claude Code 및 컨트롤러 문서 통합 뷰어
+16. **설정 관리**: 애플리케이션 설정 및 프로젝트 경로 관리
 
 ## 예정 기능
 
@@ -51,31 +70,92 @@ npm run start
 
 ## 아키텍처
 
-### Main Process (src/main.ts)
-- Claude CLI를 `spawn`으로 실행
-- stdout/stderr를 실시간으로 캡처
-- IPC 채널로 renderer에 데이터 전송
+### Main Process
+- **ProcessManager** (`src/services/ProcessManager.ts`): 병렬 실행 프로세스 관리
+- **StreamParser** (`src/lib/StreamParser.ts`): Stream JSON 파싱
+- **SessionManager** (`src/services/SessionManager.ts`): 실행 이력 관리
+- **IPC Router**: 모듈화된 IPC 핸들러 시스템
 
-### Preload (src/preload.ts)
-- 안전한 IPC API를 window 객체에 노출
-- `claudeAPI.executeClaudeCommand()`: 명령 실행
-- `claudeAPI.onClaudeResponse()`: 응답 수신
-- `claudeAPI.onClaudeError()`: 에러 수신
-- `claudeAPI.selectDirectory()`: 디렉토리 선택
+### Preload APIs
+안전한 IPC API를 window 객체에 노출:
 
-### Renderer (src/App.tsx)
-- React로 구현된 UI
-- 프로젝트 경로 입력/선택
-- 쿼리 입력
-- 실시간 응답 표시
+- **claudeAPI**: Claude CLI 실행 및 이벤트 구독
+- **claudeSessionsAPI**: 프로젝트 세션 조회 및 관리
+- **taskAPI**: 작업 생성/조회/수정/삭제
+- **settingsAPI**: MCP 설정 관리
+- **bookmarksAPI**: 북마크 관리
+- **docsAPI**: 문서 조회
+- **metadataAPI**: 메타데이터 관리
+- **fileAPI**: 파일 읽기/쓰기
+
+### Renderer (React)
+페이지별 구성:
+
+- **ExecutionsPage**: 실행 목록 및 새 실행 생성
+- **ExecutionDetailPage**: 실행 상세 및 실시간 스트림
+- **TasksPage**: 작업 정의 및 관리
+- **ClaudeProjectsListPage**: 프로젝트 목록
+- **ClaudeSessionsListPage**: 세션 목록
+- **ClaudeSessionDetailPage**: 세션 상세
+- **MemoryPage**: CLAUDE.md 편집
+- **McpConfigsPage**: MCP 설정 편집
+- **SettingsPage**: 앱 설정
+
+### 데이터 구조
+
+**Tasks** (`.claude/tasks/*.md`):
+```markdown
+---
+id: task-001
+title: Task title
+area: Backend/Authentication
+assigned_agent: claude-sonnet-4
+reviewer: claude-opus-4
+status: pending | in_progress | completed | cancelled
+---
+## References
+## Success Criteria
+## Description
+## Review Notes
+```
+
+**Execution Info**:
+```typescript
+{
+  sessionId: string;
+  pid: number | null;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  projectPath: string;
+  query: string;
+  events: StreamEvent[];
+}
+```
 
 ## IPC 채널
 
+### Claude 실행
 - `claude:execute`: 명령 실행 요청
-- `claude:response`: stdout 데이터 전송
-- `claude:error`: stderr 데이터 전송
-- `claude:complete`: 프로세스 완료 알림
-- `dialog:selectDirectory`: 디렉토리 선택 다이얼로그
+- `claude:started`: 프로세스 시작 알림
+- `claude:stream`: Stream JSON 이벤트 전송
+- `claude:error`: 에러 발생
+- `claude:complete`: 프로세스 완료
+- `claude:killExecution`: 프로세스 종료
+- `claude:cleanupExecution`: 실행 정보 정리
+
+### Task 관리
+- `task:listTasks`: 작업 목록 조회
+- `task:getTask`: 작업 상세 조회
+- `task:createTask`: 작업 생성
+- `task:updateTask`: 작업 수정
+- `task:deleteTask`: 작업 삭제
+
+### 기타
+- `dialog:selectDirectory`: 디렉토리 선택
+- `settings:*`: MCP 설정 관리
+- `claude-sessions:*`: 세션 조회
+- `bookmarks:*`: 북마크 관리
+- `docs:*`: 문서 조회
+- `file:*`: 파일 작업
 
 ## 프로젝트 비전
 

@@ -12,6 +12,7 @@ import { registerFileHandlers } from '../ipc/handlers/fileHandlers';
 import { registerLoggerHandlers } from '../ipc/handlers/loggerHandlers';
 import { registerMetadataHandlers } from '../ipc/handlers/metadataHandlers';
 import { registerSettingsHandlers } from '../ipc/handlers/settingsHandlers';
+import { registerTaskHandlers } from '../ipc/handlers/taskHandlers';
 import { ipcRegistry } from '../ipc/IPCRouter';
 import { settingsService } from '../services/appSettings';
 import { logger, loggerConfig, sessionManager } from './app-context';
@@ -62,6 +63,10 @@ export function setupIPCHandlers(): void {
   // File handlers
   const fileRouter = ipcRegistry.router('file');
   registerFileHandlers(fileRouter);
+
+  // Task handlers
+  const taskRouter = ipcRegistry.router('task');
+  registerTaskHandlers(taskRouter);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }

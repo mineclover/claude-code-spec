@@ -128,6 +128,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Link>
 
           <Link
+            to="/tasks"
+            className={`${styles.navItem} ${isActive('/tasks') ? styles.active : ''}`}
+          >
+            <span className={styles.icon}>✅</span>
+            <span>Tasks</span>
+          </Link>
+
+          <Link
             to="/settings"
             className={`${styles.navItem} ${isActive('/settings') ? styles.active : ''}`}
           >

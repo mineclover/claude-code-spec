@@ -13,6 +13,7 @@ import { exposeLoggerAPI } from './preload/apis/logger';
 import { exposeMetadataAPI } from './preload/apis/metadata';
 import { exposeSessionsAPI } from './preload/apis/sessions';
 import { exposeSettingsAPI } from './preload/apis/settings';
+import { exposeTaskAPI } from './preload/apis/task';
 
 // Expose all APIs to the renderer
 exposeClaudeAPI();
@@ -24,6 +25,7 @@ exposeAppSettingsAPI();
 exposeDocsAPI();
 exposeMetadataAPI();
 exposeFileAPI();
+exposeTaskAPI();
 
 // Re-export types for convenience
 export * from './types/api';

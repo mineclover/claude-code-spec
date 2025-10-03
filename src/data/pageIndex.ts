@@ -98,6 +98,16 @@ export const PAGE_INDEX: PageIndex[] = [
     ],
   },
   {
+    id: 'tasks',
+    name: 'Tasks',
+    displayName: '작업 관리',
+    description: '프로젝트 작업을 정의하고 에이전트에게 할당합니다. 리뷰어를 지정하여 결과를 검토할 수 있습니다.',
+    route: '/tasks',
+    icon: '✅',
+    category: 'management',
+    keywords: ['tasks', 'todo', 'agent', 'review', 'assignment', '작업', '할당', '리뷰'],
+  },
+  {
     id: 'settings',
     name: 'Settings',
     displayName: '설정',

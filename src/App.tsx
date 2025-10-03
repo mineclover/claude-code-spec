@@ -13,6 +13,7 @@ import { IndexPage } from './pages/IndexPage';
 import { McpConfigsPage } from './pages/McpConfigsPage';
 import { MemoryPage } from './pages/MemoryPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { TasksPage } from './pages/TasksPage';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
             <Route path="/claude-docs" element={<ClaudeDocsPage />} />
             <Route path="/controller-docs" element={<ControllerDocsPage />} />
             <Route path="/memory" element={<MemoryPage />} />
+            <Route path="/tasks" element={<TasksPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </Layout>
