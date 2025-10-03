@@ -275,7 +275,7 @@ export const ExecutePage: React.FC = () => {
     }
   };
 
-  // Load active executions
+  // Load active executions (only called on initial mount)
   const loadActiveExecutions = useCallback(async () => {
     try {
       const executions = await window.claudeAPI.getActiveExecutions();
@@ -322,8 +322,6 @@ export const ExecutePage: React.FC = () => {
         setIsRunning(true);
         setCurrentPid(data.pid);
       }
-      // Refresh active executions list
-      loadActiveExecutions();
     });
 
     window.claudeAPI.onClaudeStream((data) => {
@@ -349,20 +347,18 @@ export const ExecutePage: React.FC = () => {
         setIsRunning(false);
         setCurrentPid(null);
       }
-      // Refresh active executions list
-      loadActiveExecutions();
     });
-  }, [currentSessionId, loadActiveExecutions]);
+  }, [currentSessionId]);
 
-  // Periodic refresh of active executions
+  // Subscribe to executions updates (event-based, no polling)
   useEffect(() => {
     loadActiveExecutions(); // Initial load
 
-    const interval = setInterval(() => {
-      loadActiveExecutions();
-    }, 2000); // Refresh every 2 seconds
-
-    return () => clearInterval(interval);
+    // Subscribe to real-time updates
+    window.claudeAPI.onExecutionsUpdated((executions) => {
+      console.log('[ExecutePage] Executions updated:', executions.length);
+      setActiveExecutions(executions);
+    });
   }, [loadActiveExecutions]);
 
   return (

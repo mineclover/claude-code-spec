@@ -92,4 +92,5 @@ export interface ClaudeAPI {
   onClaudeStream: (callback: (data: ClaudeStreamData) => void) => void;
   onClaudeError: (callback: (data: ClaudeErrorData) => void) => void;
   onClaudeComplete: (callback: (data: ClaudeCompleteData) => void) => void;
+  onExecutionsUpdated: (callback: (executions: Array<Omit<ExecutionInfo, 'events'>>) => void) => void;
 }

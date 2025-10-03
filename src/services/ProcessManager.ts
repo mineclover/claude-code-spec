@@ -43,6 +43,23 @@ export interface StartExecutionParams {
 export class ProcessManager {
   private executions: Map<string, ExecutionInfo> = new Map();
   private maxConcurrent: number = 10; // Maximum concurrent executions
+  private executionsChangeListener?: () => void;
+
+  /**
+   * Set listener for executions state changes
+   */
+  setExecutionsChangeListener(listener: () => void): void {
+    this.executionsChangeListener = listener;
+  }
+
+  /**
+   * Notify listeners of executions state change
+   */
+  private notifyExecutionsChanged(): void {
+    if (this.executionsChangeListener) {
+      this.executionsChangeListener();
+    }
+  }
 
   /**
    * Start a new execution
@@ -97,6 +114,9 @@ export class ProcessManager {
             tempExecution.sessionId = newSessionId;
             this.executions.set(newSessionId, tempExecution);
             tempExecution = null; // Clear temp reference
+
+            // Notify listeners of new execution
+            this.notifyExecutionsChanged();
           }
         }
 
@@ -157,6 +177,9 @@ export class ProcessManager {
               status: execution.status,
               duration: execution.endTime - execution.startTime,
             });
+
+            // Notify listeners of status change
+            this.notifyExecutionsChanged();
           }
         }
 
@@ -189,6 +212,8 @@ export class ProcessManager {
     if (params.sessionId) {
       this.executions.set(params.sessionId, executionInfo);
       resolveSessionId!(params.sessionId);
+      // Notify listeners of new execution
+      this.notifyExecutionsChanged();
     } else {
       // New execution: store in temp until we get sessionId
       tempExecution = executionInfo;
@@ -204,6 +229,11 @@ export class ProcessManager {
         sessionId: params.sessionId || 'pending',
         pid: executionInfo.pid,
       });
+
+      // Notify listeners of status change to running
+      if (params.sessionId) {
+        this.notifyExecutionsChanged();
+      }
     } catch (error) {
       executionInfo.status = 'failed';
       executionInfo.endTime = Date.now();
@@ -279,6 +309,9 @@ export class ProcessManager {
       execution.client.kill();
       execution.status = 'killed';
       execution.endTime = Date.now();
+
+      // Notify listeners of status change
+      this.notifyExecutionsChanged();
     } catch (error) {
       console.error('[ProcessManager] Failed to kill execution:', {
         sessionId,
@@ -305,6 +338,9 @@ export class ProcessManager {
 
     console.log('[ProcessManager] Cleaning up execution:', sessionId);
     this.executions.delete(sessionId);
+
+    // Notify listeners of execution removal
+    this.notifyExecutionsChanged();
   }
 
   /**

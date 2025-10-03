@@ -57,5 +57,9 @@ export function exposeClaudeAPI(): void {
     onClaudeComplete: (callback: (data: ClaudeCompleteData) => void) => {
       ipcRenderer.on('claude:complete', (_event, data) => callback(data));
     },
+
+    onExecutionsUpdated: (callback: (executions: Array<Omit<ExecutionInfo, 'events'>>) => void) => {
+      ipcRenderer.on('executions:updated', (_event, executions) => callback(executions));
+    },
   } as ClaudeAPI);
 }

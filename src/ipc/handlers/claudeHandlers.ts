@@ -3,7 +3,7 @@
  * Handles Claude CLI execution and session management with ProcessManager
  */
 
-import type { IpcMainInvokeEvent } from 'electron';
+import { BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import type { SessionManager } from '../../lib/SessionManager';
 import type { StreamEvent } from '../../lib/StreamParser';
 import { extractSessionId, isResultEvent, isSystemInitEvent } from '../../lib/types';
@@ -18,6 +18,28 @@ interface ClaudeHandlersContext {
 
 export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandlersContext): void {
   const { sessionManager, logger } = context;
+
+  // Setup ProcessManager listener to broadcast execution changes
+  processManager.setExecutionsChangeListener(() => {
+    const activeExecutions = processManager.getActiveExecutions().map((exec) => ({
+      sessionId: exec.sessionId,
+      projectPath: exec.projectPath,
+      query: exec.query,
+      status: exec.status,
+      pid: exec.pid,
+      eventsCount: exec.events.length,
+      errorsCount: exec.errors.length,
+      startTime: exec.startTime,
+      endTime: exec.endTime,
+      mcpConfig: exec.mcpConfig,
+      model: exec.model,
+    }));
+
+    // Broadcast to all renderer windows
+    BrowserWindow.getAllWindows().forEach((window) => {
+      window.webContents.send('executions:updated', activeExecutions);
+    });
+  });
 
   // Shared execution logic using ProcessManager
   const executeClaudeCommand = async (
