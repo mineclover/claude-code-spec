@@ -69,6 +69,40 @@ permissions:
   - **allowList**: 허용된 작업 패턴 목록
   - **denyList**: 명시적으로 차단된 작업 패턴 목록
 
+## Agent Presets (권장)
+
+Agent 생성 시 `allowedTools`와 `permissions`를 매번 수동으로 작성하는 대신, **프리셋**을 사용하여 빠르고 일관되게 Agent를 생성할 수 있습니다.
+
+### Preset의 장점
+
+- **일관성**: 동일한 역할의 Agent는 동일한 도구와 권한 사용
+- **빠른 생성**: 검증된 프리셋으로 빠르게 Agent 생성
+- **안전성**: 실수로 과도한 권한 부여 방지
+- **재사용**: 자주 사용하는 조합을 프리셋으로 저장
+
+### Preset 종류
+
+1. **Tool Presets**: 도구 조합 (analyzer, developer, reviewer 등)
+2. **Permission Presets**: 권한 조합 (read-only, test-writer 등)
+3. **Combined Presets**: 도구 + 권한 통합 (test-generator, code-reviewer 등)
+
+### Preset 사용 예시
+
+```markdown
+---
+name: my-test-generator
+description: 내 프로젝트용 테스트 생성 Agent
+preset: test-generator  # Combined Preset 사용
+---
+
+# Role
+...
+```
+
+위처럼 `preset` 필드를 사용하면 `allowedTools`와 `permissions`가 자동으로 적용됩니다.
+
+**상세 문서**: [Agent Presets 가이드](./presets.md)
+
 ## Agents와 Tasks 통합
 
 ### Task에서 Agent 할당
@@ -331,17 +365,26 @@ Agent는 이 정보를 바탕으로 작업을 수행하고, 결과를 생성합�
 - [ ] Agent IPC 핸들러 구현 (`src/ipc/handlers/agentHandlers.ts`)
 - [ ] Agent API 노출 (`src/preload/apis/agent.ts`)
 
-### Phase 2: UI 컴포넌트
-- [ ] AgentsPage 구현 (Agent 관리 전용 페이지)
-- [ ] AgentSelector 컴포넌트 구현 (Tasks에서 사용)
+### Phase 2: Preset 시스템
+- [ ] Preset 타입 정의 (`src/types/preset.ts`)
+- [ ] YAML 파서 (js-yaml 라이브러리 사용)
+- [ ] Preset IPC 핸들러 (`src/ipc/handlers/presetHandlers.ts`)
+- [ ] Preset API 노출 (`src/preload/apis/preset.ts`)
+- [ ] 기본 프리셋 파일 생성 (`.claude/presets/*.yaml`)
+
+### Phase 3: UI 컴포넌트
+- [ ] PresetsPage 구현 (Preset 관리 페이지)
+- [ ] PresetSelector 컴포넌트 (Agent 생성 시 사용)
+- [ ] AgentsPage 구현 (Agent 관리 페이지, PresetSelector 포함)
+- [ ] AgentSelector 컴포넌트 (Tasks에서 사용)
 - [ ] TasksPage에 AgentSelector 통합
 
-### Phase 3: Execute 통합
+### Phase 4: Execute 통합
 - [ ] Task 기반 Execute 명령 생성 로직
 - [ ] Agent와 Task 정보를 Execute에 전달
 - [ ] Execute 결과를 Reviewer Agent에게 전달하는 워크플로우
 
-### Phase 4: 문서 및 예제
+### Phase 5: 문서 및 예제
 - [ ] 샘플 Agent 파일 생성 (`.claude/agents/` 예제)
 - [ ] Agent 작성 가이드 문서
 - [ ] Task + Agent 워크플로우 예제

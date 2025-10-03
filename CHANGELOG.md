@@ -23,6 +23,11 @@ All notable changes to this project will be documented in this file.
 - **Agent 저장소**: 프로젝트 레벨(`.claude/agents/`)과 사용자 레벨(`~/.claude/agents/`) 지원
 - **Tasks 통합**: Tasks에서 assigned_agent 및 reviewer 선택 기능
 - **Execute 통합**: `claude --agent <name>` 명령으로 Agent 실행
+- **Agent Presets**: 도구 및 권한 조합을 프리셋으로 관리하여 일관된 Agent 생성 지원
+  - Tool Presets (analyzer, developer, reviewer, tester)
+  - Permission Presets (read-only, test-writer, full-developer)
+  - Combined Presets (test-generator, code-reviewer, doc-generator)
+  - Presets 관리 페이지
 
 #### 실행 관리 개선
 - **ExecutionsPage**: 모든 실행 목록을 한눈에 확인
@@ -50,6 +55,7 @@ All notable changes to this project will be documented in this file.
 - **README.md**: 주요 특징 재구성, Tasks 기능 섹션 추가, 프로젝트 구조 업데이트
 - **Tasks 문서**: 상세한 Tasks 기능 사용 가이드 추가
 - **Agents 문서**: Agents 기능 설계 및 구현 계획 문서 작성
+- **Agent Presets 문서**: 도구 및 권한 프리셋 시스템 설계 문서 작성
 
 ### Fixed
 - **세션 아이템 overflow**: ExecutePage와 ExecutionsPage의 sessionItem 내용 잘림 현상 해결
