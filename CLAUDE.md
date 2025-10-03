@@ -24,16 +24,16 @@ npm run start
 ### 작업 관리 (Tasks) - Execute 최적화
 8. **의존성 분석**: 작업 수행에 필요한 파일 및 문서 의존성 사전 정의
 9. **컨텍스트 배정**: Execute 시 자동으로 필요한 컨텍스트 구성
-10. **작업 영역 관리**: 계층적 Work Area 시스템으로 작업 분류 및 필터링
-11. **작업 영역 할당**: Area 설정으로 불필요한 컨텍스트 차단
+10. **작업 영역 관리**: 계층적 Work Area 시스템(13개 영역, 5개 카테고리)으로 작업 분류 및 할당
+11. **작업 영역 선택**: WorkAreaSelector 컴포넌트로 카테고리별 그룹화된 영역 선택
 12. **Execute 통합**: Task를 선택하여 최적화된 Claude CLI 실행
 13. **성공 기준 검증**: 체크리스트 기반 결과 검증
 14. **리뷰 시스템**: 리뷰어 지정 및 산출물 검토
 
 ### Agent 관리
 15. **전문화된 Agent 정의**: 프로젝트 및 사용자 레벨 Agent 관리
-16. **도구 그룹 선택**: 7개 도구 그룹으로 투명한 권한 관리
-17. **Permission 패턴**: 파일 및 명령어 접근 제어
+16. **도구 선택**: ToolSelector 컴포넌트로 개별 도구 및 도구 그룹 선택
+17. **Permission 패턴**: 파일 및 명령어 접근 제어 (allowList/denyList)
 18. **Agent 컨텍스트**: 프로젝트 아키텍처 및 코딩 규칙 문서 제공
 
 ### 문서 및 설정
@@ -177,6 +177,43 @@ permissions:
   events: StreamEvent[];
 }
 ```
+
+### Work Areas 상세
+
+**목적**: 작업을 계층적으로 분류하여 일관된 작업 영역 관리 및 향후 컨텍스트 최적화 지원
+
+**설정 파일**: `.claude/work-areas.json`
+
+**구조**: Category/Subcategory 2단계 계층
+
+**기본 제공 Work Areas (13개)**:
+
+**Frontend (3개)**:
+- `Frontend/Pages` - 페이지 컴포넌트
+- `Frontend/Components` - 재사용 컴포넌트
+- `Frontend/Contexts` - React Context 및 상태 관리
+
+**Backend (3개)**:
+- `Backend/IPC` - IPC 핸들러
+- `Backend/Lib` - 유틸리티 라이브러리
+- `Backend/Process` - 프로세스 관리 및 실행
+
+**Infra (2개)**:
+- `Infra/Build` - 빌드 설정
+- `Infra/Deploy` - 배포 설정
+
+**Docs (3개)**:
+- `Docs/Features` - 기능 문서
+- `Docs/Architecture` - 아키텍처 문서
+- `Docs/Guides` - 사용 가이드
+
+**Test (2개)**:
+- `Test/Unit` - 유닛 테스트
+- `Test/Integration` - 통합 테스트
+
+**커스터마이징**: `.claude/work-areas.json` 파일 편집으로 프로젝트별 Work Area 추가/수정 가능
+
+**UI 컴포넌트**: `WorkAreaSelector` - 카테고리별 그룹화된 드롭다운 선택기
 
 ## IPC 채널
 

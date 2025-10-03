@@ -95,13 +95,31 @@ Task 생성 및 편집 시 Work Area를 선택하는 드롭다운 컴포넌트�
 
 ```typescript
 import { WorkAreaSelector } from '../components/task/WorkAreaSelector';
+import { useState } from 'react';
 
-<WorkAreaSelector
-  projectPath={projectPath}
-  selectedArea={area}
-  onAreaChange={setArea}
-/>
+function TaskEditor({ projectPath }: { projectPath: string }) {
+  const [area, setArea] = useState('');
+
+  return (
+    <div>
+      {projectPath && (
+        <WorkAreaSelector
+          projectPath={projectPath}
+          selectedArea={area}
+          onAreaChange={setArea}
+        />
+      )}
+    </div>
+  );
+}
 ```
+
+**UI 동작:**
+- **옵션 그룹화**: `<optgroup>`으로 카테고리별 그룹화
+- **표시 형식**: 드롭다운에서 "Subcategory - Description" 표시
+- **선택 배지**: 선택 시 "Frontend/Pages" 형식의 배지 표시
+- **로딩 상태**: 데이터 로드 중 선택기 비활성화
+- **조건부 렌더링**: projectPath가 없으면 컴포넌트 미표시
 
 ## IPC API
 
@@ -110,12 +128,19 @@ import { WorkAreaSelector } from '../components/task/WorkAreaSelector';
 프로젝트의 모든 Work Area 목록을 가져옵니다.
 
 ```typescript
-const areas = await window.workAreaAPI.getWorkAreas(projectPath);
+try {
+  const areas = await window.workAreaAPI.getWorkAreas(projectPath);
+  console.log('Available work areas:', areas);
+  // areas는 빈 배열일 수 있음 (.claude/work-areas.json 없는 경우)
+} catch (error) {
+  console.error('Failed to load work areas:', error);
+  // 에러 처리: toast 메시지, 기본값 사용 등
+}
 ```
 
 **반환값:**
 ```typescript
-WorkArea[]
+WorkArea[] // .claude/work-areas.json이 없으면 빈 배열 반환
 ```
 
 ### updateWorkAreas
@@ -123,7 +148,16 @@ WorkArea[]
 프로젝트의 Work Area 설정을 업데이트합니다.
 
 ```typescript
-const result = await window.workAreaAPI.updateWorkAreas(projectPath, areas);
+try {
+  const result = await window.workAreaAPI.updateWorkAreas(projectPath, areas);
+  if (result.success) {
+    console.log('Work areas updated successfully');
+  } else {
+    console.error('Failed to update:', result.error);
+  }
+} catch (error) {
+  console.error('Failed to update work areas:', error);
+}
 ```
 
 **반환값:**
@@ -218,6 +252,102 @@ Work Area 이름은 명확하고 구체적이어야 합니다:
 프로젝트 전체에서 일관된 Work Area를 사용합니다:
 - 새 Task 생성 시 기존 Work Area 선택
 - 필요 시에만 새 Work Area 추가
+
+## 트러블슈팅
+
+### Work Area 목록이 비어있음
+
+**증상**: WorkAreaSelector가 옵션을 표시하지 않음
+
+**원인**: `.claude/work-areas.json` 파일이 없거나 비어있음
+
+**해결방법**:
+```bash
+# 파일 존재 확인
+ls .claude/work-areas.json
+
+# 파일이 없으면 기본 설정 복사
+cp docs/examples/work-areas.json .claude/
+```
+
+### Work Area 선택이 저장되지 않음
+
+**증상**: Task를 저장했지만 area 필드가 비어있음
+
+**원인**:
+- WorkAreaSelector의 onAreaChange 콜백이 연결되지 않음
+- Task 저장 시 area 필드가 포함되지 않음
+
+**해결방법**:
+```typescript
+// TasksPage에서 확인
+const [area, setArea] = useState('');
+
+// WorkAreaSelector에 올바른 콜백 전달
+<WorkAreaSelector
+  selectedArea={area}
+  onAreaChange={setArea}  // ✅ 상태 업데이트 함수 연결
+/>
+
+// Task 생성 시 area 포함
+const task = {
+  id: taskId,
+  title,
+  area,  // ✅ area 필드 포함
+  // ...
+};
+```
+
+### 커스텀 Work Area가 표시되지 않음
+
+**증상**: `.claude/work-areas.json`에 추가했지만 UI에 나타나지 않음
+
+**원인**: JSON 형식 오류 또는 필수 필드 누락
+
+**해결방법**:
+```json
+{
+  "areas": [
+    {
+      "id": "custom-area",           // ✅ 필수: 고유 ID
+      "category": "Custom",           // ✅ 필수: 카테고리
+      "subcategory": "MyArea",        // ✅ 필수: 서브카테고리
+      "displayName": "Custom/MyArea", // ✅ 필수: 표시 이름
+      "description": "My custom area" // ✅ 필수: 설명
+    }
+  ]
+}
+```
+
+**검증 방법**:
+```bash
+# JSON 형식 검증
+cat .claude/work-areas.json | jq '.'
+
+# 에러가 있으면 수정 후 재시작
+```
+
+### Work Area 업데이트 실패
+
+**증상**: `updateWorkAreas()` 호출 시 에러 발생
+
+**원인**:
+- 파일 쓰기 권한 없음
+- JSON 형식 오류
+
+**해결방법**:
+```typescript
+try {
+  const result = await window.workAreaAPI.updateWorkAreas(projectPath, areas);
+  if (!result.success) {
+    console.error('Update failed:', result.error);
+    // 구체적인 에러 메시지 확인
+  }
+} catch (error) {
+  console.error('Unexpected error:', error);
+  // 파일 권한, 경로 등 확인
+}
+```
 
 ## 향후 계획
 

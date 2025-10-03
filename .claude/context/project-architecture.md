@@ -153,6 +153,10 @@ Task content here...
 
 **파일 위치**: `.claude/work-areas.json`
 
+**저장 형식**: JSON (Markdown 아님)
+- 이유: 단순 구조화 데이터, UI 드롭다운용, 프로젝트당 단일 설정
+- 사용자 레벨 오버라이드 미지원 (프로젝트 레벨만)
+
 **주요 필드**:
 - `id`: 고유 식별자 (예: `frontend-pages`)
 - `category`: 메인 카테고리 (예: `Frontend`)
@@ -160,12 +164,28 @@ Task content here...
 - `displayName`: 표시 이름 (예: `Frontend/Pages`)
 - `description`: 작업 영역 설명
 
-**기본 카테고리** (5개):
+**기본 카테고리** (5개, 총 13개 영역):
 - **Frontend**: Pages, Components, Contexts
 - **Backend**: IPC, Lib, Process
 - **Infra**: Build, Deploy
 - **Docs**: Features, Architecture, Guides
 - **Test**: Unit, Integration
+
+**IPC 통신**:
+- **Namespace**: `work-area:`
+- **API Methods**:
+  - `window.workAreaAPI.getWorkAreas(projectPath)` → `WorkArea[]`
+  - `window.workAreaAPI.updateWorkAreas(projectPath, areas)` → `{success, error?}`
+
+**UI 컴포넌트**:
+- `src/components/task/WorkAreaSelector.tsx`
+- 카테고리별 그룹화된 드롭다운
+- TasksPage에서 사용
+
+**Task와의 통합**:
+```yaml
+area: Frontend/Pages  # displayName을 area 필드에 저장
+```
 
 ### Executions (실행 관리)
 
