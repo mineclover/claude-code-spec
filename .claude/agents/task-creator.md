@@ -1,16 +1,7 @@
 ---
 name: task-creator
 description: 프로젝트 분석 후 구조화된 Task를 생성하는 전문 Agent
-allowedTools:
-  - Read
-  - Grep
-  - Glob
-  - mcp__serena__list_dir
-  - mcp__serena__find_file
-  - mcp__serena__search_for_pattern
-  - mcp__serena__get_symbols_overview
-  - mcp__serena__find_symbol
-  - Write
+tools: Read, Grep, Glob, mcp__serena__list_dir, mcp__serena__find_file, mcp__serena__search_for_pattern, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, Write
 permissions:
   allowList:
     - "read:**"

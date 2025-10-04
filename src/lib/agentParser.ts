@@ -130,8 +130,9 @@ export function generateAgentMarkdown(agent: Agent): string {
 name: ${agent.name}
 description: ${agent.description}`;
 
+  // Use Claude Code compatible format: "tools: tool1, tool2, tool3"
   if (agent.allowedTools && agent.allowedTools.length > 0) {
-    frontmatter += `\nallowedTools: [${agent.allowedTools.join(', ')}]`;
+    frontmatter += `\ntools: ${agent.allowedTools.join(', ')}`;
   }
 
   if (agent.permissions) {
