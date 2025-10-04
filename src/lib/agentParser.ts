@@ -152,7 +152,9 @@ description: ${agent.description}`;
 
   frontmatter += `\n---`;
 
-  return `${frontmatter}\n\n${agent.content}`.trim();
+  // Ensure content is a string (handle undefined/null)
+  const bodyContent = agent.content || '';
+  return `${frontmatter}\n\n${bodyContent}`.trim();
 }
 
 /**

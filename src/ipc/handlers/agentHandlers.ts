@@ -39,19 +39,30 @@ function getProjectAgentsDir(projectPath: string): string {
 export function registerAgentHandlers(router: IPCRouter): void {
   // List all agents (both project and user level)
   router.handle<{ projectPath: string }, AgentListItem[]>('listAgents', async ({ projectPath }) => {
+    console.log('[AgentHandlers] listAgents called with projectPath:', projectPath);
     try {
       const agents: AgentListItem[] = [];
 
       // Get project-level agents
       const projectAgentsDir = getProjectAgentsDir(projectPath);
+      console.log('[AgentHandlers] Project agents dir:', projectAgentsDir);
+
       const projectFiles = await listMarkdownFiles(projectAgentsDir);
+      console.log('[AgentHandlers] Found project files:', projectFiles.length, projectFiles);
 
       for (const filePath of projectFiles) {
         try {
           const content = await readMarkdownFile(filePath);
-          if (!content) continue;
+          if (!content) {
+            console.warn(`[AgentHandlers] No content for file:`, filePath);
+            continue;
+          }
 
           const agent = parseAgentMarkdown(content, filePath, 'project');
+          console.log(`[AgentHandlers] Parsed agent:`, agent.name, {
+            tools: agent.allowedTools?.length,
+            permissions: !!agent.permissions
+          });
 
           agents.push({
             name: agent.name,
@@ -62,7 +73,7 @@ export function registerAgentHandlers(router: IPCRouter): void {
             hasPermissions: !!agent.permissions,
           });
         } catch (error) {
-          console.warn(`[AgentHandlers] Failed to parse agent ${filePath}:`, error);
+          console.error(`[AgentHandlers] Failed to parse agent ${filePath}:`, error);
         }
       }
 
@@ -93,6 +104,7 @@ export function registerAgentHandlers(router: IPCRouter): void {
       // Sort by name
       agents.sort((a, b) => a.name.localeCompare(b.name));
 
+      console.log(`[AgentHandlers] Returning ${agents.length} agents:`, agents.map(a => a.name));
       return agents;
     } catch (error) {
       console.error('[AgentHandlers] Failed to list agents:', error);
