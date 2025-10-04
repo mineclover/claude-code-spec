@@ -135,26 +135,33 @@ description: ${agent.description}`;
     frontmatter += `\ntools: ${agent.allowedTools.join(', ')}`;
   }
 
-  if (agent.permissions) {
-    frontmatter += `\npermissions:`;
-    if (agent.permissions.allowList && agent.permissions.allowList.length > 0) {
-      frontmatter += `\n  allowList:`;
-      agent.permissions.allowList.forEach((pattern) => {
-        frontmatter += `\n    - "${pattern}"`;
-      });
-    }
-    if (agent.permissions.denyList && agent.permissions.denyList.length > 0) {
-      frontmatter += `\n  denyList:`;
-      agent.permissions.denyList.forEach((pattern) => {
-        frontmatter += `\n    - "${pattern}"`;
-      });
-    }
-  }
+  // Add model field (Claude Code standard)
+  frontmatter += `\nmodel: sonnet`;
 
   frontmatter += `\n---`;
 
   // Ensure content is a string (handle undefined/null)
-  const bodyContent = agent.content || '';
+  let bodyContent = agent.content || '';
+
+  // Add permissions as documentation in body (Claude Code doesn't support permissions in frontmatter)
+  if (agent.permissions) {
+    let permissionsDoc = '\n## 권한 가이드라인\n\n';
+    if (agent.permissions.allowList && agent.permissions.allowList.length > 0) {
+      permissionsDoc += '**허용:**\n';
+      agent.permissions.allowList.forEach((pattern) => {
+        permissionsDoc += `- ${pattern}\n`;
+      });
+    }
+    if (agent.permissions.denyList && agent.permissions.denyList.length > 0) {
+      permissionsDoc += '\n**거부:**\n';
+      agent.permissions.denyList.forEach((pattern) => {
+        permissionsDoc += `- ${pattern}\n`;
+      });
+    }
+    // Prepend permissions to content
+    bodyContent = permissionsDoc + '\n' + bodyContent;
+  }
+
   return `${frontmatter}\n\n${bodyContent}`.trim();
 }
 
