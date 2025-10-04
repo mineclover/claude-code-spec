@@ -38,7 +38,8 @@ function getProjectAgentsDir(projectPath: string): string {
  */
 export function registerAgentHandlers(router: IPCRouter): void {
   // List all agents (both project and user level)
-  router.handle<{ projectPath: string }, AgentListItem[]>('listAgents', async ({ projectPath }) => {
+  router.handle('listAgents', async (_event, args: { projectPath: string }): Promise<AgentListItem[]> => {
+    const { projectPath } = args;
     console.log('[AgentHandlers] listAgents called with projectPath:', projectPath);
     try {
       const agents: AgentListItem[] = [];
@@ -113,10 +114,11 @@ export function registerAgentHandlers(router: IPCRouter): void {
   });
 
   // Get a single agent
-  router.handle<
-    { source: 'project' | 'user'; agentName: string; projectPath?: string },
-    string | null
-  >('getAgent', async ({ source, agentName, projectPath }) => {
+  router.handle('getAgent', async (
+    _event,
+    args: { source: 'project' | 'user'; agentName: string; projectPath?: string }
+  ): Promise<string | null> => {
+    const { source, agentName, projectPath } = args;
     try {
       let agentsDir: string;
 
@@ -138,10 +140,11 @@ export function registerAgentHandlers(router: IPCRouter): void {
   });
 
   // Create a new agent
-  router.handle<
-    { source: 'project' | 'user'; agentName: string; content: string; projectPath?: string },
-    { success: boolean; error?: string }
-  >('createAgent', async ({ source, agentName, content, projectPath }) => {
+  router.handle('createAgent', async (
+    _event,
+    args: { source: 'project' | 'user'; agentName: string; content: string; projectPath?: string }
+  ): Promise<{ success: boolean; error?: string }> => {
+    const { source, agentName, content, projectPath } = args;
     try {
       let agentsDir: string;
 
@@ -171,10 +174,11 @@ export function registerAgentHandlers(router: IPCRouter): void {
   });
 
   // Update an existing agent
-  router.handle<
-    { source: 'project' | 'user'; agentName: string; content: string; projectPath?: string },
-    { success: boolean; error?: string }
-  >('updateAgent', async ({ source, agentName, content, projectPath }) => {
+  router.handle('updateAgent', async (
+    _event,
+    args: { source: 'project' | 'user'; agentName: string; content: string; projectPath?: string }
+  ): Promise<{ success: boolean; error?: string }> => {
+    const { source, agentName, content, projectPath } = args;
     try {
       let agentsDir: string;
 
@@ -197,10 +201,11 @@ export function registerAgentHandlers(router: IPCRouter): void {
   });
 
   // Delete an agent
-  router.handle<
-    { source: 'project' | 'user'; agentName: string; projectPath?: string },
-    { success: boolean; error?: string }
-  >('deleteAgent', async ({ source, agentName, projectPath }) => {
+  router.handle('deleteAgent', async (
+    _event,
+    args: { source: 'project' | 'user'; agentName: string; projectPath?: string }
+  ): Promise<{ success: boolean; error?: string }> => {
+    const { source, agentName, projectPath } = args;
     try {
       let agentsDir: string;
 
