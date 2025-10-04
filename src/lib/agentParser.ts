@@ -138,6 +138,9 @@ description: ${agent.description}`;
   // Add model field (Claude Code standard)
   frontmatter += `\nmodel: sonnet`;
 
+  // Add color field (UI hint)
+  frontmatter += `\ncolor: blue`;
+
   frontmatter += `\n---`;
 
   // Ensure content is a string (handle undefined/null)
