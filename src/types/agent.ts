@@ -2,10 +2,12 @@ export interface AgentMetadata {
   name: string; // 필수: Agent 고유 식별자 (e.g., "test-generator")
   description: string; // 필수: Agent 역할 및 목적 요약
   allowedTools?: string[]; // 선택: 허용된 도구 목록 (e.g., ["Read", "Write", "Bash"])
+  model?: 'sonnet' | 'opus' | 'haiku'; // 선택: Claude 모델 (Claude Code 호환)
+  color?: string; // 선택: UI 힌트 색상 (Claude Code 호환, e.g., "blue", "purple")
   permissions?: {
     allowList?: string[]; // 허용 패턴 (e.g., ["read:src/**", "write:tests/**"])
     denyList?: string[]; // 거부 패턴 (e.g., ["write:src/**", "read:.env"])
-  };
+  }; // Note: Claude Code는 permissions를 지원하지 않음. 본문에 문서화됨.
 }
 
 export interface Agent extends AgentMetadata {

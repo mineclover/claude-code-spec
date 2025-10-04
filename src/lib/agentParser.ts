@@ -115,6 +115,8 @@ export function parseAgentMarkdown(
     name: metadata.name,
     description: metadata.description,
     allowedTools: metadata.allowedTools,
+    model: metadata.model as 'sonnet' | 'opus' | 'haiku' | undefined,
+    color: metadata.color,
     permissions: metadata.permissions,
     content: body,
     filePath,
@@ -136,10 +138,12 @@ description: ${agent.description}`;
   }
 
   // Add model field (Claude Code standard)
-  frontmatter += `\nmodel: sonnet`;
+  const model = agent.model || 'sonnet';
+  frontmatter += `\nmodel: ${model}`;
 
   // Add color field (UI hint)
-  frontmatter += `\ncolor: blue`;
+  const color = agent.color || 'blue';
+  frontmatter += `\ncolor: ${color}`;
 
   frontmatter += `\n---`;
 

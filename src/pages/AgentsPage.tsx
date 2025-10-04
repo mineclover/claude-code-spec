@@ -21,6 +21,8 @@ export const AgentsPage: React.FC = () => {
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [allowedTools, setAllowedTools] = useState<string[]>([]);
+  const [model, setModel] = useState<'sonnet' | 'opus' | 'haiku'>('sonnet');
+  const [color, setColor] = useState('blue');
   const [permissions, setPermissions] = useState<AgentMetadata['permissions']>(undefined);
   const [sourceType, setSourceType] = useState<'project' | 'user'>('project');
 
@@ -58,6 +60,8 @@ export const AgentsPage: React.FC = () => {
           setDescription(agent.description);
           setContent(agent.content);
           setAllowedTools(agent.allowedTools || []);
+          setModel(agent.model || 'sonnet');
+          setColor(agent.color || 'blue');
           setPermissions(agent.permissions);
           setSourceType(source);
           setIsEditing(false);
@@ -83,6 +87,8 @@ export const AgentsPage: React.FC = () => {
     setDescription('');
     setContent('');
     setAllowedTools([]);
+    setModel('sonnet');
+    setColor('blue');
     setPermissions(undefined);
     setSourceType('project');
     setIsEditing(true);
@@ -111,6 +117,8 @@ export const AgentsPage: React.FC = () => {
         description,
         content,
         allowedTools: allowedTools.length > 0 ? allowedTools : undefined,
+        model,
+        color,
         permissions,
         filePath: '',
         source: sourceType,
@@ -175,6 +183,8 @@ export const AgentsPage: React.FC = () => {
       setDescription('');
       setContent('');
       setAllowedTools([]);
+      setModel('sonnet');
+      setColor('blue');
       setPermissions(undefined);
       setIsCreating(false);
     } else if (selectedAgent) {
@@ -183,6 +193,8 @@ export const AgentsPage: React.FC = () => {
       setDescription(selectedAgent.description);
       setContent(selectedAgent.content);
       setAllowedTools(selectedAgent.allowedTools || []);
+      setModel(selectedAgent.model || 'sonnet');
+      setColor(selectedAgent.color || 'blue');
       setPermissions(selectedAgent.permissions);
       setSourceType(selectedAgent.source);
     }
@@ -379,8 +391,52 @@ export const AgentsPage: React.FC = () => {
                     className={styles.input}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Brief description of agent's role"
+                    placeholder='Expert specialist. Use when user requests...'
                   />
+                  <p className={styles.hint}>
+                    Include "Use when" to define trigger conditions (Claude Code compatible)
+                  </p>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="model">
+                    Model:
+                  </label>
+                  <select
+                    id="model"
+                    className={styles.select}
+                    value={model}
+                    onChange={(e) => setModel(e.target.value as 'sonnet' | 'opus' | 'haiku')}
+                  >
+                    <option value="sonnet">Sonnet (Balanced)</option>
+                    <option value="opus">Opus (Powerful)</option>
+                    <option value="haiku">Haiku (Fast)</option>
+                  </select>
+                  <p className={styles.hint}>
+                    Claude model for this agent (Claude Code compatible)
+                  </p>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="color">
+                    Color:
+                  </label>
+                  <select
+                    id="color"
+                    className={styles.select}
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                  >
+                    <option value="blue">Blue</option>
+                    <option value="purple">Purple</option>
+                    <option value="green">Green</option>
+                    <option value="red">Red</option>
+                    <option value="yellow">Yellow</option>
+                    <option value="orange">Orange</option>
+                  </select>
+                  <p className={styles.hint}>
+                    UI hint color (Claude Code compatible)
+                  </p>
                 </div>
 
                 <div className={styles.formGroup}>
@@ -408,6 +464,10 @@ export const AgentsPage: React.FC = () => {
                     permissions={permissions}
                     onPermissionsChange={setPermissions}
                   />
+                  <p className={styles.hint} style={{ marginTop: '0.5rem', color: '#ff9800' }}>
+                    ⚠️ Note: Claude Code does not support permissions in frontmatter.
+                    Permissions will be converted to documentation in the agent body.
+                  </p>
                 </div>
               </div>
             ) : (
@@ -423,6 +483,20 @@ export const AgentsPage: React.FC = () => {
                   </div>
                   <div className={styles.previewItem}>
                     <strong>Description:</strong> {selectedAgent?.description}
+                  </div>
+                  <div className={styles.previewItem}>
+                    <strong>Model:</strong> {selectedAgent?.model || 'sonnet'}
+                  </div>
+                  <div className={styles.previewItem}>
+                    <strong>Color:</strong> <span style={{
+                      display: 'inline-block',
+                      width: '12px',
+                      height: '12px',
+                      backgroundColor: selectedAgent?.color || 'blue',
+                      borderRadius: '2px',
+                      marginRight: '4px',
+                      verticalAlign: 'middle'
+                    }} /> {selectedAgent?.color || 'blue'}
                   </div>
                 </div>
 
