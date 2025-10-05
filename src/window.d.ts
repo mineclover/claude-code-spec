@@ -1,4 +1,5 @@
 import type { AgentAPI } from './preload/apis/agent';
+import type { OutputStyleAPI } from './preload/apis/outputStyle';
 import type { TaskAPI } from './preload/apis/task';
 import type { WorkAreaAPI } from './preload/apis/workArea';
 import type {
@@ -27,5 +28,6 @@ declare global {
     taskAPI: TaskAPI;
     agentAPI: AgentAPI;
     workAreaAPI: WorkAreaAPI;
+    outputStyleAPI: OutputStyleAPI;
   }
 }

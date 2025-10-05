@@ -12,6 +12,7 @@ import { registerDocsHandlers } from '../ipc/handlers/docsHandlers';
 import { registerFileHandlers } from '../ipc/handlers/fileHandlers';
 import { registerLoggerHandlers } from '../ipc/handlers/loggerHandlers';
 import { registerMetadataHandlers } from '../ipc/handlers/metadataHandlers';
+import { registerOutputStyleHandlers } from '../ipc/handlers/outputStyleHandlers';
 import { registerSettingsHandlers } from '../ipc/handlers/settingsHandlers';
 import { registerTaskHandlers } from '../ipc/handlers/taskHandlers';
 import { registerWorkAreaHandlers } from '../ipc/handlers/workAreaHandlers';
@@ -77,6 +78,10 @@ export function setupIPCHandlers(): void {
   // Work area handlers
   const workAreaRouter = ipcRegistry.router('work-area');
   registerWorkAreaHandlers(workAreaRouter);
+
+  // Output style handlers
+  const outputStyleRouter = ipcRegistry.router('output-style');
+  registerOutputStyleHandlers(outputStyleRouter);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }

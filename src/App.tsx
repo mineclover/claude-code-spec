@@ -13,6 +13,7 @@ import { ExecutionsPage } from './pages/ExecutionsPage';
 import { IndexPage } from './pages/IndexPage';
 import { McpConfigsPage } from './pages/McpConfigsPage';
 import { MemoryPage } from './pages/MemoryPage';
+import { OutputStylesPage } from './pages/OutputStylesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TasksPage } from './pages/TasksPage';
 
@@ -38,6 +39,7 @@ function App() {
             <Route path="/memory" element={<MemoryPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/agents" element={<AgentsPage />} />
+            <Route path="/output-styles" element={<OutputStylesPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </Layout>

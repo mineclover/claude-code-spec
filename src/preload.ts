@@ -12,6 +12,7 @@ import { exposeDocsAPI } from './preload/apis/docs';
 import { exposeFileAPI } from './preload/apis/file';
 import { exposeLoggerAPI } from './preload/apis/logger';
 import { exposeMetadataAPI } from './preload/apis/metadata';
+import { exposeOutputStyleAPI } from './preload/apis/outputStyle';
 import { exposeSessionsAPI } from './preload/apis/sessions';
 import { exposeSettingsAPI } from './preload/apis/settings';
 import { exposeTaskAPI } from './preload/apis/task';
@@ -30,6 +31,7 @@ exposeFileAPI();
 exposeTaskAPI();
 exposeAgentAPI();
 exposeWorkAreaAPI();
+exposeOutputStyleAPI();
 
 // Re-export types for convenience
 export * from './types/api';

@@ -7,5 +7,6 @@ export * from './docs';
 export * from './file';
 export * from './logger';
 export * from './metadata';
+export * from './outputStyle';
 export * from './sessions';
 export * from './settings';

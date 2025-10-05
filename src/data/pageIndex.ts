@@ -129,6 +129,27 @@ export const PAGE_INDEX: PageIndex[] = [
     ],
   },
   {
+    id: 'output-styles',
+    name: 'Output Styles',
+    displayName: 'Output Styles',
+    description:
+      'Claude Code의 출력 스타일과 동작을 설정합니다. JSON 출력, 설명형 응답 등 다양한 스타일을 적용할 수 있습니다.',
+    route: '/output-styles',
+    icon: '🎨',
+    category: 'configuration',
+    keywords: [
+      'output',
+      'style',
+      'format',
+      'json',
+      'custom',
+      'behavior',
+      '출력',
+      '스타일',
+      '형식',
+    ],
+  },
+  {
     id: 'settings',
     name: 'Settings',
     displayName: '설정',

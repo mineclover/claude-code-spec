@@ -144,6 +144,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Link>
 
           <Link
+            to="/output-styles"
+            className={`${styles.navItem} ${isActive('/output-styles') ? styles.active : ''}`}
+          >
+            <span className={styles.icon}>🎨</span>
+            <span>Output Styles</span>
+          </Link>
+
+          <Link
             to="/settings"
             className={`${styles.navItem} ${isActive('/settings') ? styles.active : ''}`}
           >
