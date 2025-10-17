@@ -69,6 +69,16 @@ export function McpConfigsPage() {
     setSelectedConfig(config);
     setEditingContent(config.content);
     setIsCreating(false);
+
+    // Parse current config to extract selected servers
+    try {
+      const parsed = JSON.parse(config.content);
+      const serverNames = parsed.mcpServers ? Object.keys(parsed.mcpServers) : [];
+      setSelectedServers(serverNames);
+    } catch (error) {
+      console.error('Failed to parse config:', error);
+      setSelectedServers([]);
+    }
   };
 
   const handleSaveConfig = async () => {
@@ -169,9 +179,45 @@ export function McpConfigsPage() {
   };
 
   const toggleServerSelection = (serverName: string) => {
-    setSelectedServers((prev) =>
-      prev.includes(serverName) ? prev.filter((s) => s !== serverName) : [...prev, serverName],
-    );
+    setSelectedServers((prev) => {
+      const newSelection = prev.includes(serverName)
+        ? prev.filter((s) => s !== serverName)
+        : [...prev, serverName];
+
+      // If editing an existing config, update the JSON content
+      if (selectedConfig && !isCreating) {
+        updateConfigContent(newSelection);
+      }
+
+      return newSelection;
+    });
+  };
+
+  const updateConfigContent = (serverNames: string[]) => {
+    try {
+      // Build new config from selected servers
+      const selectedServerConfigs = availableServers.filter((s) => serverNames.includes(s.name));
+
+      const mcpConfig: {
+        mcpServers: Record<string, { type: string; command: string; args: string[]; env: Record<string, string> }>;
+      } = {
+        mcpServers: {},
+      };
+
+      for (const server of selectedServerConfigs) {
+        mcpConfig.mcpServers[server.name] = {
+          type: server.type,
+          command: server.command,
+          args: server.args,
+          env: server.env,
+        };
+      }
+
+      setEditingContent(JSON.stringify(mcpConfig, null, 2));
+    } catch (error) {
+      console.error('Failed to update config content:', error);
+      toast.error('Failed to update configuration');
+    }
   };
 
   if (!projectPath) {
@@ -483,14 +529,83 @@ export function McpConfigsPage() {
                 </div>
               </div>
 
+              {/* Server Selection for Editing */}
               <div className={styles.formGroup}>
-                <div className={styles.formLabel}>Configuration Content</div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '12px',
+                  }}
+                >
+                  <div className={styles.formLabel} style={{ margin: 0 }}>
+                    Select MCP Servers ({selectedServers.length} selected)
+                  </div>
+                  <button
+                    type="button"
+                    onClick={loadAvailableServers}
+                    className={styles.refreshServersButton}
+                    title="Refresh server list from configured paths"
+                  >
+                    🔄 Refresh Servers
+                  </button>
+                </div>
+                {sourcePaths.length > 0 && (
+                  <div className={styles.sourcePathsInfo}>
+                    <span className={styles.sourcePathsLabel}>Loading from:</span>
+                    {sourcePaths.map((path) => (
+                      <span key={path} className={styles.sourcePathItem}>
+                        {path}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className={styles.serverList}>
+                  {availableServers.length === 0 ? (
+                    <p className={styles.noServers}>
+                      No MCP servers found. Configure resource paths in Settings.
+                    </p>
+                  ) : (
+                    availableServers.map((server) => (
+                      <div key={server.name} className={styles.serverItem}>
+                        <div className={styles.serverItemLabel}>
+                          <input
+                            type="checkbox"
+                            checked={selectedServers.includes(server.name)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleServerSelection(server.name);
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className={styles.serverItemContent}
+                            onClick={() => toggleServerSelection(server.name)}
+                          >
+                            <div className={styles.serverName}>{server.name}</div>
+                            <div className={styles.serverCommand}>
+                              {server.command} {server.args.join(' ')}
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <div className={styles.formLabel}>Configuration Content (JSON)</div>
                 <textarea
                   value={editingContent}
                   onChange={(e) => setEditingContent(e.target.value)}
                   className={styles.formTextarea}
                   spellCheck={false}
                 />
+                <p className={styles.formHint}>
+                  💡 Tip: Use the checkboxes above to add/remove servers, or edit JSON directly.
+                </p>
               </div>
 
               <div className={styles.buttonGroup}>
