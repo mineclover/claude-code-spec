@@ -1,14 +1,33 @@
 {
   "mcpServers": {
-    "serena": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@agentic-insights/mcp-server-serena"]
-    },
     "sequential-thinking": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "env": {}
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {}
+    },
+    "tavily-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "tavily-mcp@latest"
+      ],
+      "env": {
+        "TAVILY_API_KEY": "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"
+      }
     }
   }
 }

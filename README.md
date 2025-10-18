@@ -41,9 +41,14 @@ npm install
 # 개발 모드 실행
 npm start
 
-# 패키징
+# 패키징 (테스트용)
 npm run package
+
+# 배포용 빌드 (ZIP 파일 생성)
+npm run make
 ```
+
+**macOS 앱으로 설치하기:** [빌드 및 설치 가이드](./docs/BUILD_GUIDE.md) 참고
 
 ## 빠른 시작
 
@@ -410,6 +415,7 @@ streamEvents.forEach(event => {
 ## 참고 문서
 
 ### 프로젝트 문서
+- [빌드 및 설치 가이드](./docs/BUILD_GUIDE.md) - macOS 앱 빌드 및 배포 방법
 - [설정 가이드](./docs/SETUP.md) - 권한 및 MCP 서버 설정 방법
 - [MCP 설정 가이드](./docs/mcp-config-guide.md) - 작업별 MCP 서버 선택
 - [MCP Tools Reference](./docs/mcp-tools-reference.md) - 전체 도구 목록
