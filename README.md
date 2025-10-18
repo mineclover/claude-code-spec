@@ -34,6 +34,7 @@ Electron 데스크톱 앱으로 Claude CLI를 헤드리스 모드로 실행하�
 
 ## 실행 방법
 
+### 개발자용
 ```bash
 # 설치
 npm install
@@ -41,14 +42,30 @@ npm install
 # 개발 모드 실행
 npm start
 
-# 패키징 (테스트용)
-npm run package
+# macOS 패키징 (테스트용)
+npm run package:mac
 
-# 배포용 빌드 (ZIP 파일 생성)
+# macOS 배포용 빌드 (DMG + ZIP 파일 생성)
+npm run build:mac
+# 또는
 npm run make
 ```
 
-**macOS 앱으로 설치하기:** [빌드 및 설치 가이드](./docs/BUILD_GUIDE.md) 참고
+### 사용자용 (앱 설치)
+```bash
+# 1. DMG 파일 열기
+open "out/make/Claude Code Spec.dmg"
+
+# 2. 앱을 Applications 폴더로 드래그
+
+# 3. 보안 설정
+xattr -cr "/Applications/Claude Code Spec.app"
+
+# 4. 실행
+open -a "Claude Code Spec"
+```
+
+**상세 설치 가이드**: [INSTALL.md](./INSTALL.md) | **빌드 가이드**: [BUILD_GUIDE.md](./docs/BUILD_GUIDE.md)
 
 ## 빠른 시작
 
