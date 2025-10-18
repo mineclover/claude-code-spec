@@ -31,7 +31,6 @@
       "Edit(./.env)",
       "Edit(./package-lock.json)",
       "Bash(rm:*)",
-      "Bash(git push:*)",
       "Bash(npm publish:*)"
     ]
   }
