@@ -1,0 +1,389 @@
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #1a1a1a;
+}
+
+.header p {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  color: #1a1a1a;
+  background: #f5f5f5;
+}
+
+.activeTab {
+  color: #0066cc;
+  border-bottom-color: #0066cc;
+}
+
+/* Content */
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f8f8;
+  border-radius: 8px;
+}
+
+.scopeSelector {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.scopeButton {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.scopeButton:hover:not(:disabled) {
+  background: #f0f0f0;
+}
+
+.scopeButton.active {
+  background: #0066cc;
+  color: white;
+  border-color: #0066cc;
+}
+
+.scopeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.newButton {
+  padding: 0.5rem 1rem;
+  background: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.newButton:hover {
+  background: #0052a3;
+}
+
+/* Skills List */
+.skillsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.skillCard {
+  padding: 1.5rem;
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.skillCard:hover {
+  border-color: #0066cc;
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+}
+
+.skillCard.selected {
+  border-color: #0066cc;
+  background: #f0f7ff;
+}
+
+.skillHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 0.75rem;
+}
+
+.skillHeader h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: #1a1a1a;
+}
+
+.scope {
+  padding: 0.25rem 0.75rem;
+  background: #e5e5e5;
+  color: #666;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.scope.official {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.scope.fork {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.description {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.skillFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.badge {
+  padding: 0.25rem 0.5rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.date {
+  font-size: 0.8rem;
+}
+
+.importButton {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.5rem;
+  background: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.importButton:hover {
+  background: #0052a3;
+}
+
+/* Loading & Empty states */
+.loading {
+  padding: 3rem;
+  text-align: center;
+  color: #999;
+  font-size: 0.95rem;
+}
+
+.empty {
+  padding: 3rem;
+  text-align: center;
+  color: #999;
+}
+
+.empty p {
+  margin: 0.5rem 0;
+}
+
+.hint {
+  font-size: 0.9rem;
+  color: #bbb;
+}
+
+/* Detail panel */
+.detail {
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.detailHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.detailHeader h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actions button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.actions button:hover {
+  background: #f5f5f5;
+}
+
+.detailContent {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.detailContent pre {
+  margin: 0;
+  padding: 1rem;
+  background: #f8f8f8;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Repository Status */
+.repoStatus {
+  padding: 1.5rem;
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+}
+
+.repoSetup {
+  text-align: center;
+  padding: 2rem;
+}
+
+.repoSetup h3 {
+  font-size: 1.3rem;
+  margin-bottom: 0.75rem;
+  color: #1a1a1a;
+}
+
+.repoSetup p {
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.cloneButton,
+.updateButton {
+  padding: 0.75rem 2rem;
+  background: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cloneButton:hover,
+.updateButton:hover {
+  background: #0052a3;
+}
+
+.cloneButton:disabled,
+.updateButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.repoInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.repoInfo div {
+  color: #666;
+}
+
+.repoInfo strong {
+  color: #1a1a1a;
+  margin-right: 0.5rem;
+}
+
+/* Search */
+.search {
+  padding: 1rem;
+  background: #f8f8f8;
+  border-radius: 8px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #0066cc;
+}

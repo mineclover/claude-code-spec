@@ -10,3 +10,5 @@ export * from './metadata';
 export * from './outputStyle';
 export * from './sessions';
 export * from './settings';
+export * from './skill';
+export * from './skillRepository';

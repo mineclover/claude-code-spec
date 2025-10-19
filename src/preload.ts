@@ -15,6 +15,8 @@ import { exposeMetadataAPI } from './preload/apis/metadata';
 import { exposeOutputStyleAPI } from './preload/apis/outputStyle';
 import { exposeSessionsAPI } from './preload/apis/sessions';
 import { exposeSettingsAPI } from './preload/apis/settings';
+import { exposeSkillAPI } from './preload/apis/skill';
+import { exposeSkillRepositoryAPI } from './preload/apis/skillRepository';
 import { exposeTaskAPI } from './preload/apis/task';
 import { exposeWorkAreaAPI } from './preload/apis/workArea';
 
@@ -30,6 +32,8 @@ exposeMetadataAPI();
 exposeFileAPI();
 exposeTaskAPI();
 exposeAgentAPI();
+exposeSkillAPI();
+exposeSkillRepositoryAPI();
 exposeWorkAreaAPI();
 exposeOutputStyleAPI();
 

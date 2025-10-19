@@ -15,6 +15,7 @@ import { McpConfigsPage } from './pages/McpConfigsPage';
 import { MemoryPage } from './pages/MemoryPage';
 import { OutputStylesPage } from './pages/OutputStylesPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { SkillsPage } from './pages/SkillsPage';
 import { TasksPage } from './pages/TasksPage';
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
             <Route path="/memory" element={<MemoryPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/agents" element={<AgentsPage />} />
+            <Route path="/skills" element={<SkillsPage />} />
             <Route path="/output-styles" element={<OutputStylesPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>

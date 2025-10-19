@@ -129,6 +129,27 @@ export const PAGE_INDEX: PageIndex[] = [
     ],
   },
   {
+    id: 'skills',
+    name: 'Skills',
+    displayName: 'Skills 관리',
+    description:
+      'Claude Code의 능력을 확장하는 모듈형 Skills를 관리합니다. 공식 저장소에서 Skills를 탐색하고 Import할 수 있습니다.',
+    route: '/skills',
+    icon: '🎯',
+    category: 'management',
+    keywords: [
+      'skills',
+      'repository',
+      'import',
+      'workflow',
+      'extend',
+      '스킬',
+      '워크플로우',
+      '확장',
+      '저장소',
+    ],
+  },
+  {
     id: 'output-styles',
     name: 'Output Styles',
     displayName: 'Output Styles',

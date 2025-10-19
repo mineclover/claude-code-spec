@@ -14,6 +14,8 @@ import { registerLoggerHandlers } from '../ipc/handlers/loggerHandlers';
 import { registerMetadataHandlers } from '../ipc/handlers/metadataHandlers';
 import { registerOutputStyleHandlers } from '../ipc/handlers/outputStyleHandlers';
 import { registerSettingsHandlers } from '../ipc/handlers/settingsHandlers';
+import { registerSkillHandlers } from '../ipc/handlers/skillHandlers';
+import { registerSkillRepositoryHandlers } from '../ipc/handlers/skillRepositoryHandlers';
 import { registerTaskHandlers } from '../ipc/handlers/taskHandlers';
 import { registerWorkAreaHandlers } from '../ipc/handlers/workAreaHandlers';
 import { ipcRegistry } from '../ipc/IPCRouter';
@@ -82,6 +84,14 @@ export function setupIPCHandlers(): void {
   // Output style handlers
   const outputStyleRouter = ipcRegistry.router('output-style');
   registerOutputStyleHandlers(outputStyleRouter);
+
+  // Skill handlers
+  const skillRouter = ipcRegistry.router('skill');
+  registerSkillHandlers(skillRouter);
+
+  // Skill repository handlers
+  const skillRepoRouter = ipcRegistry.router('skill-repo');
+  registerSkillRepositoryHandlers(skillRepoRouter);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }
