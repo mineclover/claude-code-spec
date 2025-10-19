@@ -20,6 +20,8 @@ export interface ExecutionInfo {
   endTime: number | null;
   mcpConfig?: string;
   model?: 'sonnet' | 'opus';
+  skillId?: string;
+  skillScope?: 'global' | 'project';
 }
 
 export interface ExecutionStats {
@@ -62,6 +64,8 @@ export interface ClaudeAPI {
     sessionId?: string,
     mcpConfig?: string,
     model?: 'sonnet' | 'opus',
+    skillId?: string,
+    skillScope?: 'global' | 'project',
   ) => Promise<{ success: boolean; sessionId?: string; pid?: number; error?: string }>;
 
   // Directory selection

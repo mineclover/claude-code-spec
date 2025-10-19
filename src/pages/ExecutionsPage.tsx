@@ -6,7 +6,7 @@ import { ExecutionsList } from '../components/execution/ExecutionsList';
 import { useProject } from '../contexts/ProjectContext';
 import type { StreamEvent } from '../lib/types';
 import { getCachedSessionsPage, setCachedSessionsPage } from '../services/cache';
-import type { ExecutionInfo } from '../types/api';
+import type { ExecutionInfo, SkillListItem } from '../types/api';
 import styles from './ExecutionsPage.module.css';
 
 export const ExecutionsPage: React.FC = () => {
@@ -15,6 +15,7 @@ export const ExecutionsPage: React.FC = () => {
   const queryInputId = useId();
   const mcpConfigSelectId = useId();
   const modelSelectId = useId();
+  const skillSelectId = useId();
   const { projectPath: contextProjectPath, updateProject } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const [projectPath, setProjectPath] = useState('');
@@ -24,6 +25,9 @@ export const ExecutionsPage: React.FC = () => {
   const [mcpConfigs, setMcpConfigs] = useState<Array<{ name: string; path: string }>>([]);
   const [selectedMcpConfig, setSelectedMcpConfig] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<'sonnet' | 'opus'>('sonnet');
+  const [availableSkills, setAvailableSkills] = useState<SkillListItem[]>([]);
+  const [selectedSkillId, setSelectedSkillId] = useState<string>('');
+  const [selectedSkillScope, setSelectedSkillScope] = useState<'global' | 'project'>('project');
   const [recentSessions, setRecentSessions] = useState<
     Array<{ sessionId: string; firstUserMessage?: string; lastModified: number }>
   >([]);
@@ -51,6 +55,30 @@ export const ExecutionsPage: React.FC = () => {
     } catch (err) {
       console.error('Failed to load MCP configs:', err);
       setMcpConfigs([]);
+    }
+  }, [projectPath]);
+
+  const loadSkills = useCallback(async () => {
+    if (!projectPath) {
+      setAvailableSkills([]);
+      return;
+    }
+
+    try {
+      // Load both project and global skills
+      const projectSkills = await window.skillAPI.listSkills('project', projectPath);
+      const globalSkills = await window.skillAPI.listSkills('global');
+
+      // Combine and mark scope
+      const allSkills = [
+        ...projectSkills.map(s => ({ ...s, scope: 'project' as const })),
+        ...globalSkills.map(s => ({ ...s, scope: 'global' as const }))
+      ];
+
+      setAvailableSkills(allSkills);
+    } catch (err) {
+      console.error('Failed to load skills:', err);
+      setAvailableSkills([]);
     }
   }, [projectPath]);
 
@@ -142,7 +170,8 @@ export const ExecutionsPage: React.FC = () => {
 
   useEffect(() => {
     loadMcpConfigs();
-  }, [loadMcpConfigs]);
+    loadSkills();
+  }, [loadMcpConfigs, loadSkills]);
 
   useEffect(() => {
     if (projectPath) {
@@ -185,6 +214,8 @@ export const ExecutionsPage: React.FC = () => {
         undefined,
         selectedMcpConfig || undefined,
         selectedModel,
+        selectedSkillId || undefined,
+        selectedSkillScope,
       );
 
       if (result.success && result.sessionId) {
@@ -215,6 +246,8 @@ export const ExecutionsPage: React.FC = () => {
         sessionId,
         selectedMcpConfig || undefined,
         selectedModel,
+        selectedSkillId || undefined,
+        selectedSkillScope,
       );
 
       if (result.success && result.sessionId) {
@@ -458,6 +491,49 @@ export const ExecutionsPage: React.FC = () => {
               ))}
           </div>
         )}
+
+        <div className={styles.inputGroup}>
+          <label htmlFor={skillSelectId}>Skill (Optional)</label>
+          <select
+            id={skillSelectId}
+            value={selectedSkillId}
+            onChange={(e) => {
+              const skillId = e.target.value;
+              setSelectedSkillId(skillId);
+              // Set scope based on selected skill
+              const skill = availableSkills.find(s => s.id === skillId);
+              if (skill) {
+                setSelectedSkillScope(skill.scope);
+              }
+            }}
+            className={styles.select}
+          >
+            <option value="">None</option>
+            {availableSkills.length > 0 && (
+              <>
+                <optgroup label="Project Skills">
+                  {availableSkills.filter(s => s.scope === 'project').map((skill) => (
+                    <option key={`project-${skill.id}`} value={skill.id}>
+                      {skill.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Global Skills">
+                  {availableSkills.filter(s => s.scope === 'global').map((skill) => (
+                    <option key={`global-${skill.id}`} value={skill.id}>
+                      {skill.name}
+                    </option>
+                  ))}
+                </optgroup>
+              </>
+            )}
+          </select>
+          {selectedSkillId && (
+            <div className={styles.hint}>
+              Skill context will be automatically included in your query
+            </div>
+          )}
+        </div>
 
         <div className={styles.inputGroup}>
           <label htmlFor={mcpConfigSelectId}>MCP Configuration</label>

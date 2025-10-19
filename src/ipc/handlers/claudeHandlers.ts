@@ -33,6 +33,8 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
       endTime: exec.endTime,
       mcpConfig: exec.mcpConfig,
       model: exec.model,
+      skillId: exec.skillId,
+      skillScope: exec.skillScope,
     }));
 
     // Broadcast to all renderer windows
@@ -49,8 +51,10 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
     sessionId?: string,
     mcpConfig?: string,
     model?: 'sonnet' | 'opus',
+    skillId?: string,
+    skillScope?: 'global' | 'project',
   ) => {
-    console.log('[Main] Execute request:', { projectPath, query, sessionId, mcpConfig, model });
+    console.log('[Main] Execute request:', { projectPath, query, sessionId, mcpConfig, model, skillId, skillScope });
 
     try {
       // Start execution using ProcessManager (returns sessionId)
@@ -60,6 +64,8 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
         sessionId, // Resume sessionId if provided
         mcpConfig,
         model: model || 'sonnet',
+        skillId,
+        skillScope,
         onStream: (sid: string, streamEvent: StreamEvent) => {
           // Forward stream event to renderer with sessionId
           event.sender.send('claude:stream', {

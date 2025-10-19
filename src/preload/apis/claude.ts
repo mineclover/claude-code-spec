@@ -17,7 +17,9 @@ export function exposeClaudeAPI(): void {
       sessionId?: string,
       mcpConfig?: string,
       model?: 'sonnet' | 'opus',
-    ) => ipcRenderer.invoke('claude:execute', projectPath, query, sessionId, mcpConfig, model),
+      skillId?: string,
+      skillScope?: 'global' | 'project',
+    ) => ipcRenderer.invoke('claude:execute', projectPath, query, sessionId, mcpConfig, model, skillId, skillScope),
 
     selectDirectory: () => ipcRenderer.invoke('dialog:selectDirectory'),
 

@@ -8,6 +8,9 @@
  * for tracking executions, enabling persistence and recovery.
  */
 
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { ClaudeClient, type ClaudeClientOptions } from '../lib/ClaudeClient';
 import type { StreamEvent } from '../lib/types';
 import { isSystemInitEvent } from '../lib/types';
@@ -27,6 +30,8 @@ export interface ExecutionInfo {
   endTime: number | null;
   mcpConfig?: string;
   model?: 'sonnet' | 'opus';
+  skillId?: string;
+  skillScope?: 'global' | 'project';
 }
 
 export interface StartExecutionParams {
@@ -35,6 +40,8 @@ export interface StartExecutionParams {
   sessionId?: string;
   mcpConfig?: string;
   model?: 'sonnet' | 'opus';
+  skillId?: string;
+  skillScope?: 'global' | 'project';
   onStream?: (sessionId: string, event: StreamEvent) => void;
   onError?: (sessionId: string, error: string) => void;
   onComplete?: (sessionId: string, code: number) => void;
@@ -76,7 +83,24 @@ export class ProcessManager {
       projectPath: params.projectPath,
       query: params.query.substring(0, 50) + '...',
       resumeSession: params.sessionId || 'new',
+      skillId: params.skillId,
+      skillScope: params.skillScope,
     });
+
+    // Load skill content if specified
+    let enhancedQuery = params.query;
+    if (params.skillId && params.skillScope) {
+      try {
+        const skillContent = await this.loadSkillContent(params.skillId, params.skillScope, params.projectPath);
+        if (skillContent) {
+          enhancedQuery = `# Skill Context\n\n${skillContent}\n\n---\n\n# User Query\n\n${params.query}`;
+          console.log('[ProcessManager] Enhanced query with skill:', params.skillId);
+        }
+      } catch (error) {
+        console.error('[ProcessManager] Failed to load skill:', error);
+        // Continue without skill if loading fails
+      }
+    }
 
     // For resume, we already have sessionId
     if (params.sessionId) {
@@ -210,6 +234,8 @@ export class ProcessManager {
       endTime: null,
       mcpConfig: params.mcpConfig,
       model: params.model,
+      skillId: params.skillId,
+      skillScope: params.skillScope,
     };
 
     // If resuming, store immediately with sessionId
@@ -223,9 +249,9 @@ export class ProcessManager {
       tempExecution = executionInfo;
     }
 
-    // Execute query
+    // Execute query (use enhanced query if skill was loaded)
     try {
-      const process = client.execute(params.query);
+      const process = client.execute(enhancedQuery);
       executionInfo.pid = process.pid || null;
       executionInfo.status = 'running';
 
@@ -437,6 +463,28 @@ export class ProcessManager {
    */
   getMaxConcurrent(): number {
     return this.maxConcurrent;
+  }
+
+  /**
+   * Load skill content from filesystem
+   */
+  private async loadSkillContent(skillId: string, scope: 'global' | 'project', projectPath: string): Promise<string | null> {
+    try {
+      let skillPath: string;
+
+      if (scope === 'global') {
+        skillPath = path.join(os.homedir(), '.claude', 'skills', skillId, 'SKILL.md');
+      } else {
+        skillPath = path.join(projectPath, '.claude', 'skills', skillId, 'SKILL.md');
+      }
+
+      console.log('[ProcessManager] Loading skill from:', skillPath);
+      const content = await fs.readFile(skillPath, 'utf-8');
+      return content;
+    } catch (error) {
+      console.error('[ProcessManager] Failed to read skill file:', error);
+      return null;
+    }
   }
 }
 

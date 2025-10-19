@@ -15,6 +15,8 @@ export interface ClaudeClientOptions {
   onClose?: (code: number) => void;
   sessionId?: string;
   mcpConfig?: string; // Path to MCP config file (e.g., '.claude/.mcp-dev.json')
+  skillId?: string; // Skill ID to use
+  skillScope?: 'global' | 'project'; // Skill scope (global or project)
 }
 
 export interface ClaudeMessage {
