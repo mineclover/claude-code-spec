@@ -290,25 +290,94 @@ try {
 }
 ```
 
+## Execute Integration
+
+### Overview
+
+Skills can be used directly from the Execute page for immediate testing and validation.
+
+### How It Works
+
+1. **Skill Selection**: Choose a skill from the dropdown (Project/Global)
+2. **Auto Context Injection**: Skill content automatically prepended to query
+3. **Claude Execution**: Claude receives full skill context + user query
+
+### Context Injection Format
+
+```markdown
+# Skill Context
+
+[Full SKILL.md content including frontmatter and instructions]
+
+---
+
+# User Query
+
+[User's actual query]
+```
+
+### Usage Example
+
+**Steps:**
+1. Navigate to Execute page (`/`)
+2. Select project path
+3. Choose "skill-creator" from Skill dropdown
+4. Enter query: "Create a skill for API documentation"
+5. Click Execute
+
+**Result:**
+Claude receives the skill-creator instructions and follows them to interactively create a new skill.
+
+### Benefits
+
+- **GUI Testing**: Test skills without CLI
+- **Quick Validation**: Immediately see if skill works as expected
+- **Development Workflow**: Rapid skill development iteration
+- **Context Verification**: Confirm skill instructions are loaded correctly
+
+### API Usage
+
+```typescript
+// Programmatic skill execution
+await window.claudeAPI.executeClaudeCommand(
+  projectPath,
+  'Your query here',
+  undefined, // sessionId
+  undefined, // mcpConfig
+  'sonnet',  // model
+  'skill-creator', // skillId
+  'project'  // skillScope
+);
+```
+
+## Completed Features
+
+### Phase 1: Editor ✅
+- [x] Skill creation modal
+- [x] YAML + Markdown editor
+- [x] Live preview
+- [x] Validation
+
+### Phase 2: Execute Integration ✅
+- [x] Skill selection in Execute page
+- [x] Automatic context injection
+- [x] Project/Global scope support
+- [x] API-level integration
+
 ## Future Enhancements
 
-### Phase 1: Editor
-- [ ] Skill creation modal
-- [ ] YAML + Markdown editor
-- [ ] Live preview
-- [ ] Validation
-
-### Phase 2: Advanced Features
+### Phase 3: Advanced Features
 - [ ] Skill versioning
 - [ ] Diff viewer (compare with repository)
 - [ ] Update notifications
 - [ ] Batch operations
 
-### Phase 3: UX Improvements
+### Phase 4: UX Improvements
 - [ ] Drag-and-drop import
 - [ ] Skill templates
 - [ ] Quick actions menu
 - [ ] Keyboard shortcuts
+- [ ] Multi-skill execution
 
 ## Related Documentation
 

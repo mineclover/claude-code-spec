@@ -36,10 +36,18 @@ npm run start
 17. **Permission 패턴**: 파일 및 명령어 접근 제어 (allowList/denyList)
 18. **Agent 컨텍스트**: 프로젝트 아키텍처 및 코딩 규칙 문서 제공
 
+### Skills 관리
+19. **Skills UI**: Claude Code Skills 관리 인터페이스
+20. **Repository Browser**: 공식 skills 저장소 탐색 및 Import
+21. **Skill Editor**: YAML frontmatter + Markdown 편집 모달
+22. **Execute 통합**: Execute 페이지에서 Skill 선택 및 자동 컨텍스트 주입
+23. **Scope 관리**: Project/Global 레벨 Skills 관리
+24. **실시간 검증**: GUI에서 즉시 Skill 테스트 가능
+
 ### 문서 및 설정
-19. **Memory 편집기**: CLAUDE.md 파일의 참조 및 컨텍스트 관리
-20. **문서 탐색**: Claude Code 및 컨트롤러 문서 통합 뷰어
-21. **설정 관리**: 애플리케이션 설정 및 프로젝트 경로 관리
+25. **Memory 편집기**: CLAUDE.md 파일의 참조 및 컨텍스트 관리
+26. **문서 탐색**: Claude Code 및 컨트롤러 문서 통합 뷰어
+27. **설정 관리**: 애플리케이션 설정 및 프로젝트 경로 관리
 
 ## 예정 기능
 
@@ -86,10 +94,12 @@ npm run start
 ### Preload APIs
 안전한 IPC API를 window 객체에 노출:
 
-- **claudeAPI**: Claude CLI 실행 및 이벤트 구독
+- **claudeAPI**: Claude CLI 실행 및 이벤트 구독 (skill 통합 지원)
 - **claudeSessionsAPI**: 프로젝트 세션 조회 및 관리
 - **taskAPI**: 작업 생성/조회/수정/삭제
 - **agentAPI**: Agent 생성/조회/수정/삭제
+- **skillAPI**: Skill 생성/조회/수정/삭제
+- **skillRepositoryAPI**: Skills 저장소 관리 (clone/update/import)
 - **workAreaAPI**: Work Area 조회 및 관리
 - **settingsAPI**: MCP 설정 관리
 - **bookmarksAPI**: 북마크 관리
@@ -100,10 +110,11 @@ npm run start
 ### Renderer (React)
 페이지별 구성:
 
-- **ExecutionsPage**: 실행 목록 및 새 실행 생성
+- **ExecutionsPage**: 실행 목록 및 새 실행 생성 (Skill 선택 지원)
 - **ExecutionDetailPage**: 실행 상세 및 실시간 스트림
 - **TasksPage**: 작업 정의 및 관리
 - **AgentsPage**: Agent 정의 및 관리
+- **SkillsPage**: Skills 관리 및 Repository 탐색
 - **ClaudeProjectsListPage**: 프로젝트 목록
 - **ClaudeSessionsListPage**: 세션 목록
 - **ClaudeSessionDetailPage**: 세션 상세
@@ -151,6 +162,37 @@ permissions:
 [Agent 역할 및 수행 방법 설명]
 ```
 
+**Skills** (`.claude/skills/*/SKILL.md` or `~/.claude/skills/*/SKILL.md`):
+```markdown
+---
+name: skill-creator
+description: Interactive guidance for creating new Claude Code Skills
+version: 1.0.0
+author: Anthropic
+tags:
+  - skill-development
+  - templates
+---
+
+# Skill Creator
+
+This skill helps you create new Claude Code Skills through interactive guidance.
+
+## When to Use
+
+Use this skill when:
+- Creating a new skill from scratch
+- Need help structuring skill instructions
+- Want to follow best practices
+
+## How to Use
+
+1. Describe the purpose of your skill
+2. Follow the interactive prompts
+3. Review the generated SKILL.md structure
+4. Customize as needed
+```
+
 **Work Areas** (`.claude/work-areas.json`):
 ```json
 {
@@ -166,7 +208,7 @@ permissions:
 }
 ```
 
-**Execution Info**:
+**Execution Info** (with Skill support):
 ```typescript
 {
   sessionId: string;
@@ -175,6 +217,8 @@ permissions:
   projectPath: string;
   query: string;
   events: StreamEvent[];
+  skillId?: string;          // Selected skill ID
+  skillScope?: 'global' | 'project';  // Skill scope
 }
 ```
 
@@ -239,6 +283,21 @@ permissions:
 - `agent:createAgent`: Agent 생성
 - `agent:updateAgent`: Agent 수정
 - `agent:deleteAgent`: Agent 삭제
+
+### Skill 관리
+- `skill:listSkills`: Skill 목록 조회
+- `skill:getSkill`: Skill 상세 조회
+- `skill:createSkill`: Skill 생성
+- `skill:updateSkill`: Skill 수정
+- `skill:deleteSkill`: Skill 삭제
+
+### Skill Repository 관리
+- `skill-repo:cloneRepository`: 저장소 클론
+- `skill-repo:updateRepository`: 저장소 업데이트
+- `skill-repo:listOfficialSkills`: 공식 Skill 목록 조회
+- `skill-repo:searchOfficialSkills`: 공식 Skill 검색
+- `skill-repo:importSkill`: Skill Import
+- `skill-repo:getRepositoryStatus`: 저장소 상태 조회
 
 ### Work Area 관리
 - `work-area:getWorkAreas`: Work Area 목록 조회
