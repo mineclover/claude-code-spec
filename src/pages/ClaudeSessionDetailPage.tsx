@@ -27,9 +27,22 @@ export const ClaudeSessionDetailPage: React.FC = () => {
     }
   };
 
+  const handleViewAnalysis = () => {
+    if (projectDirName && sessionId) {
+      navigate(`/claude-projects/${projectDirName}/sessions/${sessionId}/analysis`);
+    }
+  };
+
   if (!projectPath || !sessionId) {
     return <div>Loading...</div>;
   }
 
-  return <SessionLogViewer projectPath={projectPath} sessionId={sessionId} onClose={handleClose} />;
+  return (
+    <SessionLogViewer
+      projectPath={projectPath}
+      sessionId={sessionId}
+      onClose={handleClose}
+      onViewAnalysis={handleViewAnalysis}
+    />
+  );
 };

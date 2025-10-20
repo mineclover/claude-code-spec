@@ -8,17 +8,20 @@ interface SessionLogViewerProps {
   projectPath: string;
   sessionId: string;
   onClose?: () => void;
+  onViewAnalysis?: () => void;
 }
 
 export const SessionLogViewer: React.FC<SessionLogViewerProps> = ({
   projectPath,
   sessionId,
   onClose,
+  onViewAnalysis,
 }) => {
   const [logs, setLogs] = useState<ClaudeSessionEntry[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   const loadSessionLogs = useCallback(async () => {
@@ -47,6 +50,18 @@ export const SessionLogViewer: React.FC<SessionLogViewerProps> = ({
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
+
+  const handleCopySessionId = async () => {
+    try {
+      await navigator.clipboard.writeText(sessionId);
+      setCopyFeedback('Session ID copied!');
+      setTimeout(() => setCopyFeedback(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy session ID:', err);
+      setCopyFeedback('Failed to copy');
+      setTimeout(() => setCopyFeedback(null), 2000);
+    }
+  };
 
   const handleExport = async () => {
     try {
@@ -126,6 +141,14 @@ export const SessionLogViewer: React.FC<SessionLogViewerProps> = ({
               Close
             </button>
           )}
+          {onViewAnalysis && (
+            <button type="button" onClick={onViewAnalysis} className={styles.button}>
+              View Analysis
+            </button>
+          )}
+          <button type="button" onClick={handleCopySessionId} className={styles.button}>
+            {copyFeedback || 'Copy Session ID'}
+          </button>
           <button type="button" onClick={handleExport} className={styles.button}>
             Export JSON
           </button>

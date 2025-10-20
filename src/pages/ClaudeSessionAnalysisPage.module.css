@@ -1,0 +1,137 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #fff;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #212529;
+}
+
+.sessionId {
+  font-family: "SF Mono", Monaco, monospace;
+  font-size: 12px;
+  padding: 4px 10px;
+  background-color: #007acc;
+  color: white;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.metadata {
+  display: flex;
+  gap: 10px;
+}
+
+.statBadge {
+  font-size: 12px;
+  padding: 4px 10px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  color: #495057;
+  font-weight: 500;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid #dee2e6;
+  margin-top: 12px;
+}
+
+.tab {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: #6c757d;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  color: #495057;
+}
+
+.activeTab {
+  color: #007acc;
+  border-bottom-color: #007acc;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.button {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  background: #fff;
+  color: #212529;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.button:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.logContent {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.loading,
+.error,
+.empty {
+  color: #6c757d;
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.error {
+  color: #dc3545;
+}
+
+.empty {
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  margin: 20px 0;
+}

@@ -115,7 +115,14 @@ export const ClaudeSessionsListPage: React.FC = () => {
 
   const handleSessionClick = (session: ClaudeSessionInfo) => {
     if (projectDirName) {
-      navigate(`/claude-projects/${projectDirName}/${session.sessionId}`);
+      navigate(`/claude-projects/${projectDirName}/sessions/${session.sessionId}`);
+    }
+  };
+
+  const handleViewAnalysis = (session: ClaudeSessionInfo, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (projectDirName) {
+      navigate(`/claude-projects/${projectDirName}/sessions/${session.sessionId}/analysis`);
     }
   };
 
@@ -228,6 +235,17 @@ export const ClaudeSessionsListPage: React.FC = () => {
                   <span>{new Date(session.lastModified).toLocaleString()}</span>
                   <span>{(session.fileSize / 1024).toFixed(1)} KB</span>
                 </div>
+
+                {session.hasData && (
+                  <button
+                    type="button"
+                    className={styles.analysisButton}
+                    onClick={(e) => handleViewAnalysis(session, e)}
+                    title="View Session Analysis"
+                  >
+                    📊 View Analysis
+                  </button>
+                )}
               </div>
             );
           })

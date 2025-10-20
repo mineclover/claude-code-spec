@@ -39,6 +39,7 @@ export const ExecutionsPage: React.FC = () => {
   const [allExecutions, setAllExecutions] = useState<Array<Omit<ExecutionInfo, 'events'>>>([]);
   const [showAllExecutions, setShowAllExecutions] = useState(false);
   const [executionsExpanded, setExecutionsExpanded] = useState(true);
+  const [notes, setNotes] = useState('');
   const SESSIONS_PAGE_SIZE = 5;
 
   const currentSessionIdRef = useRef<string | null>(null);
@@ -168,6 +169,27 @@ export const ExecutionsPage: React.FC = () => {
     }
   }, [contextProjectPath, projectPath]);
 
+  // Load notes from localStorage when project path changes
+  useEffect(() => {
+    if (projectPath) {
+      const storageKey = `claude-notes-${projectPath}`;
+      const savedNotes = localStorage.getItem(storageKey);
+      if (savedNotes) {
+        setNotes(savedNotes);
+      } else {
+        setNotes('');
+      }
+    }
+  }, [projectPath]);
+
+  // Save notes to localStorage when they change
+  useEffect(() => {
+    if (projectPath) {
+      const storageKey = `claude-notes-${projectPath}`;
+      localStorage.setItem(storageKey, notes);
+    }
+  }, [projectPath, notes]);
+
   useEffect(() => {
     loadMcpConfigs();
     loadSkills();
@@ -185,6 +207,15 @@ export const ExecutionsPage: React.FC = () => {
 
   const handleRefreshSessions = () => {
     loadRecentSessions(sessionsPage, true);
+  };
+
+  const handleCopyNotesToQuery = () => {
+    if (notes.trim()) {
+      setQuery(prev => {
+        const separator = prev.trim() ? '\n\n' : '';
+        return prev + separator + notes.trim();
+      });
+    }
   };
 
   const handleSelectDirectory = async () => {
@@ -575,6 +606,31 @@ export const ExecutionsPage: React.FC = () => {
             className={styles.textarea}
             rows={3}
           />
+        </div>
+
+        <div className={styles.inputGroup}>
+          <div className={styles.notesHeader}>
+            <label>Notes (Persistent Memo)</label>
+            <button
+              type="button"
+              onClick={handleCopyNotesToQuery}
+              disabled={!notes.trim()}
+              className={styles.smallButton}
+              title="Copy notes content to query field"
+            >
+              Copy to Query
+            </button>
+          </div>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Use this space to save session IDs, command options, or any notes you want to keep..."
+            className={styles.textarea}
+            rows={4}
+          />
+          <div className={styles.hint}>
+            Notes are saved per project. Copy session IDs from session detail pages and paste them here for later use.
+          </div>
         </div>
 
         <div className={styles.actionButtons}>

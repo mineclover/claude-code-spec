@@ -5,6 +5,7 @@ import { ProjectProvider } from './contexts/ProjectContext';
 import { AgentsPage } from './pages/AgentsPage';
 import { ClaudeDocsPage } from './pages/ClaudeDocsPage';
 import { ClaudeProjectsListPage } from './pages/ClaudeProjectsListPage';
+import { ClaudeSessionAnalysisPage } from './pages/ClaudeSessionAnalysisPage';
 import { ClaudeSessionDetailPage } from './pages/ClaudeSessionDetailPage';
 import { ClaudeSessionsListPage } from './pages/ClaudeSessionsListPage';
 import { ControllerDocsPage } from './pages/ControllerDocsPage';
@@ -31,8 +32,12 @@ function App() {
             <Route path="/claude-projects" element={<ClaudeProjectsListPage />} />
             <Route path="/claude-projects/:projectDirName" element={<ClaudeSessionsListPage />} />
             <Route
-              path="/claude-projects/:projectDirName/:sessionId"
+              path="/claude-projects/:projectDirName/sessions/:sessionId"
               element={<ClaudeSessionDetailPage />}
+            />
+            <Route
+              path="/claude-projects/:projectDirName/sessions/:sessionId/analysis"
+              element={<ClaudeSessionAnalysisPage />}
             />
             <Route path="/mcp-configs" element={<McpConfigsPage />} />
             <Route path="/claude-docs" element={<ClaudeDocsPage />} />

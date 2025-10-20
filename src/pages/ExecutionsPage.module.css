@@ -26,6 +26,39 @@
   color: #212529;
 }
 
+.notesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.notesHeader label {
+  margin-bottom: 0;
+}
+
+.smallButton {
+  padding: 4px 10px;
+  border: 1px solid #6c757d;
+  border-radius: 3px;
+  background: #fff;
+  color: #495057;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.smallButton:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #495057;
+}
+
+.smallButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .hint {
   margin-top: 6px;
   font-size: 12px;
