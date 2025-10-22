@@ -19,35 +19,39 @@ npm run start
 ### 프로젝트 관리
 5. **Claude 프로젝트 탐색**: 프로젝트별 세션 로그 조회 및 관리
 6. **세션 이어가기**: 이전 세션을 선택하여 대화 재개
-7. **MCP 설정 관리**: 프로젝트별 MCP 서버 설정 생성 및 편집
+7. **세션 분석**: 사용자 질문과 자동 생성 요청 필터링 및 시각화
+   - 순수한 사용자 질문만 추출 (tool result 제외)
+   - Claude가 내부적으로 생성한 요청 분리 조회
+   - 탭 기반 전환으로 쉬운 비교 분석
+8. **MCP 설정 관리**: 프로젝트별 MCP 서버 설정 생성 및 편집
 
 ### 작업 관리 (Tasks) - Execute 최적화
-8. **의존성 분석**: 작업 수행에 필요한 파일 및 문서 의존성 사전 정의
-9. **컨텍스트 배정**: Execute 시 자동으로 필요한 컨텍스트 구성
-10. **작업 영역 관리**: 계층적 Work Area 시스템(13개 영역, 5개 카테고리)으로 작업 분류 및 할당
-11. **작업 영역 선택**: WorkAreaSelector 컴포넌트로 카테고리별 그룹화된 영역 선택
-12. **Execute 통합**: Task를 선택하여 최적화된 Claude CLI 실행
-13. **성공 기준 검증**: 체크리스트 기반 결과 검증
-14. **리뷰 시스템**: 리뷰어 지정 및 산출물 검토
+9. **의존성 분석**: 작업 수행에 필요한 파일 및 문서 의존성 사전 정의
+10. **컨텍스트 배정**: Execute 시 자동으로 필요한 컨텍스트 구성
+11. **작업 영역 관리**: 계층적 Work Area 시스템(13개 영역, 5개 카테고리)으로 작업 분류 및 할당
+12. **작업 영역 선택**: WorkAreaSelector 컴포넌트로 카테고리별 그룹화된 영역 선택
+13. **Execute 통합**: Task를 선택하여 최적화된 Claude CLI 실행
+14. **성공 기준 검증**: 체크리스트 기반 결과 검증
+15. **리뷰 시스템**: 리뷰어 지정 및 산출물 검토
 
 ### Agent 관리
-15. **전문화된 Agent 정의**: 프로젝트 및 사용자 레벨 Agent 관리
-16. **도구 선택**: ToolSelector 컴포넌트로 개별 도구 및 도구 그룹 선택
-17. **Permission 패턴**: 파일 및 명령어 접근 제어 (allowList/denyList)
-18. **Agent 컨텍스트**: 프로젝트 아키텍처 및 코딩 규칙 문서 제공
+16. **전문화된 Agent 정의**: 프로젝트 및 사용자 레벨 Agent 관리
+17. **도구 선택**: ToolSelector 컴포넌트로 개별 도구 및 도구 그룹 선택
+18. **Permission 패턴**: 파일 및 명령어 접근 제어 (allowList/denyList)
+19. **Agent 컨텍스트**: 프로젝트 아키텍처 및 코딩 규칙 문서 제공
 
 ### Skills 관리
-19. **Skills UI**: Claude Code Skills 관리 인터페이스
-20. **Repository Browser**: 공식 skills 저장소 탐색 및 Import
-21. **Skill Editor**: YAML frontmatter + Markdown 편집 모달
-22. **Execute 통합**: Execute 페이지에서 Skill 선택 및 자동 컨텍스트 주입
-23. **Scope 관리**: Project/Global 레벨 Skills 관리
-24. **실시간 검증**: GUI에서 즉시 Skill 테스트 가능
+20. **Skills UI**: Claude Code Skills 관리 인터페이스
+21. **Repository Browser**: 공식 skills 저장소 탐색 및 Import
+22. **Skill Editor**: YAML frontmatter + Markdown 편집 모달
+23. **Execute 통합**: Execute 페이지에서 Skill 선택 및 자동 컨텍스트 주입
+24. **Scope 관리**: Project/Global 레벨 Skills 관리
+25. **실시간 검증**: GUI에서 즉시 Skill 테스트 가능
 
 ### 문서 및 설정
-25. **Memory 편집기**: CLAUDE.md 파일의 참조 및 컨텍스트 관리
-26. **문서 탐색**: Claude Code 및 컨트롤러 문서 통합 뷰어
-27. **설정 관리**: 애플리케이션 설정 및 프로젝트 경로 관리
+26. **Memory 편집기**: CLAUDE.md 파일의 참조 및 컨텍스트 관리
+27. **문서 탐색**: Claude Code 및 컨트롤러 문서 통합 뷰어
+28. **설정 관리**: 애플리케이션 설정 및 프로젝트 경로 관리
 
 ## 예정 기능
 
@@ -95,7 +99,7 @@ npm run start
 안전한 IPC API를 window 객체에 노출:
 
 - **claudeAPI**: Claude CLI 실행 및 이벤트 구독 (skill 통합 지원)
-- **claudeSessionsAPI**: 프로젝트 세션 조회 및 관리
+- **claudeSessionsAPI**: 프로젝트 세션 조회 및 관리 (세션 분석 포함)
 - **taskAPI**: 작업 생성/조회/수정/삭제
 - **agentAPI**: Agent 생성/조회/수정/삭제
 - **skillAPI**: Skill 생성/조회/수정/삭제
@@ -116,8 +120,9 @@ npm run start
 - **AgentsPage**: Agent 정의 및 관리
 - **SkillsPage**: Skills 관리 및 Repository 탐색
 - **ClaudeProjectsListPage**: 프로젝트 목록
-- **ClaudeSessionsListPage**: 세션 목록
-- **ClaudeSessionDetailPage**: 세션 상세
+- **ClaudeSessionsListPage**: 세션 목록 (분석 버튼 포함)
+- **ClaudeSessionDetailPage**: 세션 상세 (분석 페이지 이동 버튼 포함)
+- **ClaudeSessionAnalysisPage**: 세션 분석 (사용자 질문/자동 요청 필터링)
 - **MemoryPage**: CLAUDE.md 편집
 - **McpConfigsPage**: MCP 설정 편집
 - **SettingsPage**: 앱 설정
@@ -303,10 +308,18 @@ Use this skill when:
 - `work-area:getWorkAreas`: Work Area 목록 조회
 - `work-area:updateWorkAreas`: Work Area 설정 수정
 
+### Claude 세션 관리
+- `claude-sessions:get-all-projects`: 모든 프로젝트 조회
+- `claude-sessions:get-project-sessions`: 프로젝트별 세션 목록
+- `claude-sessions:read-log`: 세션 로그 읽기
+- `claude-sessions:get-summary`: 세션 요약 조회
+- `claude-sessions:get-user-questions`: 사용자 질문 필터링 (신규)
+- `claude-sessions:get-auto-generated-requests`: 자동 생성 요청 필터링 (신규)
+- `claude-sessions:get-session-analysis`: 세션 분석 데이터 조회 (신규)
+
 ### 기타
 - `dialog:selectDirectory`: 디렉토리 선택
 - `settings:*`: MCP 설정 관리
-- `claude-sessions:*`: 세션 조회
 - `bookmarks:*`: 북마크 관리
 - `docs:*`: 문서 조회
 - `file:*`: 파일 작업

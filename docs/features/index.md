@@ -59,7 +59,8 @@ Claude CLI를 실행하고 실시간으로 모니터링하는 핵심 기능입�
 **Routes**:
 - `/claude-projects` - 프로젝트 목록
 - `/claude-projects/:projectDirName` - 세션 목록
-- `/claude-projects/:projectDirName/:sessionId` - 세션 상세
+- `/claude-projects/:projectDirName/sessions/:sessionId` - 세션 상세
+- `/claude-projects/:projectDirName/sessions/:sessionId/analysis` - 세션 분석 (신규)
 
 Claude Code 실행 기록을 프로젝트 및 세션 단위로 관리합니다.
 
@@ -74,11 +75,17 @@ Claude Code 실행 기록을 프로젝트 및 세션 단위로 관리합니다.
 - 프로젝트 목록 (페이지네이션, 정렬, 10개/페이지)
 - 프로젝트별 세션 리스트 (20개/페이지, 메타데이터 enrichment)
 - 세션 상세 보기 (이벤트 타임라인, 툴 호출 분석)
+- **세션 분석** (신규):
+  - 사용자 질문 필터링 (tool result 제외)
+  - 자동 생성 요청 필터링 (isSidechain)
+  - 탭 기반 뷰 전환
 - IndexedDB 캐싱 (5분 TTL)
 - 세션 로그 Export (JSON)
 - 프로젝트 폴더 열기
 
-**관련 문서**: [Claude Projects Feature](./claude-projects/)
+**관련 문서**:
+- [Claude Projects Feature](./claude-projects/)
+- [Session Analysis Feature](./session-analysis.md) (신규)
 
 ---
 
@@ -185,16 +192,17 @@ CLAUDE.md 파일의 Managed Regions를 편집하여 Claude Code에게 제공할 
 ## Feature Map (라우팅 구조)
 
 ```
-/                                          → Execute (Claude CLI 실행)
-/index                                     → Index (페이지 카탈로그)
-/claude-projects                           → Projects List (프로젝트 목록)
-/claude-projects/:projectDirName           → Sessions List (세션 목록)
-/claude-projects/:projectDirName/:sessionId → Session Detail (세션 상세)
-/mcp-configs                               → MCP Configs (MCP 설정 관리)
-/claude-docs                               → Claude Docs (Claude Code 문서)
-/controller-docs                           → Controller Docs (프로젝트 문서)
-/memory                                    → Memory (CLAUDE.md 편집)
-/settings                                  → Settings (설정 관리)
+/                                                      → Execute (Claude CLI 실행)
+/index                                                 → Index (페이지 카탈로그)
+/claude-projects                                       → Projects List (프로젝트 목록)
+/claude-projects/:projectDirName                       → Sessions List (세션 목록)
+/claude-projects/:projectDirName/sessions/:sessionId   → Session Detail (세션 상세)
+/claude-projects/:projectDirName/sessions/:sessionId/analysis → Session Analysis (세션 분석, 신규)
+/mcp-configs                                           → MCP Configs (MCP 설정 관리)
+/claude-docs                                           → Claude Docs (Claude Code 문서)
+/controller-docs                                       → Controller Docs (프로젝트 문서)
+/memory                                                → Memory (CLAUDE.md 편집)
+/settings                                              → Settings (설정 관리)
 ```
 
 ## 개발 철학
@@ -228,6 +236,7 @@ CLAUDE.md 파일의 Managed Regions를 편집하여 Claude Code에게 제공할 
 - [Execute](./execute/README.md) - Claude CLI 실행 및 제어
 - [Index Page](./index-page/README.md) - 페이지 카탈로그
 - [Claude Projects](./claude-projects/README.md) - 프로젝트 및 세션 관리
+- [Session Analysis](./session-analysis.md) - 세션 분석 (사용자 질문/자동 요청 필터링)
 - [MCP Configs](./mcp-configs/README.md) - MCP 설정 관리
 - [Claude Docs](./claude-docs/README.md) - Claude Code 문서
 - [Controller Docs](./controller-docs/README.md) - 프로젝트 문서
