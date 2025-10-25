@@ -503,7 +503,7 @@ export const getAllClaudeProjectsPaginated = (
  * Get user questions from session log
  * Filters events where message.role === 'user'
  */
-export const export const export const getUserQuestions = (projectPath: string, sessionId: string): ClaudeSessionEntry[] => {
+export const getUserQuestions = (projectPath: string, sessionId: string): ClaudeSessionEntry[] => {
   const entries = readSessionLog(projectPath, sessionId);
 
   return entries.filter((entry) => {
