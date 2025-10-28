@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AgentSelector } from '../components/task/AgentSelector';
 import { WorkAreaSelector } from '../components/task/WorkAreaSelector';
@@ -10,6 +10,12 @@ import styles from './TasksPage.module.css';
 
 export const TasksPage: React.FC = () => {
   const { projectPath } = useProject();
+  
+  // Generate unique IDs for form elements
+  const titleId = useId();
+  const reviewerId = useId();
+  const statusId = useId();
+  const descriptionId = useId();
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskContent, setTaskContent] = useState<string>('');
@@ -223,18 +229,11 @@ export const TasksPage: React.FC = () => {
         ) : (
           <div className={styles.tasksList}>
             {tasks.map((task) => (
-              <div
+              <button
                 key={task.id}
+                type="button"
                 className={`${styles.taskItem} ${selectedTaskId === task.id ? styles.selected : ''}`}
                 onClick={() => handleTaskClick(task.id)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleTaskClick(task.id);
-                  }
-                }}
-                role="button"
-                tabIndex={0}
               >
                 <div className={styles.taskItemHeader}>
                   <span className={styles.taskTitle}>{task.title}</span>
@@ -247,7 +246,7 @@ export const TasksPage: React.FC = () => {
                   <span>Agent: {task.assigned_agent}</span>
                   {task.reviewer && <span>Reviewer: {task.reviewer}</span>}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -288,11 +287,11 @@ export const TasksPage: React.FC = () => {
             {isEditing ? (
               <div className={styles.editor}>
                 <div className={styles.formGroup}>
-                  <label htmlFor="title">
+                  <label htmlFor={titleId}>
                     Title: <span className={styles.required}>*</span>
                   </label>
                   <input
-                    id="title"
+                    id={titleId}
                     type="text"
                     className={styles.input}
                     value={title}
@@ -322,9 +321,9 @@ export const TasksPage: React.FC = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor="reviewer">Reviewer:</label>
+                  <label htmlFor={reviewerId}>Reviewer:</label>
                   <input
-                    id="reviewer"
+                    id={reviewerId}
                     type="text"
                     className={styles.input}
                     value={reviewer}
@@ -334,9 +333,9 @@ export const TasksPage: React.FC = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor="status">Status:</label>
+                  <label htmlFor={statusId}>Status:</label>
                   <select
-                    id="status"
+                    id={statusId}
                     className={styles.select}
                     value={status}
                     onChange={(e) => setStatus(e.target.value as Task['status'])}
@@ -349,9 +348,9 @@ export const TasksPage: React.FC = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor="description">Description:</label>
+                  <label htmlFor={descriptionId}>Description:</label>
                   <textarea
-                    id="description"
+                    id={descriptionId}
                     className={styles.textarea}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -361,97 +360,101 @@ export const TasksPage: React.FC = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>References:</label>
-                  <div className={styles.listItems}>
-                    {references.map((ref, index) => (
-                      <div key={`ref-${index}`} className={styles.listItem}>
-                        <span>{ref}</span>
-                        <button
-                          type="button"
-                          className={styles.removeButton}
-                          onClick={() => setReferences(references.filter((_, i) => i !== index))}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className={styles.addItem}>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      placeholder="File path or URL"
-                      value={newReference}
-                      onChange={(e) => setNewReference(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && newReference.trim()) {
-                          e.preventDefault();
-                          setReferences([...references, newReference.trim()]);
-                          setNewReference('');
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className={styles.addButton}
-                      onClick={() => {
-                        if (newReference.trim()) {
-                          setReferences([...references, newReference.trim()]);
-                          setNewReference('');
-                        }
-                      }}
-                    >
-                      + Add
-                    </button>
-                  </div>
+                  <fieldset>
+                    <legend>References:</legend>
+                    <div className={styles.listItems}>
+                      {references.map((ref, index) => (
+                        <div key={`ref-${ref}-${index}`} className={styles.listItem}>
+                          <span>{ref}</span>
+                          <button
+                            type="button"
+                            className={styles.removeButton}
+                            onClick={() => setReferences(references.filter((_, i) => i !== index))}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className={styles.addItem}>
+                      <input
+                        type="text"
+                        className={styles.input}
+                        placeholder="File path or URL"
+                        value={newReference}
+                        onChange={(e) => setNewReference(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newReference.trim()) {
+                            e.preventDefault();
+                            setReferences([...references, newReference.trim()]);
+                            setNewReference('');
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className={styles.addButton}
+                        onClick={() => {
+                          if (newReference.trim()) {
+                            setReferences([...references, newReference.trim()]);
+                            setNewReference('');
+                          }
+                        }}
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </fieldset>
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Success Criteria:</label>
-                  <div className={styles.listItems}>
-                    {successCriteria.map((criterion, index) => (
-                      <div key={`criterion-${index}`} className={styles.listItem}>
-                        <span>{criterion}</span>
-                        <button
-                          type="button"
-                          className={styles.removeButton}
-                          onClick={() =>
-                            setSuccessCriteria(successCriteria.filter((_, i) => i !== index))
+                  <fieldset>
+                    <legend>Success Criteria:</legend>
+                    <div className={styles.listItems}>
+                      {successCriteria.map((criterion, index) => (
+                        <div key={`criterion-${criterion}-${index}`} className={styles.listItem}>
+                          <span>{criterion}</span>
+                          <button
+                            type="button"
+                            className={styles.removeButton}
+                            onClick={() =>
+                              setSuccessCriteria(successCriteria.filter((_, i) => i !== index))
+                            }
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className={styles.addItem}>
+                      <input
+                        type="text"
+                        className={styles.input}
+                        placeholder="Success criterion"
+                        value={newCriterion}
+                        onChange={(e) => setNewCriterion(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newCriterion.trim()) {
+                            e.preventDefault();
+                            setSuccessCriteria([...successCriteria, newCriterion.trim()]);
+                            setNewCriterion('');
                           }
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className={styles.addItem}>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      placeholder="Success criterion"
-                      value={newCriterion}
-                      onChange={(e) => setNewCriterion(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && newCriterion.trim()) {
-                          e.preventDefault();
-                          setSuccessCriteria([...successCriteria, newCriterion.trim()]);
-                          setNewCriterion('');
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className={styles.addButton}
-                      onClick={() => {
-                        if (newCriterion.trim()) {
-                          setSuccessCriteria([...successCriteria, newCriterion.trim()]);
-                          setNewCriterion('');
-                        }
-                      }}
-                    >
-                      + Add
-                    </button>
-                  </div>
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className={styles.addButton}
+                        onClick={() => {
+                          if (newCriterion.trim()) {
+                            setSuccessCriteria([...successCriteria, newCriterion.trim()]);
+                            setNewCriterion('');
+                          }
+                        }}
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </fieldset>
                 </div>
               </div>
             ) : (

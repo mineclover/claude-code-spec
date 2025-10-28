@@ -1,23 +1,22 @@
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { useProject } from '../contexts/ProjectContext';
 import type {
-  BulletItem,
   CodeBlockItem,
-  CodeBlockReference,
-  ContextReference,
   DirectRefItem,
   HeadingItem,
   IndirectRefItem,
   ManagedRegion,
   RegionItem,
   TextItem,
+  ContextReference,
 } from '../lib/MarkdownEditor';
 import { MarkdownEditor } from '../lib/MarkdownEditor';
 import styles from './MemoryPage.module.css';
 
 export const MemoryPage: React.FC = () => {
   const { projectPath } = useProject();
+  
   const [content, setContent] = useState<string>('');
   const [editor, setEditor] = useState<MarkdownEditor | null>(null);
   const [managedRegions, setManagedRegions] = useState<ManagedRegion[]>([]);
@@ -204,7 +203,7 @@ export const MemoryPage: React.FC = () => {
             <strong> Reorganize</strong> 버튼을 클릭하여 Memory 영역을 문서 하단으로 이동하면
             컨텍스트 구조가 더 명확해집니다.
           </p>
-          <button onClick={handleReorganize} className={styles.button}>
+          <button type="button" onClick={handleReorganize} className={styles.button}>
             지금 재배치하기
           </button>
         </div>
@@ -221,7 +220,7 @@ export const MemoryPage: React.FC = () => {
             onChange={(e) => setNewRegionName(e.target.value)}
             className={styles.input}
           />
-          <button onClick={handleCreateRegion} className={styles.button}>
+          <button type="button" onClick={handleCreateRegion} className={styles.button}>
             Create
           </button>
         </div>
@@ -253,7 +252,7 @@ export const MemoryPage: React.FC = () => {
               <h3>❌ Invalid References ({invalidRefs.length})</h3>
               <div className={styles.warningList}>
                 {invalidRefs.map((ref, idx) => (
-                  <div key={idx} className={styles.warningItem}>
+                  <div key={`invalid-${ref.path}-${idx}`} className={styles.warningItem}>
                     <code className={styles.refPath}>{ref.path}</code>
                     <span className={styles.refLocations}>Line: {ref.line + 1}</span>
                   </div>
@@ -328,7 +327,6 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
 }) => {
   const [editContent, setEditContent] = useState(region.content);
   const [items, setItems] = useState<RegionItem[]>([]);
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showJSONView, setShowJSONView] = useState(false);
   const [jsonData, setJsonData] = useState<string>('');
@@ -362,27 +360,31 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
   const handleAddItem = (type: 'heading' | 'direct-ref' | 'indirect-ref' | 'code-block') => {
     if (!editor) return;
 
-    const newItem: Record<string, unknown> = { type };
+    let newItem: Partial<RegionItem> = { type };
 
     switch (type) {
       case 'heading':
-        newItem.level = 2;
-        newItem.text = 'New Section';
+        newItem.raw = `## New Section`;
+        (newItem as any).level = 2;
+        (newItem as any).text = 'New Section';
         break;
       case 'direct-ref':
-        newItem.path = '@context/new/file.md';
+        newItem.raw = `@context/new/file.md`;
+        (newItem as any).path = '@context/new/file.md';
         break;
       case 'indirect-ref':
-        newItem.path = '@context/new/file.md';
-        newItem.description = '설명을 입력하세요\n추가 설명이 필요하면 여기에 작성';
+        newItem.raw = `@context/new/file.md\n설명을 입력하세요\n추가 설명이 필요하면 여기에 작성`;
+        (newItem as any).path = '@context/new/file.md';
+        (newItem as any).description = '설명을 입력하세요\n추가 설명이 필요하면 여기에 작성';
         break;
       case 'code-block':
-        newItem.language = 'bash';
-        newItem.content = '# 명령어';
+        newItem.raw = '```bash\n# 명령어\n```';
+        (newItem as any).language = 'bash';
+        (newItem as any).content = '# 명령어';
         break;
     }
 
-    editor.addRegionItem(region.name, newItem, 'end');
+    editor.addRegionItem(region.name, newItem as any, 'end');
     setShowAddMenu(false);
     onSave();
   };
@@ -448,7 +450,11 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
 
   return (
     <div className={styles.regionCard}>
-      <div className={styles.regionHeader} onClick={onToggle}>
+      <button 
+        type="button"
+        className={styles.regionHeader} 
+        onClick={onToggle}
+      >
         <div className={styles.regionHeaderLeft}>
           <span className={styles.regionIcon}>📋</span>
           <span className={styles.regionName}>{region.name}</span>
@@ -458,6 +464,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
         </div>
         <div className={styles.regionHeaderRight}>
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
@@ -468,7 +475,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
           </button>
           <span className={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</span>
         </div>
-      </div>
+      </button>
 
       {isExpanded && (
         <div className={styles.regionContent}>
@@ -478,15 +485,16 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
               <h4>Region Items ({items.length})</h4>
               <div>
                 <button
+                  type="button"
                   onClick={() => setShowJSONView(!showJSONView)}
                   className={styles.buttonSmall}
                 >
                   {showJSONView ? '📝 List View' : '{ } JSON View'}
                 </button>
-                <button onClick={handleExportJSON} className={styles.buttonSmall}>
+                <button type="button" onClick={handleExportJSON} className={styles.buttonSmall}>
                   💾 Export JSON
                 </button>
-                <button onClick={() => setShowAddMenu(!showAddMenu)} className={styles.buttonSmall}>
+                <button type="button" onClick={() => setShowAddMenu(!showAddMenu)} className={styles.buttonSmall}>
                   ➕ Add Item
                 </button>
               </div>
@@ -494,16 +502,16 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
 
             {showAddMenu && (
               <div className={styles.addMenu}>
-                <button onClick={() => handleAddItem('heading')} className={styles.menuItem}>
+                <button type="button" onClick={() => handleAddItem('heading')} className={styles.menuItem}>
                   📌 Heading
                 </button>
-                <button onClick={() => handleAddItem('direct-ref')} className={styles.menuItem}>
+                <button type="button" onClick={() => handleAddItem('direct-ref')} className={styles.menuItem}>
                   🔗 Direct Reference
                 </button>
-                <button onClick={() => handleAddItem('indirect-ref')} className={styles.menuItem}>
+                <button type="button" onClick={() => handleAddItem('indirect-ref')} className={styles.menuItem}>
                   💡 Indirect Reference
                 </button>
-                <button onClick={() => handleAddItem('code-block')} className={styles.menuItem}>
+                <button type="button" onClick={() => handleAddItem('code-block')} className={styles.menuItem}>
                   💻 Code Block
                 </button>
               </div>
@@ -520,6 +528,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
                     </div>
                     <div className={styles.itemActions}>
                       <button
+                        type="button"
                         onClick={() => handleMoveItem(item.id, 'up')}
                         disabled={idx === 0}
                         className={styles.buttonSmall}
@@ -528,6 +537,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
                         ⬆️
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleMoveItem(item.id, 'down')}
                         disabled={idx === items.length - 1}
                         className={styles.buttonSmall}
@@ -536,6 +546,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
                         ⬇️
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleDeleteItem(item.id)}
                         className={styles.buttonDangerSmall}
                       >
@@ -557,7 +568,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
                         <code className={styles.refPath}>{(item as IndirectRefItem).path}</code>
                         <div className={styles.refDescList}>
                           {(item as IndirectRefItem).description.split('\n').map((line, idx) => (
-                            <div key={idx} className={styles.refDescLine}>
+                            <div key={`desc-${item.id}-${idx}`} className={styles.refDescLine}>
                               • {line}
                             </div>
                           ))}
@@ -581,7 +592,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
               <div className={styles.jsonEditor}>
                 <div className={styles.jsonEditorHeader}>
                   <h4>JSON Data Editor</h4>
-                  <button onClick={handleSaveJSON} className={styles.button}>
+                  <button type="button" onClick={handleSaveJSON} className={styles.button}>
                     💾 Save JSON
                   </button>
                 </div>
@@ -602,15 +613,14 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
 
           {/* Raw Content Editor */}
           <div className={styles.rawEditor}>
-            <label htmlFor="raw-content-editor">Raw Content:</label>
+            <label>Raw Content:</label>
             <textarea
-              id="raw-content-editor"
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               className={styles.textarea}
               rows={10}
             />
-            <button onClick={handleSave} className={styles.button}>
+            <button type="button" onClick={handleSave} className={styles.button}>
               Save Changes
             </button>
           </div>

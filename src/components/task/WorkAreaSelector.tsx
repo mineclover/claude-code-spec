@@ -1,5 +1,4 @@
-import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import type { WorkArea } from '../../types/workArea';
 import styles from './WorkAreaSelector.module.css';
 
@@ -46,13 +45,15 @@ export function WorkAreaSelector({
     {} as Record<string, WorkArea[]>,
   );
 
+  const workAreaSelectId = useId();
+
   return (
     <div className={styles.container}>
-      <label htmlFor="work-area-select" className={styles.label}>
+      <label htmlFor={workAreaSelectId} className={styles.label}>
         Work Area
       </label>
       <select
-        id="work-area-select"
+        id={workAreaSelectId}
         value={selectedArea}
         onChange={(e) => onAreaChange(e.target.value)}
         className={styles.select}

@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import toast from 'react-hot-toast';
 import { PermissionEditor } from '../components/agent/PermissionEditor';
 import { ToolSelector } from '../components/agent/ToolSelector';
@@ -10,6 +10,14 @@ import styles from './AgentsPage.module.css';
 
 export const AgentsPage: React.FC = () => {
   const { projectPath } = useProject();
+  
+  // Generate unique IDs for form elements
+  const sourceTypeId = useId();
+  const agentNameId = useId();
+  const descriptionId = useId();
+  const modelId = useId();
+  const colorId = useId();
+  const contentId = useId();
   const [agents, setAgents] = useState<AgentListItem[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -234,22 +242,15 @@ export const AgentsPage: React.FC = () => {
                 <div className={styles.empty}>No project agents</div>
               ) : (
                 projectAgents.map((agent) => (
-                  <div
+                  <button
                     key={`${agent.source}-${agent.name}`}
+                    type="button"
                     className={`${styles.agentItem} ${
                       selectedAgent?.name === agent.name && selectedAgent?.source === agent.source
                         ? styles.selected
                         : ''
                     }`}
                     onClick={() => handleAgentClick(agent)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleAgentClick(agent);
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
                   >
                     <div className={styles.agentItemHeader}>
                       <span className={styles.agentName}>{agent.name}</span>
@@ -261,7 +262,7 @@ export const AgentsPage: React.FC = () => {
                       )}
                       {agent.hasPermissions && <span>Has permissions</span>}
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
             </div>
@@ -273,22 +274,15 @@ export const AgentsPage: React.FC = () => {
                 <div className={styles.empty}>No user agents</div>
               ) : (
                 userAgents.map((agent) => (
-                  <div
+                  <button
                     key={`${agent.source}-${agent.name}`}
+                    type="button"
                     className={`${styles.agentItem} ${
                       selectedAgent?.name === agent.name && selectedAgent?.source === agent.source
                         ? styles.selected
                         : ''
                     }`}
                     onClick={() => handleAgentClick(agent)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleAgentClick(agent);
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
                   >
                     <div className={styles.agentItemHeader}>
                       <span className={styles.agentName}>{agent.name}</span>
@@ -300,7 +294,7 @@ export const AgentsPage: React.FC = () => {
                       )}
                       {agent.hasPermissions && <span>Has permissions</span>}
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
             </div>
@@ -343,11 +337,11 @@ export const AgentsPage: React.FC = () => {
             {isEditing ? (
               <div className={styles.editor}>
                 <div className={styles.formGroup}>
-                  <label htmlFor="sourceType">
+                  <label htmlFor={sourceTypeId}>
                     Storage Level: <span className={styles.required}>*</span>
                   </label>
                   <select
-                    id="sourceType"
+                    id={sourceTypeId}
                     className={styles.select}
                     value={sourceType}
                     onChange={(e) => setSourceType(e.target.value as 'project' | 'user')}
@@ -364,11 +358,11 @@ export const AgentsPage: React.FC = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor="agentName">
+                  <label htmlFor={agentNameId}>
                     Name: <span className={styles.required}>*</span>
                   </label>
                   <input
-                    id="agentName"
+                    id={agentNameId}
                     type="text"
                     className={styles.input}
                     value={agentName}
@@ -382,11 +376,11 @@ export const AgentsPage: React.FC = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor="description">
+                  <label htmlFor={descriptionId}>
                     Description: <span className={styles.required}>*</span>
                   </label>
                   <input
-                    id="description"
+                    id={descriptionId}
                     type="text"
                     className={styles.input}
                     value={description}
@@ -399,11 +393,11 @@ export const AgentsPage: React.FC = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor="model">
+                  <label htmlFor={modelId}>
                     Model:
                   </label>
                   <select
-                    id="model"
+                    id={modelId}
                     className={styles.select}
                     value={model}
                     onChange={(e) => setModel(e.target.value as 'sonnet' | 'opus' | 'haiku' | 'heroku')}
@@ -419,11 +413,11 @@ export const AgentsPage: React.FC = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor="color">
+                  <label htmlFor={colorId}>
                     Color:
                   </label>
                   <select
-                    id="color"
+                    id={colorId}
                     className={styles.select}
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
@@ -441,9 +435,9 @@ export const AgentsPage: React.FC = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor="content">Content (Markdown):</label>
+                  <label htmlFor={contentId}>Content (Markdown):</label>
                   <textarea
-                    id="content"
+                    id={contentId}
                     className={styles.textarea}
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
@@ -530,7 +524,7 @@ export const AgentsPage: React.FC = () => {
                           <h4>Allow List:</h4>
                           <ul>
                             {selectedAgent.permissions.allowList.map((pattern, i) => (
-                              <li key={i}>
+                              <li key={`allow-${pattern}-${i}`}>
                                 <code>{pattern}</code>
                               </li>
                             ))}
@@ -543,7 +537,7 @@ export const AgentsPage: React.FC = () => {
                           <h4>Deny List:</h4>
                           <ul>
                             {selectedAgent.permissions.denyList.map((pattern, i) => (
-                              <li key={i}>
+                              <li key={`deny-${pattern}-${i}`}>
                                 <code>{pattern}</code>
                               </li>
                             ))}

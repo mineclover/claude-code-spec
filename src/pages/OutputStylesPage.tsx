@@ -1,10 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId, useCallback } from 'react';
 import { useProject } from '../contexts/ProjectContext';
 import type { OutputStyle, OutputStyleListItem } from '../types/outputStyle';
 import styles from './OutputStylesPage.module.css';
 
 export function OutputStylesPage() {
   const { projectPath } = useProject();
+  
+  // Generate unique IDs for form elements
+  const styleNameId = useId();
+  const styleDescriptionId = useId();
+  const styleTypeId = useId();
+  const styleInstructionsId = useId();
   const [builtinStyles, setBuiltinStyles] = useState<OutputStyleListItem[]>([]);
   const [customStyles, setCustomStyles] = useState<OutputStyleListItem[]>([]);
   const [selectedStyle, setSelectedStyle] = useState<OutputStyle | null>(null);
@@ -14,14 +20,7 @@ export function OutputStylesPage() {
   const [newStyleInstructions, setNewStyleInstructions] = useState('');
   const [newStyleType, setNewStyleType] = useState<'user' | 'project'>('user');
 
-  // Load all output styles
-  useEffect(() => {
-    if (!projectPath) return;
-
-    loadOutputStyles();
-  }, [projectPath]);
-
-  const loadOutputStyles = async () => {
+  const loadOutputStyles = useCallback(async () => {
     if (!projectPath) return;
 
     try {
@@ -35,7 +34,14 @@ export function OutputStylesPage() {
     } catch (error) {
       console.error('Failed to load output styles:', error);
     }
-  };
+  }, [projectPath]);
+
+  // Load all output styles
+  useEffect(() => {
+    if (!projectPath) return;
+
+    loadOutputStyles();
+  }, [projectPath, loadOutputStyles]);
 
   const handleCreateStyle = async () => {
     if (!projectPath) {
@@ -140,8 +146,9 @@ export function OutputStylesPage() {
           <h2>Built-in Styles</h2>
           <div className={styles.stylesList}>
             {builtinStyles.map((style) => (
-              <div
+              <button
                 key={style.name}
+                type="button"
                 className={styles.styleCard}
                 onClick={() => handleSelectStyle(style)}
               >
@@ -150,7 +157,7 @@ export function OutputStylesPage() {
                 {style.name === 'json-output' && (
                   <div className={styles.priorityBadge}>Priority Feature</div>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         </section>
@@ -160,6 +167,7 @@ export function OutputStylesPage() {
           <div className={styles.sectionHeader}>
             <h2>Custom Styles</h2>
             <button
+              type="button"
               className={styles.createButton}
               onClick={() => setIsCreating(true)}
             >
@@ -176,15 +184,16 @@ export function OutputStylesPage() {
           {customStyles.length > 0 && (
             <div className={styles.stylesList}>
               {customStyles.map((style) => (
-                <div
+                <button
                   key={style.name}
+                  type="button"
                   className={styles.styleCard}
                   onClick={() => handleSelectStyle(style)}
                 >
                   <h3>{style.name}</h3>
                   <p>{style.description}</p>
                   <span className={styles.typeBadge}>{style.type}</span>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -202,9 +211,9 @@ export function OutputStylesPage() {
               }}
             >
               <div className={styles.formGroup}>
-                <label htmlFor="styleName">Style Name:</label>
+                <label htmlFor={styleNameId}>Style Name:</label>
                 <input
-                  id="styleName"
+                  id={styleNameId}
                   type="text"
                   value={newStyleName}
                   onChange={(e) => setNewStyleName(e.target.value)}
@@ -217,9 +226,9 @@ export function OutputStylesPage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label htmlFor="styleDescription">Description:</label>
+                <label htmlFor={styleDescriptionId}>Description:</label>
                 <input
-                  id="styleDescription"
+                  id={styleDescriptionId}
                   type="text"
                   value={newStyleDescription}
                   onChange={(e) => setNewStyleDescription(e.target.value)}
@@ -229,9 +238,9 @@ export function OutputStylesPage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label htmlFor="styleType">Storage Location:</label>
+                <label htmlFor={styleTypeId}>Storage Location:</label>
                 <select
-                  id="styleType"
+                  id={styleTypeId}
                   value={newStyleType}
                   onChange={(e) =>
                     setNewStyleType(e.target.value as 'user' | 'project')
@@ -249,9 +258,9 @@ export function OutputStylesPage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label htmlFor="styleInstructions">Instructions (Markdown):</label>
+                <label htmlFor={styleInstructionsId}>Instructions (Markdown):</label>
                 <textarea
-                  id="styleInstructions"
+                  id={styleInstructionsId}
                   value={newStyleInstructions}
                   onChange={(e) => setNewStyleInstructions(e.target.value)}
                   placeholder={`# Custom Style Instructions
@@ -314,6 +323,7 @@ export function OutputStylesPage() {
               <div className={styles.detailActions}>
                 {(selectedStyle.type === 'user' || selectedStyle.type === 'project') && (
                   <button
+                    type="button"
                     className={styles.deleteButton}
                     onClick={() => handleDeleteStyle(selectedStyle.name, selectedStyle.type as 'user' | 'project')}
                   >
@@ -321,6 +331,7 @@ export function OutputStylesPage() {
                   </button>
                 )}
                 <button
+                  type="button"
                   className={styles.closeButton}
                   onClick={() => setSelectedStyle(null)}
                 >

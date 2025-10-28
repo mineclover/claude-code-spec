@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import type { AgentListItem } from '../../types/agent';
 import styles from './AgentSelector.module.css';
 
@@ -35,13 +35,15 @@ export function AgentSelector({ projectPath, selectedAgent, onAgentChange }: Age
   const projectAgents = agents.filter((a) => a.source === 'project');
   const userAgents = agents.filter((a) => a.source === 'user');
 
+  const agentSelectId = useId();
+
   return (
     <div className={styles.agentSelector}>
-      <label htmlFor="agent-select" className={styles.label}>
+      <label htmlFor={agentSelectId} className={styles.label}>
         Assigned Agent:
       </label>
       <select
-        id="agent-select"
+        id={agentSelectId}
         className={styles.select}
         value={selectedAgent}
         onChange={(e) => onAgentChange(e.target.value)}
