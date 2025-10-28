@@ -143,13 +143,11 @@
 
 .item {
   display: flex;
-  flex-direction: column;
   gap: 8px;
   padding: 12px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  cursor: pointer;
   transition: all 0.2s ease;
 }
 
@@ -162,6 +160,30 @@
   background: var(--color-primary-alpha-10);
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-alpha-20);
+}
+
+.itemMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.itemMain:hover {
+  background: none;
+}
+
+.itemMain:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .itemHeader {
@@ -238,8 +260,10 @@
 
 .itemActions {
   display: flex;
-  gap: 8px;
-  margin-top: 4px;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+  justify-content: center;
 }
 
 .killButton,

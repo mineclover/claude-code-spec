@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/prefer-button */
 import type React from 'react';
 import type { ExecutionInfo } from '../../types/api';
 import styles from './ExecutionsList.module.css';
@@ -150,51 +151,48 @@ export const ExecutionsList: React.FC<ExecutionsListProps> = ({
             </div>
           ) : (
             displayedExecutions.map((execution) => (
-              <button
-                type="button"
+              <div
                 key={execution.sessionId}
                 className={`${styles.item} ${
                   execution.sessionId === currentSessionId ? styles.active : ''
                 }`}
-                onClick={() => onSelectExecution(execution.sessionId)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onSelectExecution(execution.sessionId);
-                  }
-                }}
               >
-                <div className={styles.itemHeader}>
-                  <span className={styles.sessionId}>{execution.sessionId.slice(0, 8)}...</span>
-                  <span className={`${styles.status} ${getStatusBadgeClass(execution.status)}`}>
-                    {execution.status}
-                  </span>
-                </div>
+                {/* 클릭 가능한 메인 영역 */}
+                <button
+                  type="button"
+                  className={styles.itemMain}
+                  onClick={() => onSelectExecution(execution.sessionId)}
+                >
+                  <div className={styles.itemHeader}>
+                    <span className={styles.sessionId}>{execution.sessionId.slice(0, 8)}...</span>
+                    <span className={`${styles.status} ${getStatusBadgeClass(execution.status)}`}>
+                      {execution.status}
+                    </span>
+                  </div>
 
-                <div className={styles.itemInfo}>
-                  <span className={styles.query} title={execution.query}>
-                    {execution.query.length > 50
-                      ? `${execution.query.slice(0, 50)}...`
-                      : execution.query}
-                  </span>
-                </div>
+                  <div className={styles.itemInfo}>
+                    <span className={styles.query} title={execution.query}>
+                      {execution.query.length > 50
+                        ? `${execution.query.slice(0, 50)}...`
+                        : execution.query}
+                    </span>
+                  </div>
 
-                <div className={styles.itemMeta}>
-                  <span className={styles.duration}>
-                    {formatDuration(execution.startTime, execution.endTime)}
-                  </span>
-                  {execution.pid && <span className={styles.pid}>PID: {execution.pid}</span>}
-                </div>
+                  <div className={styles.itemMeta}>
+                    <span className={styles.duration}>
+                      {formatDuration(execution.startTime, execution.endTime)}
+                    </span>
+                    {execution.pid && <span className={styles.pid}>PID: {execution.pid}</span>}
+                  </div>
+                </button>
 
+                {/* 액션 버튼들 영역 */}
                 <div className={styles.itemActions}>
                   {(execution.status === 'running' || execution.status === 'pending') && (
                     <button
                       type="button"
                       className={styles.killButton}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onKillExecution(execution.sessionId);
-                      }}
+                      onClick={() => onKillExecution(execution.sessionId)}
                       title="Kill execution"
                     >
                       Kill
@@ -206,17 +204,14 @@ export const ExecutionsList: React.FC<ExecutionsListProps> = ({
                     <button
                       type="button"
                       className={styles.cleanupButton}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onCleanupExecution(execution.sessionId);
-                      }}
+                      onClick={() => onCleanupExecution(execution.sessionId)}
                       title="Remove from list"
                     >
                       Cleanup
                     </button>
                   )}
                 </div>
-              </button>
+              </div>
             ))
           )}
         </div>

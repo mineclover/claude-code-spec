@@ -8,9 +8,6 @@
  * for tracking executions, enabling persistence and recovery.
  */
 
-import * as fs from 'node:fs/promises';
-import * as os from 'node:os';
-import * as path from 'node:path';
 import { ClaudeClient, type ClaudeClientOptions } from '../lib/ClaudeClient';
 import type { StreamEvent } from '../lib/types';
 import { isSystemInitEvent } from '../lib/types';
@@ -87,23 +84,16 @@ export class ProcessManager {
       skillScope: params.skillScope,
     });
 
-    // Load skill content if specified
+    // Add skill reference to query if specified
     let enhancedQuery = params.query;
     if (params.skillId && params.skillScope) {
-      try {
-        const skillContent = await this.loadSkillContent(
-          params.skillId,
-          params.skillScope,
-          params.projectPath,
-        );
-        if (skillContent) {
-          enhancedQuery = `# Skill Context\n\n${skillContent}\n\n---\n\n# User Query\n\n${params.query}`;
-          console.log('[ProcessManager] Enhanced query with skill:', params.skillId);
-        }
-      } catch (error) {
-        console.error('[ProcessManager] Failed to load skill:', error);
-        // Continue without skill if loading fails
-      }
+      // Add skill reference to query - Claude will load the skill automatically
+      const skillReference = params.skillScope === 'global' 
+        ? `@${params.skillId}` 
+        : `@${params.skillId}:project`;
+      
+      enhancedQuery = `${skillReference}\n\n${params.query}`;
+      console.log('[ProcessManager] Enhanced query with skill:', params.skillId);
     }
 
     // For resume, we already have sessionId
@@ -114,8 +104,8 @@ export class ProcessManager {
     }
 
     // Create a promise to wait for sessionId from system:init event
-    let resolveSessionId: (sessionId: string) => void;
-    let rejectSessionId: (error: Error) => void;
+    let resolveSessionId: ((sessionId: string) => void) | undefined;
+    let rejectSessionId: ((error: Error) => void) | undefined;
     const sessionIdPromise = new Promise<string>((resolve, reject) => {
       resolveSessionId = resolve;
       rejectSessionId = reject;
@@ -469,31 +459,6 @@ export class ProcessManager {
     return this.maxConcurrent;
   }
 
-  /**
-   * Load skill content from filesystem
-   */
-  private async loadSkillContent(
-    skillId: string,
-    scope: 'global' | 'project',
-    projectPath: string,
-  ): Promise<string | null> {
-    try {
-      let skillPath: string;
-
-      if (scope === 'global') {
-        skillPath = path.join(os.homedir(), '.claude', 'skills', skillId, 'SKILL.md');
-      } else {
-        skillPath = path.join(projectPath, '.claude', 'skills', skillId, 'SKILL.md');
-      }
-
-      console.log('[ProcessManager] Loading skill from:', skillPath);
-      const content = await fs.readFile(skillPath, 'utf-8');
-      return content;
-    } catch (error) {
-      console.error('[ProcessManager] Failed to read skill file:', error);
-      return null;
-    }
-  }
 }
 
 // Singleton instance
