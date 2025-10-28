@@ -34,6 +34,7 @@ const DEFAULT_CONFIG: SkillRepositoryConfig = {
 const CONFIG_FILE = path.join(os.homedir(), '.claude', 'skills-repo-config.json');
 const SKILL_FILE_NAME = 'SKILL.md';
 
+
 export class SkillRepositoryManager {
   private config: SkillRepositoryConfig;
 
@@ -317,8 +318,8 @@ export class SkillRepositoryManager {
     }
     const baseDir =
       scope === 'global'
-        ? path.join(os.homedir(), '.claude', 'skills')
-        : path.join(projectPath, '.claude', 'skills');
+        ? path.join(os.homedir(), '.claude', 'plugins', 'marketplaces', 'anthropic-agent-skills')
+        : path.join(projectPath!, '.claude', 'skills');
 
     const targetDir = path.join(baseDir, targetName);
 
@@ -374,8 +375,8 @@ export class SkillRepositoryManager {
     }
     const baseDir =
       scope === 'global'
-        ? path.join(os.homedir(), '.claude', 'skills')
-        : path.join(projectPath, '.claude', 'skills');
+        ? path.join(os.homedir(), '.claude', 'plugins', 'marketplaces', 'anthropic-agent-skills')
+        : path.join(projectPath!, '.claude', 'skills');
 
     const installedPath = path.join(baseDir, skillId, SKILL_FILE_NAME);
 

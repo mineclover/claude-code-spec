@@ -27,10 +27,51 @@ const PROJECT_SKILLS_DIR = '.claude/skills';
 const SKILL_FILE_NAME = 'SKILL.md';
 
 /**
- * Get global skills directory path
+ * Get all marketplace skill directories from known_marketplaces.json
  */
-function getGlobalSkillsDir(): string {
-  return path.join(os.homedir(), '.claude', 'skills');
+async function getMarketplaceSkillDirs(): Promise<string[]> {
+  const knownMarketplacesPath = path.join(os.homedir(), '.claude', 'plugins', 'known_marketplaces.json');
+  
+  try {
+    const content = await fs.readFile(knownMarketplacesPath, 'utf-8');
+    const marketplaces = JSON.parse(content);
+    
+    const skillDirs: string[] = [];
+    
+    // Scan all marketplaces for skill directories
+    for (const [marketplaceId, marketplace] of Object.entries(marketplaces)) {
+      if (marketplace && typeof marketplace === 'object' && 'installLocation' in marketplace) {
+        const installLocation = (marketplace as { installLocation?: string }).installLocation;
+        if (typeof installLocation === 'string') {
+          // Check if this marketplace has skills
+          try {
+            const entries = await fs.readdir(installLocation, { withFileTypes: true });
+            const hasSkills = entries.some(entry => entry.isDirectory());
+            if (hasSkills) {
+              skillDirs.push(installLocation);
+              console.log(`[SkillHandlers] Found marketplace with skills: ${marketplaceId} at ${installLocation}`);
+            }
+          } catch (error) {
+            // Skip if directory doesn't exist or can't be read
+            console.warn(`[SkillHandlers] Skipping marketplace ${marketplaceId}: ${error}`);
+          }
+        }
+      }
+    }
+    
+    return skillDirs;
+  } catch (error) {
+    console.error('[SkillHandlers] Failed to read known_marketplaces.json:', error);
+  }
+  
+  // Fallback to default path if no marketplaces found
+  const defaultPath = path.join(os.homedir(), '.claude', 'plugins', 'marketplaces', 'anthropic-agent-skills');
+  try {
+    await fs.access(defaultPath);
+    return [defaultPath];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -41,14 +82,37 @@ function getProjectSkillsDir(projectPath: string): string {
 }
 
 /**
- * Get skill directory path
+ * Find skill directory path across all marketplaces
  */
-function getSkillDir(id: string, scope: 'global' | 'project', projectPath?: string): string {
+async function findSkillDir(id: string, scope: 'global' | 'project', projectPath?: string): Promise<string | null> {
   if (scope === 'project' && !projectPath) {
     throw new Error('projectPath is required for project scope');
   }
-  const baseDir = scope === 'global' ? getGlobalSkillsDir() : getProjectSkillsDir(projectPath);
-  return path.join(baseDir, id);
+  
+  if (scope === 'global') {
+    // Search across all marketplace directories
+    const marketplaceDirs = await getMarketplaceSkillDirs();
+    for (const marketplaceDir of marketplaceDirs) {
+      const skillDir = path.join(marketplaceDir, id);
+      try {
+        await fs.access(skillDir);
+        return skillDir;
+      } catch {
+        // Continue searching
+      }
+    }
+    return null;
+  } else {
+    // Project scope - single directory
+    const projectDir = getProjectSkillsDir(projectPath!);
+    const skillDir = path.join(projectDir, id);
+    try {
+      await fs.access(skillDir);
+      return skillDir;
+    } catch {
+      return null;
+    }
+  }
 }
 
 /**
@@ -156,23 +220,44 @@ export function registerSkillHandlers(router: IPCRouter): void {
             console.warn('[SkillHandlers] Skipping project scope - no projectPath provided');
             continue;
           }
-          const baseDir =
-            currentScope === 'global' ? getGlobalSkillsDir() : getProjectSkillsDir(projectPath);
-
-          const skillDirs = await listSkillDirs(baseDir);
-
-          for (const skillDir of skillDirs) {
-            const skill = await readSkill(skillDir, currentScope);
-            if (skill) {
-              skills.push({
-                id: skill.id,
-                name: skill.frontmatter.name,
-                description: skill.frontmatter.description,
-                scope: currentScope,
-                path: skill.path,
-                updatedAt: skill.updatedAt,
-                hasFiles: (skill.files?.length || 0) > 0,
-              });
+          
+          if (currentScope === 'global') {
+            // Search across all marketplace directories
+            const marketplaceDirs = await getMarketplaceSkillDirs();
+            for (const marketplaceDir of marketplaceDirs) {
+              const skillDirs = await listSkillDirs(marketplaceDir);
+              for (const skillDir of skillDirs) {
+                const skill = await readSkill(skillDir, currentScope);
+                if (skill) {
+                  skills.push({
+                    id: skill.id,
+                    name: skill.frontmatter.name,
+                    description: skill.frontmatter.description,
+                    scope: currentScope,
+                    path: skill.path,
+                    updatedAt: skill.updatedAt,
+                    hasFiles: (skill.files?.length || 0) > 0,
+                  });
+                }
+              }
+            }
+          } else {
+            // Project scope - single directory
+            const baseDir = getProjectSkillsDir(projectPath!);
+            const skillDirs = await listSkillDirs(baseDir);
+            for (const skillDir of skillDirs) {
+              const skill = await readSkill(skillDir, currentScope);
+              if (skill) {
+                skills.push({
+                  id: skill.id,
+                  name: skill.frontmatter.name,
+                  description: skill.frontmatter.description,
+                  scope: currentScope,
+                  path: skill.path,
+                  updatedAt: skill.updatedAt,
+                  hasFiles: (skill.files?.length || 0) > 0,
+                });
+              }
             }
           }
         }
@@ -204,7 +289,10 @@ export function registerSkillHandlers(router: IPCRouter): void {
       console.log('[SkillHandlers] getSkill called with:', { id, scope, projectPath });
 
       try {
-        const skillDir = getSkillDir(id, scope, projectPath);
+        const skillDir = await findSkillDir(id, scope, projectPath);
+        if (!skillDir) {
+          return null;
+        }
         return await readSkill(skillDir, scope);
       } catch (error) {
         console.error(`[SkillHandlers] Failed to get skill ${id}:`, error);
@@ -223,7 +311,9 @@ export function registerSkillHandlers(router: IPCRouter): void {
       const skillId = name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 
       // Prepare skill directory
-      const skillDir = getSkillDir(skillId, scope, projectPath);
+      const skillDir = scope === 'global' 
+        ? path.join(os.homedir(), '.claude', 'plugins', 'marketplaces', 'anthropic-agent-skills', skillId)
+        : path.join(projectPath!, PROJECT_SKILLS_DIR, skillId);
       await ensureDirectory(skillDir);
 
       // Check if skill already exists
@@ -280,7 +370,10 @@ export function registerSkillHandlers(router: IPCRouter): void {
 
       try {
         // Read existing skill
-        const skillDir = getSkillDir(id, scope, projectPath);
+        const skillDir = await findSkillDir(id, scope, projectPath);
+        if (!skillDir) {
+          throw new Error(`Skill ${id} not found in ${scope} scope`);
+        }
         const existingSkill = await readSkill(skillDir, scope);
 
         if (!existingSkill) {
@@ -328,10 +421,8 @@ export function registerSkillHandlers(router: IPCRouter): void {
       console.log('[SkillHandlers] deleteSkill called with:', { id, scope });
 
       try {
-        const skillDir = getSkillDir(id, scope, projectPath);
-
-        // Check if skill exists
-        if (!(await fileExists(skillDir))) {
+        const skillDir = await findSkillDir(id, scope, projectPath);
+        if (!skillDir) {
           throw new Error(`Skill ${id} not found in ${scope} scope`);
         }
 
@@ -357,22 +448,23 @@ export function registerSkillHandlers(router: IPCRouter): void {
         const global: SkillListItem[] = [];
         const project: SkillListItem[] = [];
 
-        // Scan global skills
-        const globalDir = getGlobalSkillsDir();
-        const globalSkillDirs = await listSkillDirs(globalDir);
-
-        for (const skillDir of globalSkillDirs) {
-          const skill = await readSkill(skillDir, 'global');
-          if (skill) {
-            global.push({
-              id: skill.id,
-              name: skill.frontmatter.name,
-              description: skill.frontmatter.description,
-              scope: 'global',
-              path: skill.path,
-              updatedAt: skill.updatedAt,
-              hasFiles: (skill.files?.length || 0) > 0,
-            });
+        // Scan global skills from all marketplaces
+        const marketplaceDirs = await getMarketplaceSkillDirs();
+        for (const marketplaceDir of marketplaceDirs) {
+          const globalSkillDirs = await listSkillDirs(marketplaceDir);
+          for (const skillDir of globalSkillDirs) {
+            const skill = await readSkill(skillDir, 'global');
+            if (skill) {
+              global.push({
+                id: skill.id,
+                name: skill.frontmatter.name,
+                description: skill.frontmatter.description,
+                scope: 'global',
+                path: skill.path,
+                updatedAt: skill.updatedAt,
+                hasFiles: (skill.files?.length || 0) > 0,
+              });
+            }
           }
         }
 
