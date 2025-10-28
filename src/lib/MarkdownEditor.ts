@@ -1002,7 +1002,7 @@ export class MarkdownEditor {
    * Update a managed region from JSON data
    * This allows data-driven manipulation of regions
    */
-  updateRegionFromJSON(regionName: string, jsonData: { items: any[] }): void {
+  updateRegionFromJSON(regionName: string, jsonData: { items: Partial<RegionItem>[] }): void {
     const region = this.findManagedRegion(regionName);
     if (!region) {
       throw new Error(`Managed region '${regionName}' not found`);
@@ -1033,7 +1033,7 @@ export class MarkdownEditor {
   /**
    * Import regions from JSON (replaces existing content)
    */
-  importRegionsFromJSON(jsonData: { regions: any[] }): void {
+  importRegionsFromJSON(jsonData: { regions: Array<{ name: string; items?: Partial<RegionItem>[] }> }): void {
     for (const regionData of jsonData.regions) {
       const region = this.findManagedRegion(regionData.name);
       if (region) {

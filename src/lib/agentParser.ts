@@ -23,7 +23,7 @@ export function parseAgentMarkdown(
   let isParsingArray = false;
   let isParsingObject = false;
   let currentArray: string[] = [];
-  let currentObject: any = {};
+  let currentObject: Record<string, string[]> = {};
   let objectKey: string | null = null;
 
   frontmatter.split('\n').forEach((line) => {
@@ -48,12 +48,16 @@ export function parseAgentMarkdown(
     else if (trimmedLine.includes(':')) {
       // Save previous array or object
       if (isParsingArray && currentKey && currentArray.length > 0) {
-        (metadata as any)[currentKey] = currentArray;
+        if (currentKey === 'allowedTools') {
+          metadata.allowedTools = currentArray;
+        }
         currentArray = [];
         isParsingArray = false;
       }
       if (isParsingObject && currentKey && Object.keys(currentObject).length > 0) {
-        (metadata as any)[currentKey] = currentObject;
+        if (currentKey === 'permissions') {
+          metadata.permissions = currentObject;
+        }
         currentObject = {};
         isParsingObject = false;
       }
@@ -84,9 +88,15 @@ export function parseAgentMarkdown(
         if (currentKey === 'tools') {
           // Split by comma and trim each tool name
           const toolsArray = cleanValue.split(',').map(t => t.trim()).filter(t => t);
-          (metadata as any)['allowedTools'] = toolsArray;
-        } else {
-          (metadata as any)[currentKey] = cleanValue;
+          metadata.allowedTools = toolsArray;
+        } else if (currentKey === 'name') {
+          metadata.name = cleanValue;
+        } else if (currentKey === 'description') {
+          metadata.description = cleanValue;
+        } else if (currentKey === 'model') {
+          metadata.model = cleanValue as 'sonnet' | 'opus' | 'haiku' | 'heroku';
+        } else if (currentKey === 'color') {
+          metadata.color = cleanValue;
         }
 
         isParsingArray = false;
@@ -97,10 +107,14 @@ export function parseAgentMarkdown(
 
   // Save last array or object
   if (isParsingArray && currentKey && currentArray.length > 0) {
-    (metadata as any)[currentKey] = currentArray;
+    if (currentKey === 'allowedTools') {
+      metadata.allowedTools = currentArray;
+    }
   }
   if (isParsingObject && currentKey && Object.keys(currentObject).length > 0) {
-    (metadata as any)[currentKey] = currentObject;
+    if (currentKey === 'permissions') {
+      metadata.permissions = currentObject;
+    }
   }
 
   // Validate required fields

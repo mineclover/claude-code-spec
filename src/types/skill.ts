@@ -9,7 +9,8 @@ export interface SkillFrontmatter {
   version?: string;
   author?: string;
   tags?: string[];
-  [key: string]: any;
+  // Allow additional string, number, boolean, or array values
+  [key: string]: string | number | boolean | string[] | undefined;
 }
 
 export interface SkillFile {

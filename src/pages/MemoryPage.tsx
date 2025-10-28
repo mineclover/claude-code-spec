@@ -360,31 +360,43 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
   const handleAddItem = (type: 'heading' | 'direct-ref' | 'indirect-ref' | 'code-block') => {
     if (!editor) return;
 
-    let newItem: Partial<RegionItem> = { type };
+    let newItem: Omit<RegionItem, 'id' | 'line' | 'endLine'>;
 
     switch (type) {
       case 'heading':
-        newItem.raw = `## New Section`;
-        (newItem as any).level = 2;
-        (newItem as any).text = 'New Section';
+        newItem = {
+          type: 'heading',
+          raw: `## New Section`,
+          level: 2,
+          text: 'New Section'
+        } as HeadingItem;
         break;
       case 'direct-ref':
-        newItem.raw = `@context/new/file.md`;
-        (newItem as any).path = '@context/new/file.md';
+        newItem = {
+          type: 'direct-ref',
+          raw: `@context/new/file.md`,
+          path: '@context/new/file.md'
+        } as DirectRefItem;
         break;
       case 'indirect-ref':
-        newItem.raw = `@context/new/file.md\n설명을 입력하세요\n추가 설명이 필요하면 여기에 작성`;
-        (newItem as any).path = '@context/new/file.md';
-        (newItem as any).description = '설명을 입력하세요\n추가 설명이 필요하면 여기에 작성';
+        newItem = {
+          type: 'indirect-ref',
+          raw: `@context/new/file.md\n설명을 입력하세요\n추가 설명이 필요하면 여기에 작성`,
+          path: '@context/new/file.md',
+          description: '설명을 입력하세요\n추가 설명이 필요하면 여기에 작성'
+        } as IndirectRefItem;
         break;
       case 'code-block':
-        newItem.raw = '```bash\n# 명령어\n```';
-        (newItem as any).language = 'bash';
-        (newItem as any).content = '# 명령어';
+        newItem = {
+          type: 'code-block',
+          raw: '```bash\n# 명령어\n```',
+          language: 'bash',
+          content: '# 명령어'
+        } as CodeBlockItem;
         break;
     }
 
-    editor.addRegionItem(region.name, newItem as any, 'end');
+    editor.addRegionItem(region.name, newItem, 'end');
     setShowAddMenu(false);
     onSave();
   };

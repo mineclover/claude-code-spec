@@ -19,7 +19,25 @@ export function parseTaskMarkdown(content: string): Task {
     const [key, ...valueParts] = line.split(':');
     if (key && valueParts.length > 0) {
       const value = valueParts.join(':').trim();
-      metadata[key.trim() as keyof TaskMetadata] = value as any;
+      const keyName = key.trim() as keyof TaskMetadata;
+      
+      if (keyName === 'id') {
+        metadata.id = value;
+      } else if (keyName === 'title') {
+        metadata.title = value;
+      } else if (keyName === 'area') {
+        metadata.area = value;
+      } else if (keyName === 'assigned_agent') {
+        metadata.assigned_agent = value;
+      } else if (keyName === 'reviewer') {
+        metadata.reviewer = value;
+      } else if (keyName === 'status') {
+        metadata.status = value as 'pending' | 'in_progress' | 'completed' | 'cancelled';
+      } else if (keyName === 'created') {
+        metadata.created = value;
+      } else if (keyName === 'updated') {
+        metadata.updated = value;
+      }
     }
   });
 
