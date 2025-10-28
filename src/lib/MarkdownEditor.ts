@@ -248,7 +248,10 @@ export class MarkdownEditor {
       this.lines.push('');
       this.lines.push(`## ${sectionHeading}`);
       this.lines.push('');
-      section = this.findSection(sectionHeading)!;
+      section = this.findSection(sectionHeading);
+      if (!section) {
+        throw new Error(`Failed to create section: ${sectionHeading}`);
+      }
     }
 
     const indent = '  '.repeat(level);
@@ -431,7 +434,11 @@ export class MarkdownEditor {
       }
     }
 
-    return this.findSection(heading)!;
+    const foundSection = this.findSection(heading);
+    if (!foundSection) {
+      throw new Error(`Failed to create section: ${heading}`);
+    }
+    return foundSection;
   }
 
   /**
@@ -1033,11 +1040,13 @@ export class MarkdownEditor {
   /**
    * Import regions from JSON (replaces existing content)
    */
-  importRegionsFromJSON(jsonData: { regions: Array<{ name: string; items?: Partial<RegionItem>[] }> }): void {
+  importRegionsFromJSON(jsonData: {
+    regions: Array<{ name: string; items?: Partial<RegionItem>[] }>;
+  }): void {
     for (const regionData of jsonData.regions) {
       const region = this.findManagedRegion(regionData.name);
       if (region) {
-        this.updateRegionFromJSON(regionData.name, { items: regionData.items });
+        this.updateRegionFromJSON(regionData.name, { items: regionData.items || [] });
       } else {
         // Create new region if it doesn't exist
         const items = regionData.items || [];

@@ -1,11 +1,11 @@
-import { useState, useEffect, useId, useCallback } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { useProject } from '../contexts/ProjectContext';
 import type { OutputStyle, OutputStyleListItem } from '../types/outputStyle';
 import styles from './OutputStylesPage.module.css';
 
 export function OutputStylesPage() {
   const { projectPath } = useProject();
-  
+
   // Generate unique IDs for form elements
   const styleNameId = useId();
   const styleDescriptionId = useId();
@@ -135,9 +135,7 @@ export function OutputStylesPage() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1>Output Styles</h1>
-        <p className={styles.description}>
-          Configure Claude Code's output style and behavior
-        </p>
+        <p className={styles.description}>Configure Claude Code's output style and behavior</p>
       </div>
 
       <div className={styles.content}>
@@ -220,9 +218,7 @@ export function OutputStylesPage() {
                   placeholder="e.g., json-formatter, code-reviewer"
                   required
                 />
-                <p className={styles.hint}>
-                  Use lowercase with hyphens (e.g., my-custom-style)
-                </p>
+                <p className={styles.hint}>Use lowercase with hyphens (e.g., my-custom-style)</p>
               </div>
 
               <div className={styles.formGroup}>
@@ -242,18 +238,13 @@ export function OutputStylesPage() {
                 <select
                   id={styleTypeId}
                   value={newStyleType}
-                  onChange={(e) =>
-                    setNewStyleType(e.target.value as 'user' | 'project')
-                  }
+                  onChange={(e) => setNewStyleType(e.target.value as 'user' | 'project')}
                 >
                   <option value="user">User (~/.claude/output-styles/)</option>
-                  <option value="project">
-                    Project (.claude/output-styles/)
-                  </option>
+                  <option value="project">Project (.claude/output-styles/)</option>
                 </select>
                 <p className={styles.hint}>
-                  User styles are available globally, project styles are shared
-                  with team
+                  User styles are available globally, project styles are shared with team
                 </p>
               </div>
 
@@ -325,7 +316,12 @@ export function OutputStylesPage() {
                   <button
                     type="button"
                     className={styles.deleteButton}
-                    onClick={() => handleDeleteStyle(selectedStyle.name, selectedStyle.type as 'user' | 'project')}
+                    onClick={() =>
+                      handleDeleteStyle(
+                        selectedStyle.name,
+                        selectedStyle.type as 'user' | 'project',
+                      )
+                    }
                   >
                     Delete
                   </button>

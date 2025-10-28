@@ -12,7 +12,9 @@ export const ExecutionDetailPage: React.FC = () => {
   const [errors, setErrors] = useState<Array<{ id: string; message: string }>>([]);
   const [error, setError] = useState<string | null>(null);
   const [pid, setPid] = useState<number | null>(null);
-  const [status, setStatus] = useState<'pending' | 'running' | 'completed' | 'failed'>('pending');
+  const [status, setStatus] = useState<'pending' | 'running' | 'completed' | 'failed' | 'killed'>(
+    'pending',
+  );
   const [projectPath, setProjectPath] = useState<string>('');
   const currentSessionIdRef = useRef<string | null>(null);
 

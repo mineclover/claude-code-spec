@@ -2,9 +2,9 @@
  * Test script to verify getUserQuestions functionality
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
 
 const projectPath = '/Users/junwoobang/project/claude-code-spec';
 const sessionId = '2e3d94ab-a4c0-4c5b-aaff-07dedd37f39e';
@@ -69,7 +69,7 @@ console.log(`User questions found: ${userQuestions.length}\n`);
 console.log('=== User Questions ===\n');
 
 let actualUserQuestions = 0;
-userQuestions.forEach((entry, idx) => {
+userQuestions.forEach((entry, _idx) => {
   const content = entry.message.content;
 
   // Skip tool results
@@ -95,8 +95,12 @@ userQuestions.forEach((entry, idx) => {
   actualUserQuestions++;
   console.log(`\n[Question ${actualUserQuestions}]`);
   console.log(`Type: ${entry.type}`);
-  console.log(`Content: ${typeof content === 'string' ? content.substring(0, 200) : JSON.stringify(content).substring(0, 200)}`);
+  console.log(
+    `Content: ${typeof content === 'string' ? content.substring(0, 200) : JSON.stringify(content).substring(0, 200)}`,
+  );
   console.log('---');
 });
 
-console.log(`\n\nActual user questions (excluding tool results and system messages): ${actualUserQuestions}`);
+console.log(
+  `\n\nActual user questions (excluding tool results and system messages): ${actualUserQuestions}`,
+);

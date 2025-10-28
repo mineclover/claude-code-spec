@@ -1,8 +1,9 @@
 /**
  * Application context and global state
  */
-import { app } from 'electron';
+
 import path from 'node:path';
+import { app } from 'electron';
 import { SessionManager } from '../lib/SessionManager';
 import { createConfig, createSessionLogger } from '../services/logger';
 

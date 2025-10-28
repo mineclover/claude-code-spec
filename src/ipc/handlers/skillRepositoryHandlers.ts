@@ -3,14 +3,14 @@
  */
 
 import { skillRepositoryManager } from '../../services/SkillRepositoryManager';
+import type { Skill } from '../../types/skill';
 import type {
-  SkillRepositoryConfig,
   OfficialSkill,
   RepositoryStatus,
   SkillImportOptions,
+  SkillRepositoryConfig,
   SkillUpdateInfo,
 } from '../../types/skillRepository';
-import type { Skill } from '../../types/skill';
 import type { IPCRouter } from '../IPCRouter';
 
 /**
@@ -38,7 +38,7 @@ export function registerSkillRepositoryHandlers(router: IPCRouter): void {
     async (_event, config: Partial<SkillRepositoryConfig>): Promise<void> => {
       await ensureInit();
       await skillRepositoryManager.setConfig(config);
-    }
+    },
   );
 
   // Get repository status
@@ -71,7 +71,7 @@ export function registerSkillRepositoryHandlers(router: IPCRouter): void {
     async (_event, skillId: string): Promise<OfficialSkill | null> => {
       await ensureInit();
       return await skillRepositoryManager.getSkill(skillId);
-    }
+    },
   );
 
   // Search official skills
@@ -91,12 +91,12 @@ export function registerSkillRepositoryHandlers(router: IPCRouter): void {
     'checkSkillUpdates',
     async (
       _event,
-      args: { skillId: string; scope: 'global' | 'project'; projectPath?: string }
+      args: { skillId: string; scope: 'global' | 'project'; projectPath?: string },
     ): Promise<SkillUpdateInfo> => {
       await ensureInit();
       const { skillId, scope, projectPath } = args;
       return await skillRepositoryManager.checkUpdates(skillId, scope, projectPath);
-    }
+    },
   );
 
   // Check all updates (batch)
@@ -104,12 +104,12 @@ export function registerSkillRepositoryHandlers(router: IPCRouter): void {
     'checkAllUpdates',
     async (
       _event,
-      args: { scope?: 'global' | 'project'; projectPath?: string }
+      _args: { scope?: 'global' | 'project'; projectPath?: string },
     ): Promise<SkillUpdateInfo[]> => {
       await ensureInit();
       // This would need to be implemented in SkillRepositoryManager
       // For now, return empty array
       return [];
-    }
+    },
   );
 }

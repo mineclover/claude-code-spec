@@ -6,7 +6,8 @@ import { ExecutionsList } from '../components/execution/ExecutionsList';
 import { useProject } from '../contexts/ProjectContext';
 import type { StreamEvent } from '../lib/types';
 import { getCachedSessionsPage, setCachedSessionsPage } from '../services/cache';
-import type { ExecutionInfo, SkillListItem } from '../types/api';
+import type { ExecutionInfo } from '../types/api';
+import type { SkillListItem } from '../types/skill';
 import styles from './ExecutionsPage.module.css';
 
 export const ExecutionsPage: React.FC = () => {
@@ -16,6 +17,7 @@ export const ExecutionsPage: React.FC = () => {
   const mcpConfigSelectId = useId();
   const modelSelectId = useId();
   const skillSelectId = useId();
+  const notesTextareaId = useId();
   const { projectPath: contextProjectPath, updateProject } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const [projectPath, setProjectPath] = useState('');
@@ -72,8 +74,24 @@ export const ExecutionsPage: React.FC = () => {
 
       // Combine and mark scope
       const allSkills = [
-        ...projectSkills.map(s => ({ ...s, scope: 'project' as const })),
-        ...globalSkills.map(s => ({ ...s, scope: 'global' as const }))
+        ...projectSkills.map(
+          (s: {
+            id: string;
+            name: string;
+            description: string;
+            updatedAt?: Date;
+            hasFiles?: boolean;
+          }) => ({ ...s, scope: 'project' as const }),
+        ),
+        ...globalSkills.map(
+          (s: {
+            id: string;
+            name: string;
+            description: string;
+            updatedAt?: Date;
+            hasFiles?: boolean;
+          }) => ({ ...s, scope: 'global' as const }),
+        ),
       ];
 
       setAvailableSkills(allSkills);
@@ -93,11 +111,13 @@ export const ExecutionsPage: React.FC = () => {
           const cached = await getCachedSessionsPage(projectPath, page, SESSIONS_PAGE_SIZE);
 
           if (cached) {
-            const sessions = cached.sessions.map((s) => ({
-              sessionId: s.sessionId,
-              firstUserMessage: s.firstUserMessage,
-              lastModified: s.lastModified,
-            }));
+            const sessions = cached.sessions.map(
+              (s: { sessionId: string; firstUserMessage?: string; lastModified: number }) => ({
+                sessionId: s.sessionId,
+                firstUserMessage: s.firstUserMessage,
+                lastModified: s.lastModified,
+              }),
+            );
             setRecentSessions(sessions);
             setTotalSessions(cached.total);
             setSessionsLoading(false);
@@ -126,11 +146,13 @@ export const ExecutionsPage: React.FC = () => {
           }),
         );
 
-        const sessions = sessionsWithMetadata.map((s) => ({
-          sessionId: s.sessionId,
-          firstUserMessage: s.firstUserMessage,
-          lastModified: s.lastModified,
-        }));
+        const sessions = sessionsWithMetadata.map(
+          (s: { sessionId: string; firstUserMessage?: string; lastModified: number }) => ({
+            sessionId: s.sessionId,
+            firstUserMessage: s.firstUserMessage,
+            lastModified: s.lastModified,
+          }),
+        );
 
         setRecentSessions(sessions);
         setTotalSessions(result.total);
@@ -211,7 +233,7 @@ export const ExecutionsPage: React.FC = () => {
 
   const handleCopyNotesToQuery = () => {
     if (notes.trim()) {
-      setQuery(prev => {
+      setQuery((prev) => {
         const separator = prev.trim() ? '\n\n' : '';
         return prev + separator + notes.trim();
       });
@@ -532,7 +554,7 @@ export const ExecutionsPage: React.FC = () => {
               const skillId = e.target.value;
               setSelectedSkillId(skillId);
               // Set scope based on selected skill
-              const skill = availableSkills.find(s => s.id === skillId);
+              const skill = availableSkills.find((s) => s.id === skillId);
               if (skill) {
                 setSelectedSkillScope(skill.scope);
               }
@@ -543,18 +565,22 @@ export const ExecutionsPage: React.FC = () => {
             {availableSkills.length > 0 && (
               <>
                 <optgroup label="Project Skills">
-                  {availableSkills.filter(s => s.scope === 'project').map((skill) => (
-                    <option key={`project-${skill.id}`} value={skill.id}>
-                      {skill.name}
-                    </option>
-                  ))}
+                  {availableSkills
+                    .filter((s) => s.scope === 'project')
+                    .map((skill) => (
+                      <option key={`project-${skill.id}`} value={skill.id}>
+                        {skill.name}
+                      </option>
+                    ))}
                 </optgroup>
                 <optgroup label="Global Skills">
-                  {availableSkills.filter(s => s.scope === 'global').map((skill) => (
-                    <option key={`global-${skill.id}`} value={skill.id}>
-                      {skill.name}
-                    </option>
-                  ))}
+                  {availableSkills
+                    .filter((s) => s.scope === 'global')
+                    .map((skill) => (
+                      <option key={`global-${skill.id}`} value={skill.id}>
+                        {skill.name}
+                      </option>
+                    ))}
                 </optgroup>
               </>
             )}
@@ -611,7 +637,7 @@ export const ExecutionsPage: React.FC = () => {
 
         <div className={styles.inputGroup}>
           <div className={styles.notesHeader}>
-            <label>Notes (Persistent Memo)</label>
+            <label htmlFor={notesTextareaId}>Notes (Persistent Memo)</label>
             <button
               type="button"
               onClick={handleCopyNotesToQuery}
@@ -623,6 +649,7 @@ export const ExecutionsPage: React.FC = () => {
             </button>
           </div>
           <textarea
+            id={notesTextareaId}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Use this space to save session IDs, command options, or any notes you want to keep..."
@@ -630,7 +657,8 @@ export const ExecutionsPage: React.FC = () => {
             rows={4}
           />
           <div className={styles.hint}>
-            Notes are saved per project. Copy session IDs from session detail pages and paste them here for later use.
+            Notes are saved per project. Copy session IDs from session detail pages and paste them
+            here for later use.
           </div>
         </div>
 

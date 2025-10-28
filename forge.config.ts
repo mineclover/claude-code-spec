@@ -18,12 +18,15 @@ const config: ForgeConfig = {
   makers: [
     new MakerSquirrel({}),
     new MakerZIP({}, ['darwin']),
-    new MakerDMG({
-      name: 'Claude Code Spec',
-      format: 'ULFO', // Compressed
-    }, ['darwin']),
+    new MakerDMG(
+      {
+        name: 'Claude Code Spec',
+        format: 'ULFO', // Compressed
+      },
+      ['darwin'],
+    ),
     new MakerRpm({}),
-    new MakerDeb({})
+    new MakerDeb({}),
   ],
   plugins: [
     new VitePlugin({

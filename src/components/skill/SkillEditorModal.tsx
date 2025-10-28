@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import toast from 'react-hot-toast';
 import type { Skill, SkillCreateInput, SkillUpdateInput } from '../../types/skill';
 import styles from './SkillEditorModal.module.css';
@@ -39,6 +39,13 @@ export const SkillEditorModal: React.FC<SkillEditorModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
+  // Generate unique IDs for form elements
+  const nameId = useId();
+  const descriptionId = useId();
+  const versionId = useId();
+  const authorId = useId();
+  const tagsId = useId();
+
   // Load skill data when editing
   useEffect(() => {
     if (mode === 'edit' && skill) {
@@ -55,7 +62,9 @@ export const SkillEditorModal: React.FC<SkillEditorModalProps> = ({
       setVersion('1.0.0');
       setAuthor('');
       setTags([]);
-      setContent('# Skill Instructions\n\nDescribe how Claude should use this skill...\n\n## When to Use\n\n## How to Use\n\n## Examples\n');
+      setContent(
+        '# Skill Instructions\n\nDescribe how Claude should use this skill...\n\n## When to Use\n\n## How to Use\n\n## Examples\n',
+      );
     }
   }, [mode, skill]);
 
@@ -124,7 +133,7 @@ export const SkillEditorModal: React.FC<SkillEditorModalProps> = ({
           skill.id,
           updates,
           scope,
-          scope === 'project' ? projectPath : undefined
+          scope === 'project' ? projectPath : undefined,
         );
         toast.success('Skill updated successfully');
       }
@@ -161,19 +170,34 @@ export const SkillEditorModal: React.FC<SkillEditorModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={styles.overlay}
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      }}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className={styles.modal}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        role="dialog"
+      >
         <div className={styles.header}>
           <h2>{mode === 'create' ? 'Create New Skill' : 'Edit Skill'}</h2>
-          <button className={styles.closeButton} onClick={onClose}>
+          <button type="button" className={styles.closeButton} onClick={onClose}>
             ×
           </button>
         </div>
 
         {errors.length > 0 && (
           <div className={styles.errors}>
-            {errors.map((error, index) => (
-              <div key={index} className={styles.error}>
+            {errors.map((error) => (
+              <div key={error} className={styles.error}>
                 ⚠️ {error}
               </div>
             ))}
@@ -182,12 +206,14 @@ export const SkillEditorModal: React.FC<SkillEditorModalProps> = ({
 
         <div className={styles.tabs}>
           <button
+            type="button"
             className={`${styles.tab} ${activeTab === 'edit' ? styles.activeTab : ''}`}
             onClick={() => setActiveTab('edit')}
           >
             Edit
           </button>
           <button
+            type="button"
             className={`${styles.tab} ${activeTab === 'preview' ? styles.activeTab : ''}`}
             onClick={() => setActiveTab('preview')}
           >
@@ -203,10 +229,11 @@ export const SkillEditorModal: React.FC<SkillEditorModalProps> = ({
                 <h3>Frontmatter</h3>
                 <div className={styles.formGrid}>
                   <div className={styles.formGroup}>
-                    <label>
+                    <label htmlFor={nameId}>
                       Name <span className={styles.required}>*</span>
                     </label>
                     <input
+                      id={nameId}
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
@@ -218,10 +245,11 @@ export const SkillEditorModal: React.FC<SkillEditorModalProps> = ({
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label>
+                    <label htmlFor={descriptionId}>
                       Description <span className={styles.required}>*</span>
                     </label>
                     <input
+                      id={descriptionId}
                       type="text"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
@@ -231,8 +259,9 @@ export const SkillEditorModal: React.FC<SkillEditorModalProps> = ({
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label>Version</label>
+                    <label htmlFor={versionId}>Version</label>
                     <input
+                      id={versionId}
                       type="text"
                       value={version}
                       onChange={(e) => setVersion(e.target.value)}
@@ -242,8 +271,9 @@ export const SkillEditorModal: React.FC<SkillEditorModalProps> = ({
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label>Author</label>
+                    <label htmlFor={authorId}>Author</label>
                     <input
+                      id={authorId}
                       type="text"
                       value={author}
                       onChange={(e) => setAuthor(e.target.value)}
@@ -253,9 +283,10 @@ export const SkillEditorModal: React.FC<SkillEditorModalProps> = ({
                   </div>
 
                   <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                    <label>Tags</label>
+                    <label htmlFor={tagsId}>Tags</label>
                     <div className={styles.tagInput}>
                       <input
+                        id={tagsId}
                         type="text"
                         value={tagInput}
                         onChange={(e) => setTagInput(e.target.value)}
@@ -263,7 +294,7 @@ export const SkillEditorModal: React.FC<SkillEditorModalProps> = ({
                         placeholder="Add tag and press Enter"
                         className={styles.input}
                       />
-                      <button onClick={handleAddTag} className={styles.addButton}>
+                      <button type="button" onClick={handleAddTag} className={styles.addButton}>
                         Add
                       </button>
                     </div>
@@ -271,7 +302,9 @@ export const SkillEditorModal: React.FC<SkillEditorModalProps> = ({
                       {tags.map((tag) => (
                         <span key={tag} className={styles.tag}>
                           {tag}
-                          <button onClick={() => handleRemoveTag(tag)}>×</button>
+                          <button type="button" onClick={() => handleRemoveTag(tag)}>
+                            ×
+                          </button>
                         </span>
                       ))}
                     </div>
@@ -302,9 +335,7 @@ export const SkillEditorModal: React.FC<SkillEditorModalProps> = ({
                   {`---
 name: ${name || '(empty)'}
 description: ${description || '(empty)'}${version ? `\nversion: ${version}` : ''}${author ? `\nauthor: ${author}` : ''}${
-                    tags.length > 0
-                      ? `\ntags:\n${tags.map((t) => `  - ${t}`).join('\n')}`
-                      : ''
+                    tags.length > 0 ? `\ntags:\n${tags.map((t) => `  - ${t}`).join('\n')}` : ''
                   }
 ---`}
                 </pre>
@@ -322,10 +353,15 @@ description: ${description || '(empty)'}${version ? `\nversion: ${version}` : ''
         </div>
 
         <div className={styles.footer}>
-          <button onClick={onClose} className={styles.cancelButton} disabled={saving}>
+          <button type="button" onClick={onClose} className={styles.cancelButton} disabled={saving}>
             Cancel
           </button>
-          <button onClick={handleSave} className={styles.saveButton} disabled={saving}>
+          <button
+            type="button"
+            onClick={handleSave}
+            className={styles.saveButton}
+            disabled={saving}
+          >
             {saving ? 'Saving...' : mode === 'create' ? 'Create Skill' : 'Save Changes'}
           </button>
         </div>

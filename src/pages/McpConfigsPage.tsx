@@ -199,7 +199,10 @@ export function McpConfigsPage() {
       const selectedServerConfigs = availableServers.filter((s) => serverNames.includes(s.name));
 
       const mcpConfig: {
-        mcpServers: Record<string, { type: string; command: string; args: string[]; env: Record<string, string> }>;
+        mcpServers: Record<
+          string,
+          { type: string; command: string; args: string[]; env: Record<string, string> }
+        >;
       } = {
         mcpServers: {},
       };
@@ -455,20 +458,21 @@ export function McpConfigsPage() {
 
                 {/* Skip Permissions Checkbox */}
                 <div className={styles.formGroup} style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <label
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                  >
                     <input
                       type="checkbox"
                       checked={skipPermissions}
                       onChange={(e) => setSkipPermissions(e.target.checked)}
                       style={{ cursor: 'pointer' }}
                     />
-                    <span>
-                      Skip permissions (--dangerously-skip-permissions)
-                    </span>
+                    <span>Skip permissions (--dangerously-skip-permissions)</span>
                   </label>
                   <p className={styles.formHint} style={{ marginTop: '4px', marginLeft: '28px' }}>
-                    ⚠️ <strong>Use with caution:</strong> This bypasses all security checks. Only use with trusted MCP servers.
-                    Recommended: Configure permissions in .claude/settings.json instead.
+                    ⚠️ <strong>Use with caution:</strong> This bypasses all security checks. Only use
+                    with trusted MCP servers. Recommended: Configure permissions in
+                    .claude/settings.json instead.
                   </p>
                 </div>
 
@@ -480,7 +484,9 @@ export function McpConfigsPage() {
                       type="button"
                       onClick={() => {
                         const relativePath = `.claude/${selectedConfig.name}`;
-                        const permissionsFlag = skipPermissions ? ' --dangerously-skip-permissions' : '';
+                        const permissionsFlag = skipPermissions
+                          ? ' --dangerously-skip-permissions'
+                          : '';
                         const script = `claude --mcp-config ${relativePath} --strict-mcp-config${permissionsFlag}`;
                         navigator.clipboard.writeText(script);
                         toast.success('Interactive script copied!');
@@ -509,7 +515,9 @@ export function McpConfigsPage() {
                       type="button"
                       onClick={() => {
                         const relativePath = `.claude/${selectedConfig.name}`;
-                        const permissionsFlag = skipPermissions ? ' --dangerously-skip-permissions' : '';
+                        const permissionsFlag = skipPermissions
+                          ? ' --dangerously-skip-permissions'
+                          : '';
                         const script = `claude -p "your query here" --mcp-config ${relativePath} --strict-mcp-config${permissionsFlag}`;
                         navigator.clipboard.writeText(script);
                         toast.success('Single query script copied!');

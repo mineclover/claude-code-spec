@@ -2,15 +2,15 @@
  * Skills Repository API types
  */
 
+import type { Skill } from '../skill';
 import type {
-  SkillRepositoryConfig,
   OfficialSkill,
   RepositoryStatus,
   SkillImportOptions,
+  SkillRepositoryConfig,
   SkillSyncOptions,
   SkillUpdateInfo,
 } from '../skillRepository';
-import type { Skill } from '../skill';
 
 export interface SkillRepositoryAPI {
   // Repository management
@@ -31,11 +31,18 @@ export interface SkillRepositoryAPI {
   importSkill: (options: SkillImportOptions) => Promise<Skill>;
 
   // Update management
-  checkSkillUpdates: (skillId: string, scope: 'global' | 'project', projectPath?: string) => Promise<SkillUpdateInfo>;
+  checkSkillUpdates: (
+    skillId: string,
+    scope: 'global' | 'project',
+    projectPath?: string,
+  ) => Promise<SkillUpdateInfo>;
   syncSkill: (options: SkillSyncOptions) => Promise<Skill>;
 
   // Batch operations
-  checkAllUpdates: (scope?: 'global' | 'project', projectPath?: string) => Promise<SkillUpdateInfo[]>;
+  checkAllUpdates: (
+    scope?: 'global' | 'project',
+    projectPath?: string,
+  ) => Promise<SkillUpdateInfo[]>;
 
   // Events
   onRepositoryUpdated: (callback: () => void) => () => void;

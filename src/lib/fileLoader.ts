@@ -2,8 +2,8 @@
  * Common file loading utilities for .claude directory files
  * Used by agents, tasks, and other markdown-based features
  */
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
 /**
  * Ensure a directory exists, creating it recursively if needed

@@ -1,11 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  getAllTools,
-  getGroupsByTools,
-  getToolsByGroups,
-  TOOL_GROUPS,
-  type ToolGroup,
-} from '../../types/toolGroups';
+import { getAllTools, getGroupsByTools, TOOL_GROUPS, type ToolGroup } from '../../types/toolGroups';
 import styles from './ToolSelector.module.css';
 
 interface ToolSelectorProps {
@@ -14,7 +8,7 @@ interface ToolSelectorProps {
   onToolsChange: (tools: string[]) => void;
 }
 
-export function ToolSelector({ projectPath, selectedTools, onToolsChange }: ToolSelectorProps) {
+export function ToolSelector({ selectedTools, onToolsChange }: ToolSelectorProps) {
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [activeMcpServers, setActiveMcpServers] = useState<string[]>([]);
 
@@ -37,7 +31,7 @@ export function ToolSelector({ projectPath, selectedTools, onToolsChange }: Tool
     }
 
     loadActiveMcpServers();
-  }, [projectPath]);
+  }, []);
 
   const handleGroupToggle = (groupId: string) => {
     const group = TOOL_GROUPS.find((g) => g.id === groupId);

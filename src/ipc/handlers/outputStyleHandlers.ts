@@ -4,12 +4,12 @@
 import * as os from 'node:os';
 import * as path from 'node:path';
 import {
+  deleteMarkdownFile,
   ensureDirectory,
   fileExists,
   listMarkdownFiles,
   readMarkdownFile,
   writeMarkdownFile,
-  deleteMarkdownFile,
 } from '../../lib/fileLoader';
 import type { OutputStyleListItem } from '../../types/outputStyle';
 import type { IPCRouter } from '../IPCRouter';
@@ -61,8 +61,8 @@ function getProjectOutputStylesDir(projectPath: string): string {
  */
 function parseOutputStyleMarkdown(
   content: string,
-  filePath: string,
-  type: 'user' | 'project',
+  _filePath: string,
+  _type: 'user' | 'project',
 ): { name: string; description: string; instructions: string } {
   // Extract frontmatter
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
@@ -119,187 +119,208 @@ description: ${description}
  */
 export function registerOutputStyleHandlers(router: IPCRouter): void {
   // List all output styles (builtin + project + user)
-  router.handle('listOutputStyles', async (
-    _event,
-    args: { projectPath: string },
-  ): Promise<OutputStyleListItem[]> => {
-    const { projectPath } = args;
-    try {
-      const styles: OutputStyleListItem[] = [...BUILTIN_STYLES];
+  router.handle(
+    'listOutputStyles',
+    async (_event, args: { projectPath: string }): Promise<OutputStyleListItem[]> => {
+      const { projectPath } = args;
+      try {
+        const styles: OutputStyleListItem[] = [...BUILTIN_STYLES];
 
-      // Get project-level output styles
-      const projectOutputStylesDir = getProjectOutputStylesDir(projectPath);
-      const projectFiles = await listMarkdownFiles(projectOutputStylesDir);
+        // Get project-level output styles
+        const projectOutputStylesDir = getProjectOutputStylesDir(projectPath);
+        const projectFiles = await listMarkdownFiles(projectOutputStylesDir);
 
-      for (const filePath of projectFiles) {
-        try {
-          const content = await readMarkdownFile(filePath);
-          if (!content) continue;
+        for (const filePath of projectFiles) {
+          try {
+            const content = await readMarkdownFile(filePath);
+            if (!content) continue;
 
-          const style = parseOutputStyleMarkdown(content, filePath, 'project');
-          styles.push({
-            name: style.name,
-            description: style.description,
-            type: 'project',
-          });
-        } catch (error) {
-          console.warn(`[OutputStyleHandlers] Failed to parse style ${filePath}:`, error);
+            const style = parseOutputStyleMarkdown(content, filePath, 'project');
+            styles.push({
+              name: style.name,
+              description: style.description,
+              type: 'project',
+            });
+          } catch (error) {
+            console.warn(`[OutputStyleHandlers] Failed to parse style ${filePath}:`, error);
+          }
         }
-      }
 
-      // Get user-level output styles
-      const userOutputStylesDir = getUserOutputStylesDir();
-      const userFiles = await listMarkdownFiles(userOutputStylesDir);
+        // Get user-level output styles
+        const userOutputStylesDir = getUserOutputStylesDir();
+        const userFiles = await listMarkdownFiles(userOutputStylesDir);
 
-      for (const filePath of userFiles) {
-        try {
-          const content = await readMarkdownFile(filePath);
-          if (!content) continue;
+        for (const filePath of userFiles) {
+          try {
+            const content = await readMarkdownFile(filePath);
+            if (!content) continue;
 
-          const style = parseOutputStyleMarkdown(content, filePath, 'user');
-          styles.push({
-            name: style.name,
-            description: style.description,
-            type: 'user',
-          });
-        } catch (error) {
-          console.warn(`[OutputStyleHandlers] Failed to parse style ${filePath}:`, error);
+            const style = parseOutputStyleMarkdown(content, filePath, 'user');
+            styles.push({
+              name: style.name,
+              description: style.description,
+              type: 'user',
+            });
+          } catch (error) {
+            console.warn(`[OutputStyleHandlers] Failed to parse style ${filePath}:`, error);
+          }
         }
-      }
 
-      return styles;
-    } catch (error) {
-      console.error('[OutputStyleHandlers] Failed to list output styles:', error);
-      return BUILTIN_STYLES;
-    }
-  });
+        return styles;
+      } catch (error) {
+        console.error('[OutputStyleHandlers] Failed to list output styles:', error);
+        return BUILTIN_STYLES;
+      }
+    },
+  );
 
   // Get a single output style
-  router.handle('getOutputStyle', async (
-    _event,
-    args: { name: string; type: 'builtin' | 'user' | 'project'; projectPath?: string },
-  ): Promise<string | null> => {
-    const { name, type, projectPath } = args;
-    try {
-      // Built-in styles don't have markdown files
-      if (type === 'builtin') {
+  router.handle(
+    'getOutputStyle',
+    async (
+      _event,
+      args: { name: string; type: 'builtin' | 'user' | 'project'; projectPath?: string },
+    ): Promise<string | null> => {
+      const { name, type, projectPath } = args;
+      try {
+        // Built-in styles don't have markdown files
+        if (type === 'builtin') {
+          return null;
+        }
+
+        let outputStylesDir: string;
+        if (type === 'project') {
+          if (!projectPath) {
+            throw new Error('projectPath is required for project-level output styles');
+          }
+          outputStylesDir = getProjectOutputStylesDir(projectPath);
+        } else {
+          outputStylesDir = getUserOutputStylesDir();
+        }
+
+        const filePath = path.join(outputStylesDir, `${name}.md`);
+        return await readMarkdownFile(filePath);
+      } catch (error) {
+        console.error(`[OutputStyleHandlers] Failed to get output style ${name}:`, error);
         return null;
       }
-
-      let outputStylesDir: string;
-      if (type === 'project') {
-        if (!projectPath) {
-          throw new Error('projectPath is required for project-level output styles');
-        }
-        outputStylesDir = getProjectOutputStylesDir(projectPath);
-      } else {
-        outputStylesDir = getUserOutputStylesDir();
-      }
-
-      const filePath = path.join(outputStylesDir, `${name}.md`);
-      return await readMarkdownFile(filePath);
-    } catch (error) {
-      console.error(`[OutputStyleHandlers] Failed to get output style ${name}:`, error);
-      return null;
-    }
-  });
+    },
+  );
 
   // Create a new output style
-  router.handle('createOutputStyle', async (
-    _event,
-    args: {
-      name: string;
-      description: string;
-      instructions: string;
-      type: 'user' | 'project';
-      projectPath?: string;
-    },
-  ): Promise<{ success: boolean; error?: string }> => {
-    const { name, description, instructions, type, projectPath } = args;
-    try {
-      let outputStylesDir: string;
-      if (type === 'project') {
-        if (!projectPath) {
-          return { success: false, error: 'projectPath is required for project-level output styles' };
+  router.handle(
+    'createOutputStyle',
+    async (
+      _event,
+      args: {
+        name: string;
+        description: string;
+        instructions: string;
+        type: 'user' | 'project';
+        projectPath?: string;
+      },
+    ): Promise<{ success: boolean; error?: string }> => {
+      const { name, description, instructions, type, projectPath } = args;
+      try {
+        let outputStylesDir: string;
+        if (type === 'project') {
+          if (!projectPath) {
+            return {
+              success: false,
+              error: 'projectPath is required for project-level output styles',
+            };
+          }
+          outputStylesDir = getProjectOutputStylesDir(projectPath);
+        } else {
+          outputStylesDir = getUserOutputStylesDir();
         }
-        outputStylesDir = getProjectOutputStylesDir(projectPath);
-      } else {
-        outputStylesDir = getUserOutputStylesDir();
+
+        await ensureDirectory(outputStylesDir);
+        const filePath = path.join(outputStylesDir, `${name}.md`);
+
+        // Check if file already exists
+        if (await fileExists(filePath)) {
+          return { success: false, error: 'Output style already exists' };
+        }
+
+        const content = generateOutputStyleMarkdown(name, description, instructions);
+        await writeMarkdownFile(filePath, content);
+        return { success: true };
+      } catch (error) {
+        console.error(`[OutputStyleHandlers] Failed to create output style ${name}:`, error);
+        return { success: false, error: String(error) };
       }
-
-      await ensureDirectory(outputStylesDir);
-      const filePath = path.join(outputStylesDir, `${name}.md`);
-
-      // Check if file already exists
-      if (await fileExists(filePath)) {
-        return { success: false, error: 'Output style already exists' };
-      }
-
-      const content = generateOutputStyleMarkdown(name, description, instructions);
-      await writeMarkdownFile(filePath, content);
-      return { success: true };
-    } catch (error) {
-      console.error(`[OutputStyleHandlers] Failed to create output style ${name}:`, error);
-      return { success: false, error: String(error) };
-    }
-  });
+    },
+  );
 
   // Update an existing output style
-  router.handle('updateOutputStyle', async (
-    _event,
-    args: {
-      name: string;
-      description: string;
-      instructions: string;
-      type: 'user' | 'project';
-      projectPath?: string;
-    },
-  ): Promise<{ success: boolean; error?: string }> => {
-    const { name, description, instructions, type, projectPath } = args;
-    try {
-      let outputStylesDir: string;
-      if (type === 'project') {
-        if (!projectPath) {
-          return { success: false, error: 'projectPath is required for project-level output styles' };
+  router.handle(
+    'updateOutputStyle',
+    async (
+      _event,
+      args: {
+        name: string;
+        description: string;
+        instructions: string;
+        type: 'user' | 'project';
+        projectPath?: string;
+      },
+    ): Promise<{ success: boolean; error?: string }> => {
+      const { name, description, instructions, type, projectPath } = args;
+      try {
+        let outputStylesDir: string;
+        if (type === 'project') {
+          if (!projectPath) {
+            return {
+              success: false,
+              error: 'projectPath is required for project-level output styles',
+            };
+          }
+          outputStylesDir = getProjectOutputStylesDir(projectPath);
+        } else {
+          outputStylesDir = getUserOutputStylesDir();
         }
-        outputStylesDir = getProjectOutputStylesDir(projectPath);
-      } else {
-        outputStylesDir = getUserOutputStylesDir();
-      }
 
-      const filePath = path.join(outputStylesDir, `${name}.md`);
-      const content = generateOutputStyleMarkdown(name, description, instructions);
-      await writeMarkdownFile(filePath, content);
-      return { success: true };
-    } catch (error) {
-      console.error(`[OutputStyleHandlers] Failed to update output style ${name}:`, error);
-      return { success: false, error: String(error) };
-    }
-  });
+        const filePath = path.join(outputStylesDir, `${name}.md`);
+        const content = generateOutputStyleMarkdown(name, description, instructions);
+        await writeMarkdownFile(filePath, content);
+        return { success: true };
+      } catch (error) {
+        console.error(`[OutputStyleHandlers] Failed to update output style ${name}:`, error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
 
   // Delete an output style
-  router.handle('deleteOutputStyle', async (
-    _event,
-    args: { name: string; type: 'user' | 'project'; projectPath?: string },
-  ): Promise<{ success: boolean; error?: string }> => {
-    const { name, type, projectPath } = args;
-    try {
-      let outputStylesDir: string;
-      if (type === 'project') {
-        if (!projectPath) {
-          return { success: false, error: 'projectPath is required for project-level output styles' };
+  router.handle(
+    'deleteOutputStyle',
+    async (
+      _event,
+      args: { name: string; type: 'user' | 'project'; projectPath?: string },
+    ): Promise<{ success: boolean; error?: string }> => {
+      const { name, type, projectPath } = args;
+      try {
+        let outputStylesDir: string;
+        if (type === 'project') {
+          if (!projectPath) {
+            return {
+              success: false,
+              error: 'projectPath is required for project-level output styles',
+            };
+          }
+          outputStylesDir = getProjectOutputStylesDir(projectPath);
+        } else {
+          outputStylesDir = getUserOutputStylesDir();
         }
-        outputStylesDir = getProjectOutputStylesDir(projectPath);
-      } else {
-        outputStylesDir = getUserOutputStylesDir();
-      }
 
-      const filePath = path.join(outputStylesDir, `${name}.md`);
-      await deleteMarkdownFile(filePath);
-      return { success: true };
-    } catch (error) {
-      console.error(`[OutputStyleHandlers] Failed to delete output style ${name}:`, error);
-      return { success: false, error: String(error) };
-    }
-  });
+        const filePath = path.join(outputStylesDir, `${name}.md`);
+        await deleteMarkdownFile(filePath);
+        return { success: true };
+      } catch (error) {
+        console.error(`[OutputStyleHandlers] Failed to delete output style ${name}:`, error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
 }

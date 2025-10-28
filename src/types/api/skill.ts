@@ -4,26 +4,30 @@
 
 import type {
   Skill,
-  SkillListItem,
   SkillCreateInput,
-  SkillUpdateInput,
-  SkillScanResult,
-  ValidationResult,
   SkillExportOptions,
-  SkillImportOptions,
   SkillFile,
+  SkillImportOptions,
+  SkillListItem,
+  SkillScanResult,
+  SkillUpdateInput,
+  ValidationResult,
 } from '../skill';
 
 export interface SkillAPI {
   // CRUD operations
   listSkills: (scope?: 'global' | 'project', projectPath?: string) => Promise<SkillListItem[]>;
-  getSkill: (id: string, scope: 'global' | 'project', projectPath?: string) => Promise<Skill | null>;
+  getSkill: (
+    id: string,
+    scope: 'global' | 'project',
+    projectPath?: string,
+  ) => Promise<Skill | null>;
   createSkill: (input: SkillCreateInput) => Promise<Skill>;
   updateSkill: (
     id: string,
     updates: SkillUpdateInput,
     scope: 'global' | 'project',
-    projectPath?: string
+    projectPath?: string,
   ) => Promise<Skill>;
   deleteSkill: (id: string, scope: 'global' | 'project', projectPath?: string) => Promise<void>;
 
@@ -33,7 +37,7 @@ export interface SkillAPI {
   exportSkill: (
     id: string,
     scope: 'global' | 'project',
-    options: SkillExportOptions
+    options: SkillExportOptions,
   ) => Promise<string>;
   importSkill: (options: SkillImportOptions) => Promise<Skill>;
 
@@ -41,26 +45,26 @@ export interface SkillAPI {
   listSkillFiles: (
     id: string,
     scope: 'global' | 'project',
-    projectPath?: string
+    projectPath?: string,
   ) => Promise<SkillFile[]>;
   getSkillFile: (
     id: string,
     fileName: string,
     scope: 'global' | 'project',
-    projectPath?: string
+    projectPath?: string,
   ) => Promise<string>;
   updateSkillFile: (
     id: string,
     fileName: string,
     content: string,
     scope: 'global' | 'project',
-    projectPath?: string
+    projectPath?: string,
   ) => Promise<void>;
   deleteSkillFile: (
     id: string,
     fileName: string,
     scope: 'global' | 'project',
-    projectPath?: string
+    projectPath?: string,
   ) => Promise<void>;
 
   // Watch for changes

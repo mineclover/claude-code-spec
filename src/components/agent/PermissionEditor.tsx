@@ -26,8 +26,8 @@ export function PermissionEditor({ permissions, onPermissionsChange }: Permissio
     setNewAllowPattern('');
   };
 
-  const handleRemoveAllowPattern = (index: number) => {
-    const updatedAllowList = allowList.filter((_, i) => i !== index);
+  const handleRemoveAllowPattern = (pattern: string) => {
+    const updatedAllowList = allowList.filter((p) => p !== pattern);
     const updatedPermissions = {
       ...permissions,
       allowList: updatedAllowList,
@@ -48,8 +48,8 @@ export function PermissionEditor({ permissions, onPermissionsChange }: Permissio
     setNewDenyPattern('');
   };
 
-  const handleRemoveDenyPattern = (index: number) => {
-    const updatedDenyList = denyList.filter((_, i) => i !== index);
+  const handleRemoveDenyPattern = (pattern: string) => {
+    const updatedDenyList = denyList.filter((p) => p !== pattern);
     const updatedPermissions = {
       ...permissions,
       denyList: updatedDenyList,
@@ -74,13 +74,13 @@ export function PermissionEditor({ permissions, onPermissionsChange }: Permissio
           {allowList.length === 0 ? (
             <p className={styles.empty}>허용 패턴이 없습니다.</p>
           ) : (
-            allowList.map((pattern, index) => (
-              <div key={`allow-${pattern}-${index}`} className={styles.patternItem}>
+            allowList.map((pattern) => (
+              <div key={`allow-${pattern}`} className={styles.patternItem}>
                 <code className={styles.patternText}>{pattern}</code>
                 <button
                   type="button"
                   className={styles.removeButton}
-                  onClick={() => handleRemoveAllowPattern(index)}
+                  onClick={() => handleRemoveAllowPattern(pattern)}
                 >
                   Remove
                 </button>
@@ -121,13 +121,13 @@ export function PermissionEditor({ permissions, onPermissionsChange }: Permissio
           {denyList.length === 0 ? (
             <p className={styles.empty}>거부 패턴이 없습니다.</p>
           ) : (
-            denyList.map((pattern, index) => (
-              <div key={`deny-${pattern}-${index}`} className={styles.patternItem}>
+            denyList.map((pattern) => (
+              <div key={`deny-${pattern}`} className={styles.patternItem}>
                 <code className={styles.patternText}>{pattern}</code>
                 <button
                   type="button"
                   className={styles.removeButton}
-                  onClick={() => handleRemoveDenyPattern(index)}
+                  onClick={() => handleRemoveDenyPattern(pattern)}
                 >
                   Remove
                 </button>

@@ -549,6 +549,21 @@
   border-radius: 0 0 6px 6px;
 }
 
+.itemCard {
+  background: white;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.itemCard:last-child {
+  margin-bottom: 0;
+}
+
 .sectionItems .itemCard {
   margin-bottom: 0.75rem;
 }
@@ -624,21 +639,6 @@
 
 .menuItem:hover {
   background: #e1e4e8;
-}
-
-.itemCard {
-  background: white;
-  border: 1px solid #e1e4e8;
-  border-radius: 6px;
-  padding: 1rem;
-  margin-bottom: 0.75rem;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
-}
-
-.itemCard:last-child {
-  margin-bottom: 0;
 }
 
 .itemCard:hover {

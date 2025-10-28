@@ -1,8 +1,8 @@
 /**
  * Task-related IPC handlers
  */
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import type { IPCRouter } from '../IPCRouter';
 
 const TASKS_DIR = '.claude/tasks';
@@ -53,7 +53,7 @@ function parseFrontmatter(content: string): Record<string, string> {
  */
 export function registerTaskHandlers(router: IPCRouter): void {
   // List all tasks in a project
-  router.handle<{ projectPath: string }, TaskListItem[]>('listTasks', async ({ projectPath }) => {
+  router.handle<[string], TaskListItem[]>('listTasks', async (_event, projectPath) => {
     try {
       const tasksPath = await ensureTasksDirectory(projectPath);
       const files = await fs.readdir(tasksPath);
@@ -94,67 +94,64 @@ export function registerTaskHandlers(router: IPCRouter): void {
   });
 
   // Get a single task
-  router.handle<{ projectPath: string; taskId: string }, string | null>(
-    'getTask',
-    async ({ projectPath, taskId }) => {
+  router.handle<[string, string], string | null>('getTask', async (_event, projectPath, taskId) => {
+    try {
+      const tasksPath = await ensureTasksDirectory(projectPath);
+      const filePath = path.join(tasksPath, `${taskId}.md`);
+      const content = await fs.readFile(filePath, 'utf-8');
+      return content;
+    } catch (error) {
+      console.error(`[TaskHandlers] Failed to get task ${taskId}:`, error);
+      return null;
+    }
+  });
+
+  // Create a new task
+  router.handle<[string, string, string], { success: boolean; error?: string }>(
+    'createTask',
+    async (_event, projectPath, taskId, content) => {
       try {
         const tasksPath = await ensureTasksDirectory(projectPath);
         const filePath = path.join(tasksPath, `${taskId}.md`);
-        const content = await fs.readFile(filePath, 'utf-8');
-        return content;
+
+        // Check if file already exists
+        try {
+          await fs.access(filePath);
+          return { success: false, error: 'Task already exists' };
+        } catch {
+          // File doesn't exist, proceed with creation
+        }
+
+        await fs.writeFile(filePath, content, 'utf-8');
+        return { success: true };
       } catch (error) {
-        console.error(`[TaskHandlers] Failed to get task ${taskId}:`, error);
-        return null;
+        console.error(`[TaskHandlers] Failed to create task ${taskId}:`, error);
+        return { success: false, error: String(error) };
       }
     },
   );
 
-  // Create a new task
-  router.handle<
-    { projectPath: string; taskId: string; content: string },
-    { success: boolean; error?: string }
-  >('createTask', async ({ projectPath, taskId, content }) => {
-    try {
-      const tasksPath = await ensureTasksDirectory(projectPath);
-      const filePath = path.join(tasksPath, `${taskId}.md`);
-
-      // Check if file already exists
-      try {
-        await fs.access(filePath);
-        return { success: false, error: 'Task already exists' };
-      } catch {
-        // File doesn't exist, proceed with creation
-      }
-
-      await fs.writeFile(filePath, content, 'utf-8');
-      return { success: true };
-    } catch (error) {
-      console.error(`[TaskHandlers] Failed to create task ${taskId}:`, error);
-      return { success: false, error: String(error) };
-    }
-  });
-
   // Update an existing task
-  router.handle<
-    { projectPath: string; taskId: string; content: string },
-    { success: boolean; error?: string }
-  >('updateTask', async ({ projectPath, taskId, content }) => {
-    try {
-      const tasksPath = await ensureTasksDirectory(projectPath);
-      const filePath = path.join(tasksPath, `${taskId}.md`);
+  router.handle<[string, string, string], { success: boolean; error?: string }>(
+    'updateTask',
+    async (_event, projectPath, taskId, content) => {
+      try {
+        const tasksPath = await ensureTasksDirectory(projectPath);
+        const filePath = path.join(tasksPath, `${taskId}.md`);
 
-      await fs.writeFile(filePath, content, 'utf-8');
-      return { success: true };
-    } catch (error) {
-      console.error(`[TaskHandlers] Failed to update task ${taskId}:`, error);
-      return { success: false, error: String(error) };
-    }
-  });
+        await fs.writeFile(filePath, content, 'utf-8');
+        return { success: true };
+      } catch (error) {
+        console.error(`[TaskHandlers] Failed to update task ${taskId}:`, error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
 
   // Delete a task
-  router.handle<{ projectPath: string; taskId: string }, { success: boolean; error?: string }>(
+  router.handle<[string, string], { success: boolean; error?: string }>(
     'deleteTask',
-    async ({ projectPath, taskId }) => {
+    async (_event, projectPath, taskId) => {
       try {
         const tasksPath = await ensureTasksDirectory(projectPath);
         const filePath = path.join(tasksPath, `${taskId}.md`);

@@ -1,5 +1,5 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
 /**
  * 프로젝트의 MCP config 파일을 읽어 활성화된 MCP 서버 목록을 반환
@@ -18,9 +18,11 @@ export async function getActiveMcpServers(projectPath: string): Promise<string[]
 
       // MCP config에서 활성화된 서버 이름 추출
       if (config.mcpServers) {
-        Object.keys(config.mcpServers).forEach((server) => activeServers.add(server));
+        Object.keys(config.mcpServers).forEach((server) => {
+          activeServers.add(server);
+        });
       }
-    } catch (error) {}
+    } catch (_error) {}
   }
 
   return Array.from(activeServers);
@@ -58,7 +60,7 @@ export function groupMcpToolsByServer(tools: string[]): Map<string, string[]> {
       grouped.set(serverName, []);
     }
 
-    grouped.get(serverName)!.push(tool);
+    grouped.get(serverName)?.push(tool);
   });
 
   return grouped;

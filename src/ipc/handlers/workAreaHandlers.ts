@@ -1,13 +1,13 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import type { WorkAreasConfig } from '../../types/workArea';
+import type { WorkArea, WorkAreasConfig } from '../../types/workArea';
 import type { IPCRouter } from '../IPCRouter';
 
 export function registerWorkAreaHandlers(router: IPCRouter) {
   /**
    * Get all work areas from config
    */
-  router.handle('getWorkAreas', async ({ projectPath }) => {
+  router.handle('getWorkAreas', async (_event, projectPath: string) => {
     try {
       const configPath = path.join(projectPath, '.claude', 'work-areas.json');
 
@@ -29,7 +29,7 @@ export function registerWorkAreaHandlers(router: IPCRouter) {
   /**
    * Update work areas config
    */
-  router.handle('updateWorkAreas', async ({ projectPath, areas }) => {
+  router.handle('updateWorkAreas', async (_event, projectPath: string, areas: WorkArea[]) => {
     try {
       const configPath = path.join(projectPath, '.claude', 'work-areas.json');
       const config: WorkAreasConfig = { areas };

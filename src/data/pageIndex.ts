@@ -158,17 +158,7 @@ export const PAGE_INDEX: PageIndex[] = [
     route: '/output-styles',
     icon: '🎨',
     category: 'configuration',
-    keywords: [
-      'output',
-      'style',
-      'format',
-      'json',
-      'custom',
-      'behavior',
-      '출력',
-      '스타일',
-      '형식',
-    ],
+    keywords: ['output', 'style', 'format', 'json', 'custom', 'behavior', '출력', '스타일', '형식'],
   },
   {
     id: 'settings',

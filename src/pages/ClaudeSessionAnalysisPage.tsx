@@ -1,8 +1,8 @@
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { ClaudeSessionEntry } from '../preload';
 import { SessionLogEventRenderer } from '../components/sessions/SessionLogEventRenderer';
+import type { ClaudeSessionEntry } from '../preload';
 import styles from './ClaudeSessionAnalysisPage.module.css';
 
 type ViewMode = 'user-questions' | 'auto-generated';
@@ -81,7 +81,12 @@ export const ClaudeSessionAnalysisPage: React.FC = () => {
         <div>
           <div>Failed to load session analysis</div>
           <div style={{ fontSize: '11px', marginTop: '8px' }}>{error}</div>
-          <button type="button" onClick={handleClose} className={styles.button} style={{ marginTop: '12px' }}>
+          <button
+            type="button"
+            onClick={handleClose}
+            className={styles.button}
+            style={{ marginTop: '12px' }}
+          >
             Close
           </button>
         </div>
@@ -144,9 +149,13 @@ export const ClaudeSessionAnalysisPage: React.FC = () => {
         ) : (
           <>
             <div className={styles.sectionTitle}>{currentTitle}</div>
-            {currentData.map((entry, idx) => (
-              <SessionLogEventRenderer key={`analysis-${viewMode}-${idx}`} event={entry} index={idx} />
-            ))}
+            {currentData.map((entry, idx) => {
+              // Create a more stable key using entry properties
+              const entryKey = entry.timestamp
+                ? `${viewMode}-${entry.timestamp}-${idx}`
+                : `${viewMode}-${idx}`;
+              return <SessionLogEventRenderer key={entryKey} event={entry} index={idx} />;
+            })}
           </>
         )}
       </div>

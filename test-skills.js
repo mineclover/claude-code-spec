@@ -8,9 +8,9 @@
  * 4. ProcessManager skill context injection
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const fs = require('node:fs');
+const path = require('node:path');
+const _os = require('node:os');
 
 // Colors for console output
 const colors = {
@@ -18,7 +18,7 @@ const colors = {
   red: '\x1b[31m',
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
-  reset: '\x1b[0m'
+  reset: '\x1b[0m',
 };
 
 function log(message, color = colors.reset) {
@@ -123,7 +123,7 @@ function testSkillParser() {
       'parseYaml',
       'parseSkillMarkdown',
       'serializeSkill',
-      'validateSkillStructure'
+      'validateSkillStructure',
     ];
 
     for (const func of requiredFunctions) {
@@ -146,7 +146,13 @@ function testIPCHandlers() {
 
   try {
     const skillHandlersPath = path.join(__dirname, 'src', 'ipc', 'handlers', 'skillHandlers.ts');
-    const repoHandlersPath = path.join(__dirname, 'src', 'ipc', 'handlers', 'skillRepositoryHandlers.ts');
+    const repoHandlersPath = path.join(
+      __dirname,
+      'src',
+      'ipc',
+      'handlers',
+      'skillRepositoryHandlers.ts',
+    );
 
     if (!fs.existsSync(skillHandlersPath)) {
       throw new Error('skillHandlers.ts not found');
@@ -165,7 +171,7 @@ function testIPCHandlers() {
       'getSkill',
       'createSkill',
       'updateSkill',
-      'deleteSkill'
+      'deleteSkill',
     ];
 
     for (const handler of requiredSkillHandlers) {
@@ -175,11 +181,7 @@ function testIPCHandlers() {
     }
 
     // Check repository handlers (function names, not channel names)
-    const requiredRepoHandlers = [
-      'cloneRepository',
-      'listOfficialSkills',
-      'importSkill'
-    ];
+    const requiredRepoHandlers = ['cloneRepository', 'listOfficialSkills', 'importSkill'];
 
     for (const handler of requiredRepoHandlers) {
       if (!repoHandlers.includes(handler)) {
@@ -209,12 +211,7 @@ function testProcessManagerIntegration() {
     const content = fs.readFileSync(processManagerPath, 'utf-8');
 
     // Check for skill support
-    const requiredFeatures = [
-      'skillId',
-      'skillScope',
-      'loadSkillContent',
-      'enhancedQuery'
-    ];
+    const requiredFeatures = ['skillId', 'skillScope', 'loadSkillContent', 'enhancedQuery'];
 
     for (const feature of requiredFeatures) {
       if (!content.includes(feature)) {
@@ -250,7 +247,7 @@ function testExecutePageIntegration() {
       'selectedSkillScope',
       'availableSkills',
       'loadSkills',
-      'Skill (Optional)'
+      'Skill (Optional)',
     ];
 
     for (const element of requiredElements) {
@@ -273,7 +270,13 @@ function testSkillsUIComponents() {
 
   try {
     const skillsPagePath = path.join(__dirname, 'src', 'pages', 'SkillsPage.tsx');
-    const editorModalPath = path.join(__dirname, 'src', 'components', 'skill', 'SkillEditorModal.tsx');
+    const editorModalPath = path.join(
+      __dirname,
+      'src',
+      'components',
+      'skill',
+      'SkillEditorModal.tsx',
+    );
 
     if (!fs.existsSync(skillsPagePath)) {
       throw new Error('SkillsPage.tsx not found');
@@ -318,11 +321,7 @@ function testDocumentation() {
       throw new Error('Skills documentation directory not found');
     }
 
-    const requiredDocs = [
-      'index.md',
-      'repository-management.md',
-      'ui-guide.md'
-    ];
+    const requiredDocs = ['index.md', 'repository-management.md', 'ui-guide.md'];
 
     for (const doc of requiredDocs) {
       const docPath = path.join(docsPath, doc);
@@ -386,10 +385,10 @@ async function runAllTests() {
   log('                   TEST SUMMARY                     ', colors.blue);
   log('═══════════════════════════════════════════════════', colors.blue);
 
-  const passed = results.filter(r => r.passed).length;
-  const failed = results.filter(r => !r.passed).length;
+  const passed = results.filter((r) => r.passed).length;
+  const failed = results.filter((r) => !r.passed).length;
 
-  results.forEach(result => {
+  results.forEach((result) => {
     if (result.passed) {
       success(`${result.name}: PASSED`);
     } else {
@@ -398,8 +397,10 @@ async function runAllTests() {
   });
 
   console.log('\n');
-  log(`Total: ${results.length} | Passed: ${passed} | Failed: ${failed}`,
-      failed === 0 ? colors.green : colors.red);
+  log(
+    `Total: ${results.length} | Passed: ${passed} | Failed: ${failed}`,
+    failed === 0 ? colors.green : colors.red,
+  );
 
   if (failed === 0) {
     console.log('\n');
@@ -415,7 +416,7 @@ async function runAllTests() {
 }
 
 // Run tests
-runAllTests().catch(err => {
+runAllTests().catch((err) => {
   error(`Test suite error: ${err.message}`);
   process.exit(1);
 });

@@ -81,7 +81,7 @@ export class ProcessManager {
 
     console.log('[ProcessManager] Starting execution:', {
       projectPath: params.projectPath,
-      query: params.query.substring(0, 50) + '...',
+      query: `${params.query.substring(0, 50)}...`,
       resumeSession: params.sessionId || 'new',
       skillId: params.skillId,
       skillScope: params.skillScope,
@@ -91,7 +91,11 @@ export class ProcessManager {
     let enhancedQuery = params.query;
     if (params.skillId && params.skillScope) {
       try {
-        const skillContent = await this.loadSkillContent(params.skillId, params.skillScope, params.projectPath);
+        const skillContent = await this.loadSkillContent(
+          params.skillId,
+          params.skillScope,
+          params.projectPath,
+        );
         if (skillContent) {
           enhancedQuery = `# Skill Context\n\n${skillContent}\n\n---\n\n# User Query\n\n${params.query}`;
           console.log('[ProcessManager] Enhanced query with skill:', params.skillId);
@@ -133,7 +137,7 @@ export class ProcessManager {
           console.log('[ProcessManager] Received sessionId from system:init:', newSessionId);
 
           // Resolve the promise
-          resolveSessionId!(newSessionId);
+          resolveSessionId?.(newSessionId);
 
           // Update tempExecution with sessionId and store in map
           if (tempExecution) {
@@ -241,7 +245,7 @@ export class ProcessManager {
     // If resuming, store immediately with sessionId
     if (params.sessionId) {
       this.executions.set(params.sessionId, executionInfo);
-      resolveSessionId!(params.sessionId);
+      resolveSessionId?.(params.sessionId);
       // Notify listeners of new execution
       this.notifyExecutionsChanged();
     } else {
@@ -277,7 +281,7 @@ export class ProcessManager {
 
       // Reject sessionId promise if not resuming
       if (!params.sessionId) {
-        rejectSessionId!(new Error(`Execution failed to start: ${errorMsg}`));
+        rejectSessionId?.(new Error(`Execution failed to start: ${errorMsg}`));
       }
 
       throw error;
@@ -468,7 +472,11 @@ export class ProcessManager {
   /**
    * Load skill content from filesystem
    */
-  private async loadSkillContent(skillId: string, scope: 'global' | 'project', projectPath: string): Promise<string | null> {
+  private async loadSkillContent(
+    skillId: string,
+    scope: 'global' | 'project',
+    projectPath: string,
+  ): Promise<string | null> {
     try {
       let skillPath: string;
 

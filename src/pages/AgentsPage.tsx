@@ -10,7 +10,7 @@ import styles from './AgentsPage.module.css';
 
 export const AgentsPage: React.FC = () => {
   const { projectPath } = useProject();
-  
+
   // Generate unique IDs for form elements
   const sourceTypeId = useId();
   const agentNameId = useId();
@@ -385,7 +385,7 @@ export const AgentsPage: React.FC = () => {
                     className={styles.input}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder='Expert specialist. Use when user requests...'
+                    placeholder="Expert specialist. Use when user requests..."
                   />
                   <p className={styles.hint}>
                     Include "Use when" to define trigger conditions (Claude Code compatible)
@@ -393,14 +393,14 @@ export const AgentsPage: React.FC = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor={modelId}>
-                    Model:
-                  </label>
+                  <label htmlFor={modelId}>Model:</label>
                   <select
                     id={modelId}
                     className={styles.select}
                     value={model}
-                    onChange={(e) => setModel(e.target.value as 'sonnet' | 'opus' | 'haiku' | 'heroku')}
+                    onChange={(e) =>
+                      setModel(e.target.value as 'sonnet' | 'opus' | 'haiku' | 'heroku')
+                    }
                   >
                     <option value="sonnet">Sonnet (Balanced)</option>
                     <option value="opus">Opus (Powerful)</option>
@@ -413,9 +413,7 @@ export const AgentsPage: React.FC = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor={colorId}>
-                    Color:
-                  </label>
+                  <label htmlFor={colorId}>Color:</label>
                   <select
                     id={colorId}
                     className={styles.select}
@@ -429,9 +427,7 @@ export const AgentsPage: React.FC = () => {
                     <option value="yellow">Yellow</option>
                     <option value="orange">Orange</option>
                   </select>
-                  <p className={styles.hint}>
-                    UI hint color (Claude Code compatible)
-                  </p>
+                  <p className={styles.hint}>UI hint color (Claude Code compatible)</p>
                 </div>
 
                 <div className={styles.formGroup}>
@@ -460,8 +456,8 @@ export const AgentsPage: React.FC = () => {
                     onPermissionsChange={setPermissions}
                   />
                   <p className={styles.hint} style={{ marginTop: '0.5rem', color: '#ff9800' }}>
-                    ⚠️ Note: Claude Code does not support permissions in frontmatter.
-                    Permissions will be converted to documentation in the agent body.
+                    ⚠️ Note: Claude Code does not support permissions in frontmatter. Permissions
+                    will be converted to documentation in the agent body.
                   </p>
                 </div>
               </div>
@@ -483,15 +479,19 @@ export const AgentsPage: React.FC = () => {
                     <strong>Model:</strong> {selectedAgent?.model || 'sonnet'}
                   </div>
                   <div className={styles.previewItem}>
-                    <strong>Color:</strong> <span style={{
-                      display: 'inline-block',
-                      width: '12px',
-                      height: '12px',
-                      backgroundColor: selectedAgent?.color || 'blue',
-                      borderRadius: '2px',
-                      marginRight: '4px',
-                      verticalAlign: 'middle'
-                    }} /> {selectedAgent?.color || 'blue'}
+                    <strong>Color:</strong>{' '}
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: '12px',
+                        height: '12px',
+                        backgroundColor: selectedAgent?.color || 'blue',
+                        borderRadius: '2px',
+                        marginRight: '4px',
+                        verticalAlign: 'middle',
+                      }}
+                    />{' '}
+                    {selectedAgent?.color || 'blue'}
                   </div>
                 </div>
 
@@ -523,8 +523,8 @@ export const AgentsPage: React.FC = () => {
                         <>
                           <h4>Allow List:</h4>
                           <ul>
-                            {selectedAgent.permissions.allowList.map((pattern, i) => (
-                              <li key={`allow-${pattern}-${i}`}>
+                            {selectedAgent.permissions.allowList.map((pattern) => (
+                              <li key={`allow-${pattern}`}>
                                 <code>{pattern}</code>
                               </li>
                             ))}
@@ -536,8 +536,8 @@ export const AgentsPage: React.FC = () => {
                         <>
                           <h4>Deny List:</h4>
                           <ul>
-                            {selectedAgent.permissions.denyList.map((pattern, i) => (
-                              <li key={`deny-${pattern}-${i}`}>
+                            {selectedAgent.permissions.denyList.map((pattern) => (
+                              <li key={`deny-${pattern}`}>
                                 <code>{pattern}</code>
                               </li>
                             ))}

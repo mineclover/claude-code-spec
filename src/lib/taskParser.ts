@@ -20,7 +20,7 @@ export function parseTaskMarkdown(content: string): Task {
     if (key && valueParts.length > 0) {
       const value = valueParts.join(':').trim();
       const keyName = key.trim() as keyof TaskMetadata;
-      
+
       if (keyName === 'id') {
         metadata.id = value;
       } else if (keyName === 'title') {

@@ -100,7 +100,7 @@ export const ClaudeSessionsListPage: React.FC = () => {
         setSessionsLoading(false);
       }
     },
-    [projectPath],
+    [projectPath, actualProjectPath],
   );
 
   useEffect(() => {
@@ -182,7 +182,8 @@ export const ClaudeSessionsListPage: React.FC = () => {
               session.cwd === undefined &&
               session.firstUserMessage === undefined;
             return (
-              <div
+              <button
+                type="button"
                 key={session.sessionId}
                 className={`${styles.sessionCard} ${!session.hasData && !isLoading ? styles.emptySession : ''} ${isLoading ? styles.loading : ''}`}
                 onClick={() => handleSessionClick(session)}
@@ -192,8 +193,6 @@ export const ClaudeSessionsListPage: React.FC = () => {
                     handleSessionClick(session);
                   }
                 }}
-                role="button"
-                tabIndex={0}
               >
                 <div className={styles.sessionIdContainer}>
                   <div className={styles.sessionId} title={session.sessionId}>
@@ -246,7 +245,7 @@ export const ClaudeSessionsListPage: React.FC = () => {
                     📊 View Analysis
                   </button>
                 )}
-              </div>
+              </button>
             );
           })
         )}

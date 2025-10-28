@@ -6,7 +6,6 @@ import type {
   ClaudeStartedData,
   ClaudeStreamData,
   ExecutionInfo,
-  ExecutionStats,
 } from '../../types/api';
 
 export function exposeClaudeAPI(): void {
@@ -19,7 +18,17 @@ export function exposeClaudeAPI(): void {
       model?: 'sonnet' | 'opus' | 'heroku',
       skillId?: string,
       skillScope?: 'global' | 'project',
-    ) => ipcRenderer.invoke('claude:execute', projectPath, query, sessionId, mcpConfig, model, skillId, skillScope),
+    ) =>
+      ipcRenderer.invoke(
+        'claude:execute',
+        projectPath,
+        query,
+        sessionId,
+        mcpConfig,
+        model,
+        skillId,
+        skillScope,
+      ),
 
     selectDirectory: () => ipcRenderer.invoke('dialog:selectDirectory'),
 
@@ -51,7 +60,8 @@ export function exposeClaudeAPI(): void {
     cleanupAllCompleted: () => ipcRenderer.invoke('claude:cleanup-all-completed'),
 
     onClaudeStarted: (callback: (data: ClaudeStartedData) => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, data: ClaudeStartedData) => callback(data);
+      const handler = (_event: Electron.IpcRendererEvent, data: ClaudeStartedData) =>
+        callback(data);
       ipcRenderer.on('claude:started', handler);
       // Return unsubscribe function
       return () => {
@@ -78,7 +88,8 @@ export function exposeClaudeAPI(): void {
     },
 
     onClaudeComplete: (callback: (data: ClaudeCompleteData) => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, data: ClaudeCompleteData) => callback(data);
+      const handler = (_event: Electron.IpcRendererEvent, data: ClaudeCompleteData) =>
+        callback(data);
       ipcRenderer.on('claude:complete', handler);
       // Return unsubscribe function
       return () => {
@@ -87,7 +98,10 @@ export function exposeClaudeAPI(): void {
     },
 
     onExecutionsUpdated: (callback: (executions: Array<Omit<ExecutionInfo, 'events'>>) => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, executions: Array<Omit<ExecutionInfo, 'events'>>) => callback(executions);
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        executions: Array<Omit<ExecutionInfo, 'events'>>,
+      ) => callback(executions);
       ipcRenderer.on('executions:updated', handler);
       // Return unsubscribe function
       return () => {

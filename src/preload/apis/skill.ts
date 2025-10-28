@@ -49,8 +49,7 @@ export function exposeSkillAPI(): void {
       ipcRenderer.invoke('skill:deleteSkillFile', { id, fileName, scope, projectPath }),
 
     onSkillChanged: (callback) => {
-      const listener = (_event: unknown, skill: Parameters<typeof callback>[0]) =>
-        callback(skill);
+      const listener = (_event: unknown, skill: Parameters<typeof callback>[0]) => callback(skill);
       ipcRenderer.on('skill:changed', listener);
       return () => {
         ipcRenderer.removeListener('skill:changed', listener);
@@ -61,7 +60,7 @@ export function exposeSkillAPI(): void {
       const listener = (
         _event: unknown,
         id: Parameters<typeof callback>[0],
-        scope: Parameters<typeof callback>[1]
+        scope: Parameters<typeof callback>[1],
       ) => callback(id, scope);
       ipcRenderer.on('skill:deleted', listener);
       return () => {

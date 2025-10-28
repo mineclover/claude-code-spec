@@ -10,7 +10,7 @@ import styles from './TasksPage.module.css';
 
 export const TasksPage: React.FC = () => {
   const { projectPath } = useProject();
-  
+
   // Generate unique IDs for form elements
   const titleId = useId();
   const reviewerId = useId();
@@ -363,13 +363,16 @@ export const TasksPage: React.FC = () => {
                   <fieldset>
                     <legend>References:</legend>
                     <div className={styles.listItems}>
-                      {references.map((ref, index) => (
-                        <div key={`ref-${ref}-${index}`} className={styles.listItem}>
+                      {references.map((ref) => (
+                        <div key={`ref-${ref}`} className={styles.listItem}>
                           <span>{ref}</span>
                           <button
                             type="button"
                             className={styles.removeButton}
-                            onClick={() => setReferences(references.filter((_, i) => i !== index))}
+                            onClick={() => {
+                              const index = references.indexOf(ref);
+                              setReferences(references.filter((_, i) => i !== index));
+                            }}
                           >
                             Remove
                           </button>
@@ -411,15 +414,16 @@ export const TasksPage: React.FC = () => {
                   <fieldset>
                     <legend>Success Criteria:</legend>
                     <div className={styles.listItems}>
-                      {successCriteria.map((criterion, index) => (
-                        <div key={`criterion-${criterion}-${index}`} className={styles.listItem}>
+                      {successCriteria.map((criterion) => (
+                        <div key={`criterion-${criterion}`} className={styles.listItem}>
                           <span>{criterion}</span>
                           <button
                             type="button"
                             className={styles.removeButton}
-                            onClick={() =>
-                              setSuccessCriteria(successCriteria.filter((_, i) => i !== index))
-                            }
+                            onClick={() => {
+                              const index = successCriteria.indexOf(criterion);
+                              setSuccessCriteria(successCriteria.filter((_, i) => i !== index));
+                            }}
                           >
                             Remove
                           </button>

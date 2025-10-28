@@ -2,9 +2,9 @@
  * Final test for getUserQuestions - should only show actual user questions
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
 
 const projectPath = '/Users/junwoobang/project/claude-code-spec';
 const sessionId = '2e3d94ab-a4c0-4c5b-aaff-07dedd37f39e';
@@ -32,7 +32,7 @@ const readSessionLog = (projectPath, sessionId) => {
       .split('\n')
       .filter((line) => line.trim())
       .map((line) => JSON.parse(line));
-  } catch (error) {
+  } catch (_error) {
     return [];
   }
 };

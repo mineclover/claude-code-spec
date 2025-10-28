@@ -3,31 +3,19 @@
     "magic": {
       "type": "stdio",
       "command": "npx",
-      "args": [
-        "-y",
-        "@21st-dev/magic"
-      ],
+      "args": ["-y", "@21st-dev/magic"],
       "env": {}
     },
     "playwright": {
       "type": "stdio",
       "command": "npx",
-      "args": [
-        "-y",
-        "@playwright/mcp@latest"
-      ],
+      "args": ["-y", "@playwright/mcp@latest"],
       "env": {}
     },
     "serena": {
       "type": "stdio",
       "command": "serena",
-      "args": [
-        "start-mcp-server",
-        "--context",
-        "ide-assistant",
-        "--project",
-        "$(pwd)"
-      ],
+      "args": ["start-mcp-server", "--context", "ide-assistant", "--project", "$(pwd)"],
       "env": {}
     }
   }

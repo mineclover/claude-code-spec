@@ -2,9 +2,9 @@
  * Test script to verify improved getUserQuestions functionality
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
 
 const projectPath = '/Users/junwoobang/project/claude-code-spec';
 const sessionId = '2e3d94ab-a4c0-4c5b-aaff-07dedd37f39e';
@@ -60,7 +60,10 @@ const getUserQuestions = (projectPath, sessionId) => {
         const content = message.content.trim();
 
         // Skip tool results
-        if (content.startsWith('[{') && (content.includes('tool_use_id') || content.includes('tool_result'))) {
+        if (
+          content.startsWith('[{') &&
+          (content.includes('tool_use_id') || content.includes('tool_result'))
+        ) {
           return false;
         }
 
@@ -104,7 +107,9 @@ console.log('=== Actual User Questions (Tool Results Excluded) ===\n');
 userQuestions.forEach((entry, idx) => {
   const content = entry.message.content;
   console.log(`\n[Question ${idx + 1}]`);
-  console.log(`Content: ${typeof content === 'string' ? content.substring(0, 300) : JSON.stringify(content).substring(0, 300)}`);
+  console.log(
+    `Content: ${typeof content === 'string' ? content.substring(0, 300) : JSON.stringify(content).substring(0, 300)}`,
+  );
   console.log('---');
 });
 

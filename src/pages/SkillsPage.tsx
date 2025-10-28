@@ -43,7 +43,10 @@ export const SkillsPage: React.FC = () => {
   const loadInstalledSkills = useCallback(async () => {
     setLoading(true);
     try {
-      const skills = await window.skillAPI.listSkills(scope, scope === 'project' ? projectPath : undefined);
+      const skills = await window.skillAPI.listSkills(
+        scope,
+        scope === 'project' ? projectPath : undefined,
+      );
       setInstalledSkills(skills);
     } catch (error) {
       console.error('Failed to load installed skills:', error);
@@ -110,7 +113,7 @@ export const SkillsPage: React.FC = () => {
         const skill = await window.skillAPI.getSkill(
           skillId,
           skillScope,
-          skillScope === 'project' ? projectPath : undefined
+          skillScope === 'project' ? projectPath : undefined,
         );
         if (skill) {
           setSelectedSkill(skill);
@@ -123,7 +126,7 @@ export const SkillsPage: React.FC = () => {
         toast.error('Failed to load skill');
       }
     },
-    [projectPath]
+    [projectPath],
   );
 
   // Import skill from repository
@@ -149,7 +152,11 @@ export const SkillsPage: React.FC = () => {
     }
 
     try {
-      await window.skillAPI.deleteSkill(skillId, scope, scope === 'project' ? projectPath : undefined);
+      await window.skillAPI.deleteSkill(
+        skillId,
+        scope,
+        scope === 'project' ? projectPath : undefined,
+      );
       toast.success('Skill deleted successfully');
       setSelectedSkillId(null);
       setSelectedSkill(null);
@@ -203,7 +210,7 @@ export const SkillsPage: React.FC = () => {
         onSave={handleEditorSave}
         skill={editingSkill}
         scope={scope}
-        projectPath={projectPath}
+        projectPath={projectPath || undefined}
         mode={editorMode}
       />
 
@@ -213,187 +220,216 @@ export const SkillsPage: React.FC = () => {
           <p>Manage Claude Code Skills - extend Claude's capabilities with custom workflows</p>
         </div>
 
-      {/* Tabs */}
-      <div className={styles.tabs}>
-        <button
-          className={`${styles.tab} ${activeTab === 'installed' ? styles.activeTab : ''}`}
-          onClick={() => setActiveTab('installed')}
-        >
-          Installed Skills
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'repository' ? styles.activeTab : ''}`}
-          onClick={() => setActiveTab('repository')}
-        >
-          Repository Browser
-        </button>
-      </div>
+        {/* Tabs */}
+        <div className={styles.tabs}>
+          <button
+            type="button"
+            className={`${styles.tab} ${activeTab === 'installed' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('installed')}
+          >
+            Installed Skills
+          </button>
+          <button
+            type="button"
+            className={`${styles.tab} ${activeTab === 'repository' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('repository')}
+          >
+            Repository Browser
+          </button>
+        </div>
 
-      {/* Installed Skills Tab */}
-      {activeTab === 'installed' && (
-        <div className={styles.content}>
-          {/* Scope selector */}
-          <div className={styles.toolbar}>
-            <div className={styles.scopeSelector}>
-              <button
-                className={`${styles.scopeButton} ${scope === 'project' ? styles.active : ''}`}
-                onClick={() => setScope('project')}
-                disabled={!projectPath}
-              >
-                Project Skills
-              </button>
-              <button
-                className={`${styles.scopeButton} ${scope === 'global' ? styles.active : ''}`}
-                onClick={() => setScope('global')}
-              >
-                Global Skills
+        {/* Installed Skills Tab */}
+        {activeTab === 'installed' && (
+          <div className={styles.content}>
+            {/* Scope selector */}
+            <div className={styles.toolbar}>
+              <div className={styles.scopeSelector}>
+                <button
+                  type="button"
+                  className={`${styles.scopeButton} ${scope === 'project' ? styles.active : ''}`}
+                  onClick={() => setScope('project')}
+                  disabled={!projectPath}
+                >
+                  Project Skills
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.scopeButton} ${scope === 'global' ? styles.active : ''}`}
+                  onClick={() => setScope('global')}
+                >
+                  Global Skills
+                </button>
+              </div>
+              <button type="button" className={styles.newButton} onClick={handleNewSkill}>
+                + New Skill
               </button>
             </div>
-            <button className={styles.newButton} onClick={handleNewSkill}>
-              + New Skill
-            </button>
-          </div>
 
-          {/* Skills list */}
-          <div className={styles.skillsList}>
-            {loading ? (
-              <div className={styles.loading}>Loading skills...</div>
-            ) : installedSkills.length === 0 ? (
-              <div className={styles.empty}>
-                <p>No skills installed in {scope} scope</p>
-                <p className={styles.hint}>Import skills from the Repository Browser</p>
-              </div>
-            ) : (
-              installedSkills.map((skill) => (
-                <div
-                  key={skill.id}
-                  className={`${styles.skillCard} ${selectedSkillId === skill.id ? styles.selected : ''}`}
-                  onClick={() => loadSelectedSkill(skill.id, scope)}
-                >
-                  <div className={styles.skillHeader}>
-                    <h3>{skill.name}</h3>
-                    <span className={styles.scope}>{skill.scope}</span>
-                  </div>
-                  <p className={styles.description}>{skill.description}</p>
-                  <div className={styles.skillFooter}>
-                    {skill.hasFiles && <span className={styles.badge}>📎 Has files</span>}
-                    {skill.updatedAt && (
-                      <span className={styles.date}>
-                        Updated: {new Date(skill.updatedAt).toLocaleDateString()}
-                      </span>
-                    )}
+            {/* Skills list */}
+            <div className={styles.skillsList}>
+              {loading ? (
+                <div className={styles.loading}>Loading skills...</div>
+              ) : installedSkills.length === 0 ? (
+                <div className={styles.empty}>
+                  <p>No skills installed in {scope} scope</p>
+                  <p className={styles.hint}>Import skills from the Repository Browser</p>
+                </div>
+              ) : (
+                installedSkills.map((skill) => (
+                  <button
+                    type="button"
+                    key={skill.id}
+                    className={`${styles.skillCard} ${selectedSkillId === skill.id ? styles.selected : ''}`}
+                    onClick={() => loadSelectedSkill(skill.id, scope)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        loadSelectedSkill(skill.id, scope);
+                      }
+                    }}
+                  >
+                    <div className={styles.skillHeader}>
+                      <h3>{skill.name}</h3>
+                      <span className={styles.scope}>{skill.scope}</span>
+                    </div>
+                    <p className={styles.description}>{skill.description}</p>
+                    <div className={styles.skillFooter}>
+                      {skill.hasFiles && <span className={styles.badge}>📎 Has files</span>}
+                      {skill.updatedAt && (
+                        <span className={styles.date}>
+                          Updated: {new Date(skill.updatedAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+
+            {/* Selected skill detail */}
+            {selectedSkill && (
+              <div className={styles.detail}>
+                <div className={styles.detailHeader}>
+                  <h2>{selectedSkill.frontmatter.name}</h2>
+                  <div className={styles.actions}>
+                    <button type="button" onClick={handleEditSkill}>
+                      Edit
+                    </button>
+                    <button type="button" onClick={() => handleDeleteSkill(selectedSkill.id)}>
+                      Delete
+                    </button>
                   </div>
                 </div>
-              ))
+                <div className={styles.detailContent}>
+                  <pre>{selectedSkill.content}</pre>
+                </div>
+              </div>
             )}
           </div>
+        )}
 
-          {/* Selected skill detail */}
-          {selectedSkill && (
-            <div className={styles.detail}>
-              <div className={styles.detailHeader}>
-                <h2>{selectedSkill.frontmatter.name}</h2>
-                <div className={styles.actions}>
-                  <button onClick={handleEditSkill}>Edit</button>
-                  <button onClick={() => handleDeleteSkill(selectedSkill.id)}>Delete</button>
+        {/* Repository Browser Tab */}
+        {activeTab === 'repository' && (
+          <div className={styles.content}>
+            {/* Repository status */}
+            <div className={styles.repoStatus}>
+              {!repoStatus?.exists ? (
+                <div className={styles.repoSetup}>
+                  <h3>Repository Not Cloned</h3>
+                  <p>Clone the official skills repository to browse and import skills.</p>
+                  <button
+                    type="button"
+                    onClick={handleCloneRepo}
+                    disabled={repoLoading}
+                    className={styles.cloneButton}
+                  >
+                    {repoLoading ? 'Cloning...' : 'Clone Repository'}
+                  </button>
                 </div>
-              </div>
-              <div className={styles.detailContent}>
-                <pre>{selectedSkill.content}</pre>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Repository Browser Tab */}
-      {activeTab === 'repository' && (
-        <div className={styles.content}>
-          {/* Repository status */}
-          <div className={styles.repoStatus}>
-            {!repoStatus?.exists ? (
-              <div className={styles.repoSetup}>
-                <h3>Repository Not Cloned</h3>
-                <p>Clone the official skills repository to browse and import skills.</p>
-                <button onClick={handleCloneRepo} disabled={repoLoading} className={styles.cloneButton}>
-                  {repoLoading ? 'Cloning...' : 'Clone Repository'}
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className={styles.repoInfo}>
-                  <div>
-                    <strong>Status:</strong> ✓ Cloned ({repoStatus.skillCount} skills)
-                  </div>
-                  {repoStatus.lastUpdate && (
+              ) : (
+                <>
+                  <div className={styles.repoInfo}>
                     <div>
-                      <strong>Last Update:</strong> {new Date(repoStatus.lastUpdate).toLocaleString()}
+                      <strong>Status:</strong> ✓ Cloned ({repoStatus.skillCount} skills)
                     </div>
-                  )}
-                  <div>
-                    <strong>Path:</strong> {repoStatus.path}
+                    {repoStatus.lastUpdate && (
+                      <div>
+                        <strong>Last Update:</strong>{' '}
+                        {new Date(repoStatus.lastUpdate).toLocaleString()}
+                      </div>
+                    )}
+                    <div>
+                      <strong>Path:</strong> {repoStatus.path}
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleUpdateRepo}
+                    disabled={repoLoading}
+                    className={styles.updateButton}
+                  >
+                    {repoLoading ? 'Updating...' : 'Update Repository'}
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Search */}
+            {repoStatus?.exists && (
+              <>
+                <div className={styles.search}>
+                  <input
+                    type="text"
+                    placeholder="Search skills..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className={styles.searchInput}
+                  />
                 </div>
-                <button onClick={handleUpdateRepo} disabled={repoLoading} className={styles.updateButton}>
-                  {repoLoading ? 'Updating...' : 'Update Repository'}
-                </button>
+
+                {/* Official skills list */}
+                <div className={styles.skillsList}>
+                  {repoLoading ? (
+                    <div className={styles.loading}>Loading skills...</div>
+                  ) : officialSkills.length === 0 ? (
+                    <div className={styles.empty}>
+                      <p>No skills found</p>
+                    </div>
+                  ) : (
+                    officialSkills.map((skill) => (
+                      <div key={skill.id} className={styles.skillCard}>
+                        <div className={styles.skillHeader}>
+                          <h3>{skill.name}</h3>
+                          <span className={`${styles.scope} ${styles[skill.source]}`}>
+                            {skill.source}
+                          </span>
+                        </div>
+                        <p className={styles.description}>{skill.description}</p>
+                        <div className={styles.skillFooter}>
+                          {skill.files.length > 0 && (
+                            <span className={styles.badge}>📎 {skill.files.length} files</span>
+                          )}
+                          {skill.lastCommit && (
+                            <span className={styles.date}>
+                              {new Date(skill.lastCommit.date).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className={styles.importButton}
+                          onClick={() => handleImportSkill(skill.id)}
+                        >
+                          Import to {scope}
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </>
             )}
           </div>
-
-          {/* Search */}
-          {repoStatus?.exists && (
-            <>
-              <div className={styles.search}>
-                <input
-                  type="text"
-                  placeholder="Search skills..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={styles.searchInput}
-                />
-              </div>
-
-              {/* Official skills list */}
-              <div className={styles.skillsList}>
-                {repoLoading ? (
-                  <div className={styles.loading}>Loading skills...</div>
-                ) : officialSkills.length === 0 ? (
-                  <div className={styles.empty}>
-                    <p>No skills found</p>
-                  </div>
-                ) : (
-                  officialSkills.map((skill) => (
-                    <div key={skill.id} className={styles.skillCard}>
-                      <div className={styles.skillHeader}>
-                        <h3>{skill.name}</h3>
-                        <span className={`${styles.scope} ${styles[skill.source]}`}>{skill.source}</span>
-                      </div>
-                      <p className={styles.description}>{skill.description}</p>
-                      <div className={styles.skillFooter}>
-                        {skill.files.length > 0 && (
-                          <span className={styles.badge}>📎 {skill.files.length} files</span>
-                        )}
-                        {skill.lastCommit && (
-                          <span className={styles.date}>
-                            {new Date(skill.lastCommit.date).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        className={styles.importButton}
-                        onClick={() => handleImportSkill(skill.id)}
-                      >
-                        Import to {scope}
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+        )}
       </div>
     </>
   );

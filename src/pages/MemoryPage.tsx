@@ -3,20 +3,20 @@ import { useCallback, useEffect, useId, useState } from 'react';
 import { useProject } from '../contexts/ProjectContext';
 import type {
   CodeBlockItem,
+  ContextReference,
   DirectRefItem,
   HeadingItem,
   IndirectRefItem,
   ManagedRegion,
   RegionItem,
   TextItem,
-  ContextReference,
 } from '../lib/MarkdownEditor';
 import { MarkdownEditor } from '../lib/MarkdownEditor';
 import styles from './MemoryPage.module.css';
 
 export const MemoryPage: React.FC = () => {
   const { projectPath } = useProject();
-  
+
   const [content, setContent] = useState<string>('');
   const [editor, setEditor] = useState<MarkdownEditor | null>(null);
   const [managedRegions, setManagedRegions] = useState<ManagedRegion[]>([]);
@@ -330,6 +330,8 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showJSONView, setShowJSONView] = useState(false);
   const [jsonData, setJsonData] = useState<string>('');
+  const _rawContentTextareaId = useId();
+
 
   useEffect(() => {
     setEditContent(region.content);
@@ -368,14 +370,14 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
           type: 'heading',
           raw: `## New Section`,
           level: 2,
-          text: 'New Section'
+          text: 'New Section',
         } as HeadingItem;
         break;
       case 'direct-ref':
         newItem = {
           type: 'direct-ref',
           raw: `@context/new/file.md`,
-          path: '@context/new/file.md'
+          path: '@context/new/file.md',
         } as DirectRefItem;
         break;
       case 'indirect-ref':
@@ -383,7 +385,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
           type: 'indirect-ref',
           raw: `@context/new/file.md\n설명을 입력하세요\n추가 설명이 필요하면 여기에 작성`,
           path: '@context/new/file.md',
-          description: '설명을 입력하세요\n추가 설명이 필요하면 여기에 작성'
+          description: '설명을 입력하세요\n추가 설명이 필요하면 여기에 작성',
         } as IndirectRefItem;
         break;
       case 'code-block':
@@ -391,7 +393,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
           type: 'code-block',
           raw: '```bash\n# 명령어\n```',
           language: 'bash',
-          content: '# 명령어'
+          content: '# 명령어',
         } as CodeBlockItem;
         break;
     }
@@ -462,11 +464,7 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
 
   return (
     <div className={styles.regionCard}>
-      <button 
-        type="button"
-        className={styles.regionHeader} 
-        onClick={onToggle}
-      >
+      <button type="button" className={styles.regionHeader} onClick={onToggle}>
         <div className={styles.regionHeaderLeft}>
           <span className={styles.regionIcon}>📋</span>
           <span className={styles.regionName}>{region.name}</span>
@@ -506,7 +504,11 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
                 <button type="button" onClick={handleExportJSON} className={styles.buttonSmall}>
                   💾 Export JSON
                 </button>
-                <button type="button" onClick={() => setShowAddMenu(!showAddMenu)} className={styles.buttonSmall}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddMenu(!showAddMenu)}
+                  className={styles.buttonSmall}
+                >
                   ➕ Add Item
                 </button>
               </div>
@@ -514,16 +516,32 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
 
             {showAddMenu && (
               <div className={styles.addMenu}>
-                <button type="button" onClick={() => handleAddItem('heading')} className={styles.menuItem}>
+                <button
+                  type="button"
+                  onClick={() => handleAddItem('heading')}
+                  className={styles.menuItem}
+                >
                   📌 Heading
                 </button>
-                <button type="button" onClick={() => handleAddItem('direct-ref')} className={styles.menuItem}>
+                <button
+                  type="button"
+                  onClick={() => handleAddItem('direct-ref')}
+                  className={styles.menuItem}
+                >
                   🔗 Direct Reference
                 </button>
-                <button type="button" onClick={() => handleAddItem('indirect-ref')} className={styles.menuItem}>
+                <button
+                  type="button"
+                  onClick={() => handleAddItem('indirect-ref')}
+                  className={styles.menuItem}
+                >
                   💡 Indirect Reference
                 </button>
-                <button type="button" onClick={() => handleAddItem('code-block')} className={styles.menuItem}>
+                <button
+                  type="button"
+                  onClick={() => handleAddItem('code-block')}
+                  className={styles.menuItem}
+                >
                   💻 Code Block
                 </button>
               </div>
@@ -625,8 +643,9 @@ const RegionEditor: React.FC<RegionEditorProps> = ({
 
           {/* Raw Content Editor */}
           <div className={styles.rawEditor}>
-            <label>Raw Content:</label>
+            <label htmlFor={_rawContentTextareaId}>Raw Content:</label>
             <textarea
+              id={_rawContentTextareaId}
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               className={styles.textarea}

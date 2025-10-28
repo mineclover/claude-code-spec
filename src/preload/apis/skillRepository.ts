@@ -9,8 +9,7 @@ export function exposeSkillRepositoryAPI(): void {
   const skillRepositoryAPI: SkillRepositoryAPI = {
     getRepositoryConfig: () => ipcRenderer.invoke('skill-repo:getRepositoryConfig'),
 
-    setRepositoryConfig: (config) =>
-      ipcRenderer.invoke('skill-repo:setRepositoryConfig', config),
+    setRepositoryConfig: (config) => ipcRenderer.invoke('skill-repo:setRepositoryConfig', config),
 
     getRepositoryStatus: () => ipcRenderer.invoke('skill-repo:getRepositoryStatus'),
 

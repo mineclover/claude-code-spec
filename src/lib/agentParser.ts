@@ -87,7 +87,10 @@ export function parseAgentMarkdown(
         // Handle "tools" field (Claude Code format) - convert to allowedTools array
         if (currentKey === 'tools') {
           // Split by comma and trim each tool name
-          const toolsArray = cleanValue.split(',').map(t => t.trim()).filter(t => t);
+          const toolsArray = cleanValue
+            .split(',')
+            .map((t) => t.trim())
+            .filter((t) => t);
           metadata.allowedTools = toolsArray;
         } else if (currentKey === 'name') {
           metadata.name = cleanValue;
@@ -180,7 +183,7 @@ description: ${agent.description}`;
       });
     }
     // Prepend permissions to content
-    bodyContent = permissionsDoc + '\n' + bodyContent;
+    bodyContent = `${permissionsDoc}\n${bodyContent}`;
   }
 
   return `${frontmatter}\n\n${bodyContent}`.trim();

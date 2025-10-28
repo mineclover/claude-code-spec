@@ -5,10 +5,10 @@
  * and verifies session logs and outputs
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const { execSync, spawn } = require('child_process');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
+const { execSync: _execSync, spawn: _spawn } = require('node:child_process');
 
 // Colors
 const colors = {
@@ -17,7 +17,7 @@ const colors = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   cyan: '\x1b[36m',
-  reset: '\x1b[0m'
+  reset: '\x1b[0m',
 };
 
 function log(message, color = colors.reset) {
@@ -44,7 +44,8 @@ function warn(message) {
 const TEST_CONFIG = {
   testDir: path.join(__dirname, '.test-e2e'),
   testSkillId: 'test-e2e-skill',
-  testQuery: 'Create a simple test file named "test-output.txt" with the content "Skills E2E Test Passed"',
+  testQuery:
+    'Create a simple test file named "test-output.txt" with the content "Skills E2E Test Passed"',
 };
 
 // Setup test environment
@@ -133,7 +134,7 @@ async function testSkillContextInjection() {
       '.claude',
       'skills',
       TEST_CONFIG.testSkillId,
-      'SKILL.md'
+      'SKILL.md',
     );
 
     if (!fs.existsSync(skillPath)) {
@@ -143,9 +144,11 @@ async function testSkillContextInjection() {
     const skillContent = fs.readFileSync(skillPath, 'utf-8');
 
     // Verify skill format
-    if (!skillContent.includes('---') ||
-        !skillContent.includes('name:') ||
-        !skillContent.includes('description:')) {
+    if (
+      !skillContent.includes('---') ||
+      !skillContent.includes('name:') ||
+      !skillContent.includes('description:')
+    ) {
       throw new Error('Invalid skill format');
     }
 
@@ -187,9 +190,9 @@ async function testSessionLogStructure() {
     // Check first project structure
     const firstProject = projects[0];
     const projectPath = path.join(claudeProjectsDir, firstProject);
-    const sessions = fs.readdirSync(projectPath).filter(f =>
-      fs.statSync(path.join(projectPath, f)).isDirectory()
-    );
+    const sessions = fs
+      .readdirSync(projectPath)
+      .filter((f) => fs.statSync(path.join(projectPath, f)).isDirectory());
 
     if (sessions.length > 0) {
       const sessionPath = path.join(projectPath, sessions[0]);
@@ -197,7 +200,7 @@ async function testSessionLogStructure() {
 
       // Verify session has log files
       const sessionFiles = fs.readdirSync(sessionPath);
-      const hasLogFiles = sessionFiles.some(f => f.endsWith('.jsonl'));
+      const hasLogFiles = sessionFiles.some((f) => f.endsWith('.jsonl'));
 
       if (hasLogFiles) {
         success('Session log structure verified with existing logs');
@@ -223,7 +226,7 @@ async function testSkillFileOperations() {
       TEST_CONFIG.testDir,
       '.claude',
       'skills',
-      TEST_CONFIG.testSkillId
+      TEST_CONFIG.testSkillId,
     );
 
     // Test 3a: Read skill
@@ -342,8 +345,10 @@ async function testAPIIntegration() {
     const preloadPath = path.join(__dirname, 'src', 'preload.ts');
     const preloadContent = fs.readFileSync(preloadPath, 'utf-8');
 
-    if (!preloadContent.includes('exposeSkillAPI') ||
-        !preloadContent.includes('exposeSkillRepositoryAPI')) {
+    if (
+      !preloadContent.includes('exposeSkillAPI') ||
+      !preloadContent.includes('exposeSkillRepositoryAPI')
+    ) {
       throw new Error('Skill APIs not exposed in preload');
     }
 
@@ -401,12 +406,11 @@ async function runAllTests() {
     setupTestEnvironment();
 
     // Run tests
-    results.push({ name: 'Skill Context Injection', ...await testSkillContextInjection() });
-    results.push({ name: 'Session Log Structure', ...await testSessionLogStructure() });
-    results.push({ name: 'Skill File Operations', ...await testSkillFileOperations() });
-    results.push({ name: 'Output Directory Safety', ...await testOutputDirectorySafety() });
-    results.push({ name: 'API Integration Check', ...await testAPIIntegration() });
-
+    results.push({ name: 'Skill Context Injection', ...(await testSkillContextInjection()) });
+    results.push({ name: 'Session Log Structure', ...(await testSessionLogStructure()) });
+    results.push({ name: 'Skill File Operations', ...(await testSkillFileOperations()) });
+    results.push({ name: 'Output Directory Safety', ...(await testOutputDirectorySafety()) });
+    results.push({ name: 'API Integration Check', ...(await testAPIIntegration()) });
   } finally {
     // Always cleanup
     cleanup();
@@ -418,10 +422,10 @@ async function runAllTests() {
   log('                   TEST SUMMARY                     ', colors.cyan);
   log('═══════════════════════════════════════════════════', colors.cyan);
 
-  const passed = results.filter(r => r.passed).length;
-  const failed = results.filter(r => !r.passed).length;
+  const passed = results.filter((r) => r.passed).length;
+  const failed = results.filter((r) => !r.passed).length;
 
-  results.forEach(result => {
+  results.forEach((result) => {
     if (result.passed) {
       const note = result.note ? ` (${result.note})` : '';
       success(`${result.name}: PASSED${note}`);
@@ -431,8 +435,10 @@ async function runAllTests() {
   });
 
   console.log('\n');
-  log(`Total: ${results.length} | Passed: ${passed} | Failed: ${failed}`,
-      failed === 0 ? colors.green : colors.red);
+  log(
+    `Total: ${results.length} | Passed: ${passed} | Failed: ${failed}`,
+    failed === 0 ? colors.green : colors.red,
+  );
 
   if (failed === 0) {
     console.log('\n');
@@ -456,7 +462,7 @@ async function runAllTests() {
 }
 
 // Run
-runAllTests().catch(err => {
+runAllTests().catch((err) => {
   error(`Test suite error: ${err.message}`);
   console.error(err.stack);
   cleanup();

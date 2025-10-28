@@ -3,8 +3,10 @@ import type {
   AllRegionsJSON,
   CodeBlockItem,
   DirectRefItem,
+  HeadingItem,
   IndirectRefItem,
   RegionJSON,
+  TextItem,
 } from './MarkdownEditor';
 import { MarkdownEditor } from './MarkdownEditor';
 
@@ -80,14 +82,16 @@ More content.
           type: 'direct-ref',
           path: '@context/new.md',
           raw: '@context/new.md',
-        },
+        } as DirectRefItem,
         'start',
       );
 
       // Find same item by ID (content-based)
       const newItems = editor.parseRegionItems('test-region');
       const sameItem = newItems.find(
-        (i) => i.type === 'direct-ref' && (i as DirectRefItem).path === originalItem.path,
+        (i) =>
+          i.type === 'direct-ref' &&
+          (i as DirectRefItem).path === (originalItem as DirectRefItem).path,
       );
 
       expect(sameItem).toBeDefined();
@@ -102,7 +106,7 @@ More content.
 
       editor.updateRegionItem('test-region', codeBlock.id, {
         content: 'npm run build',
-      });
+      } as Partial<CodeBlockItem>);
 
       const updated = editor.parseRegionItems('test-region');
       const updatedBlock = updated.find((i) => i.type === 'code-block') as CodeBlockItem;
@@ -146,7 +150,7 @@ More content.
 
       editor.updateRegionItem('test-region', indirectRef.id, {
         description: '새로운 설명\n두 번째 줄\n세 번째 줄',
-      });
+      } as Partial<IndirectRefItem>);
 
       const updated = editor.parseRegionItems('test-region');
       const updatedRef = updated.find((i) => i.type === 'indirect-ref') as IndirectRefItem;
@@ -213,7 +217,7 @@ More content.
         type: 'text',
         content: 'New text',
         raw: 'New text',
-      });
+      } as TextItem);
 
       const items2 = editor.parseRegionItems('test-region');
 
@@ -244,9 +248,9 @@ More content.
       // Modify JSON: remove all items and add new ones
       const newJSON = {
         items: [
-          { type: 'heading', level: 2, text: 'New Section' },
-          { type: 'direct-ref', path: '@context/new.md' },
-          { type: 'code-block', language: 'bash', content: 'echo "test"' },
+          { type: 'heading', level: 2, text: 'New Section' } as HeadingItem,
+          { type: 'direct-ref', path: '@context/new.md' } as DirectRefItem,
+          { type: 'code-block', language: 'bash', content: 'echo "test"' } as CodeBlockItem,
         ],
       };
 
@@ -290,8 +294,8 @@ More content.
     it('should handle JSON with partial item data', () => {
       const partialJSON = {
         items: [
-          { type: 'heading', level: 3, text: 'Partial Section' },
-          { type: 'text', content: 'Some text' },
+          { type: 'heading', level: 3, text: 'Partial Section' } as HeadingItem,
+          { type: 'text', content: 'Some text' } as TextItem,
         ],
       };
 

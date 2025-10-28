@@ -78,7 +78,17 @@ export const ExecutionsList: React.FC<ExecutionsListProps> = ({
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <div className={styles.headerContent} onClick={onToggleExpanded}>
+        <button
+          type="button"
+          className={styles.headerContent}
+          onClick={onToggleExpanded}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onToggleExpanded();
+            }
+          }}
+        >
           <h3 className={styles.title}>Executions ({displayedExecutions.length})</h3>
           <div className={styles.stats}>
             {activeCount > 0 && <span className={styles.statActive}>{activeCount} active</span>}
@@ -87,7 +97,7 @@ export const ExecutionsList: React.FC<ExecutionsListProps> = ({
             )}
             {stats.failed > 0 && <span className={styles.statFailed}>{stats.failed} failed</span>}
           </div>
-        </div>
+        </button>
         <div className={styles.headerActions}>
           <button
             type="button"
@@ -140,12 +150,19 @@ export const ExecutionsList: React.FC<ExecutionsListProps> = ({
             </div>
           ) : (
             displayedExecutions.map((execution) => (
-              <div
+              <button
+                type="button"
                 key={execution.sessionId}
                 className={`${styles.item} ${
                   execution.sessionId === currentSessionId ? styles.active : ''
                 }`}
                 onClick={() => onSelectExecution(execution.sessionId)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelectExecution(execution.sessionId);
+                  }
+                }}
               >
                 <div className={styles.itemHeader}>
                   <span className={styles.sessionId}>{execution.sessionId.slice(0, 8)}...</span>
@@ -199,7 +216,7 @@ export const ExecutionsList: React.FC<ExecutionsListProps> = ({
                     </button>
                   )}
                 </div>
-              </div>
+              </button>
             ))
           )}
         </div>

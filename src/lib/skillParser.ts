@@ -7,8 +7,8 @@ import type { Skill, SkillFrontmatter } from '../types/skill';
 /**
  * Simple YAML parser for frontmatter (supports basic key-value pairs and arrays)
  */
-function parseYaml(yamlText: string): Record<string, any> {
-  const result: Record<string, any> = {};
+function parseYaml(yamlText: string): Record<string, string | string[] | number | boolean> {
+  const result: Record<string, string | string[] | number | boolean> = {};
   const lines = yamlText.split('\n');
   let currentKey: string | null = null;
   let currentArray: string[] | null = null;
@@ -51,7 +51,7 @@ function parseYaml(yamlText: string): Record<string, any> {
 /**
  * Simple YAML stringifier for frontmatter
  */
-function stringifyYaml(obj: Record<string, any>): string {
+function stringifyYaml(obj: Record<string, string | string[] | number | boolean>): string {
   const lines: string[] = [];
 
   for (const [key, value] of Object.entries(obj)) {
@@ -80,7 +80,7 @@ interface ParsedSkillData {
 export function parseSkillMarkdown(
   rawContent: string,
   filePath: string,
-  scope: 'global' | 'project'
+  scope: 'global' | 'project',
 ): Skill {
   const { frontmatter, content } = parseFrontmatter(rawContent);
 
@@ -144,7 +144,7 @@ function parseFrontmatter(content: string): ParsedSkillData {
 function extractSkillId(filePath: string): string {
   const parts = filePath.split('/');
   // Find SKILL.md and get the parent directory name
-  const skillMdIndex = parts.findIndex((p) => p === 'SKILL.md');
+  const skillMdIndex = parts.indexOf('SKILL.md');
   if (skillMdIndex > 0) {
     return parts[skillMdIndex - 1];
   }
@@ -190,9 +190,7 @@ export function validateSkillStructure(content: string): {
 
     // Validate name format (lowercase, hyphens only)
     if (frontmatter.name && !/^[a-z0-9-]+$/.test(frontmatter.name)) {
-      errors.push(
-        'Frontmatter "name" should only contain lowercase letters, numbers, and hyphens'
-      );
+      errors.push('Frontmatter "name" should only contain lowercase letters, numbers, and hyphens');
     }
 
     return {

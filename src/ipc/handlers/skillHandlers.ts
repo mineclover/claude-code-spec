@@ -2,25 +2,24 @@
  * Skill-related IPC handlers
  */
 
+import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import * as fs from 'fs/promises';
-import { parseSkillMarkdown, serializeSkill, validateSkillStructure } from '../../lib/skillParser';
 import {
   ensureDirectory,
   fileExists,
   readMarkdownFile,
   writeMarkdownFile,
-  deleteMarkdownFile,
 } from '../../lib/fileLoader';
+import { parseSkillMarkdown, serializeSkill, validateSkillStructure } from '../../lib/skillParser';
 import type {
   Skill,
-  SkillListItem,
   SkillCreateInput,
-  SkillUpdateInput,
-  SkillScanResult,
-  ValidationResult,
   SkillFile,
+  SkillListItem,
+  SkillScanResult,
+  SkillUpdateInput,
+  ValidationResult,
 } from '../../types/skill';
 import type { IPCRouter } from '../IPCRouter';
 
@@ -45,7 +44,10 @@ function getProjectSkillsDir(projectPath: string): string {
  * Get skill directory path
  */
 function getSkillDir(id: string, scope: 'global' | 'project', projectPath?: string): string {
-  const baseDir = scope === 'global' ? getGlobalSkillsDir() : getProjectSkillsDir(projectPath!);
+  if (scope === 'project' && !projectPath) {
+    throw new Error('projectPath is required for project scope');
+  }
+  const baseDir = scope === 'global' ? getGlobalSkillsDir() : getProjectSkillsDir(projectPath);
   return path.join(baseDir, id);
 }
 
@@ -76,10 +78,7 @@ async function listSkillDirs(baseDir: string): Promise<string[]> {
 /**
  * Read skill from directory
  */
-async function readSkill(
-  skillDir: string,
-  scope: 'global' | 'project'
-): Promise<Skill | null> {
+async function readSkill(skillDir: string, scope: 'global' | 'project'): Promise<Skill | null> {
   try {
     const skillFilePath = path.join(skillDir, SKILL_FILE_NAME);
     const content = await readMarkdownFile(skillFilePath);
@@ -141,7 +140,7 @@ export function registerSkillHandlers(router: IPCRouter): void {
     'listSkills',
     async (
       _event,
-      args: { scope?: 'global' | 'project'; projectPath?: string }
+      args: { scope?: 'global' | 'project'; projectPath?: string },
     ): Promise<SkillListItem[]> => {
       const { scope, projectPath } = args;
       console.log('[SkillHandlers] listSkills called with:', { scope, projectPath });
@@ -150,15 +149,15 @@ export function registerSkillHandlers(router: IPCRouter): void {
         const skills: SkillListItem[] = [];
 
         // Determine which scopes to scan
-        const scopes: Array<'global' | 'project'> = scope
-          ? [scope]
-          : ['global', 'project'];
+        const scopes: Array<'global' | 'project'> = scope ? [scope] : ['global', 'project'];
 
         for (const currentScope of scopes) {
+          if (currentScope === 'project' && !projectPath) {
+            console.warn('[SkillHandlers] Skipping project scope - no projectPath provided');
+            continue;
+          }
           const baseDir =
-            currentScope === 'global'
-              ? getGlobalSkillsDir()
-              : getProjectSkillsDir(projectPath!);
+            currentScope === 'global' ? getGlobalSkillsDir() : getProjectSkillsDir(projectPath);
 
           const skillDirs = await listSkillDirs(baseDir);
 
@@ -191,7 +190,7 @@ export function registerSkillHandlers(router: IPCRouter): void {
         console.error('[SkillHandlers] Failed to list skills:', error);
         return [];
       }
-    }
+    },
   );
 
   // Get a single skill
@@ -199,7 +198,7 @@ export function registerSkillHandlers(router: IPCRouter): void {
     'getSkill',
     async (
       _event,
-      args: { id: string; scope: 'global' | 'project'; projectPath?: string }
+      args: { id: string; scope: 'global' | 'project'; projectPath?: string },
     ): Promise<Skill | null> => {
       const { id, scope, projectPath } = args;
       console.log('[SkillHandlers] getSkill called with:', { id, scope, projectPath });
@@ -211,61 +210,58 @@ export function registerSkillHandlers(router: IPCRouter): void {
         console.error(`[SkillHandlers] Failed to get skill ${id}:`, error);
         return null;
       }
-    }
+    },
   );
 
   // Create a new skill
-  router.handle(
-    'createSkill',
-    async (_event, input: SkillCreateInput): Promise<Skill> => {
-      const { name, description, content, scope, projectPath, frontmatter } = input;
-      console.log('[SkillHandlers] createSkill called with:', { name, scope });
+  router.handle('createSkill', async (_event, input: SkillCreateInput): Promise<Skill> => {
+    const { name, description, content, scope, projectPath, frontmatter } = input;
+    console.log('[SkillHandlers] createSkill called with:', { name, scope });
 
-      try {
-        // Generate skill ID from name (lowercase, hyphens only)
-        const skillId = name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    try {
+      // Generate skill ID from name (lowercase, hyphens only)
+      const skillId = name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 
-        // Prepare skill directory
-        const skillDir = getSkillDir(skillId, scope, projectPath);
-        await ensureDirectory(skillDir);
+      // Prepare skill directory
+      const skillDir = getSkillDir(skillId, scope, projectPath);
+      await ensureDirectory(skillDir);
 
-        // Check if skill already exists
-        const skillFilePath = path.join(skillDir, SKILL_FILE_NAME);
-        if (await fileExists(skillFilePath)) {
-          throw new Error(`Skill ${skillId} already exists in ${scope} scope`);
-        }
-
-        // Create skill object
-        const skill: Partial<Skill> = {
-          id: skillId,
-          scope,
-          path: skillFilePath,
-          frontmatter: {
-            name,
-            description,
-            ...frontmatter,
-          },
-          content: content || '',
-        };
-
-        // Serialize and write to file
-        const serialized = serializeSkill(skill);
-        await writeMarkdownFile(skillFilePath, serialized);
-
-        // Read back the created skill
-        const createdSkill = await readSkill(skillDir, scope);
-        if (!createdSkill) {
-          throw new Error('Failed to read created skill');
-        }
-
-        console.log(`[SkillHandlers] Created skill: ${skillId}`);
-        return createdSkill;
-      } catch (error) {
-        console.error('[SkillHandlers] Failed to create skill:', error);
-        throw error;
+      // Check if skill already exists
+      const skillFilePath = path.join(skillDir, SKILL_FILE_NAME);
+      if (await fileExists(skillFilePath)) {
+        throw new Error(`Skill ${skillId} already exists in ${scope} scope`);
       }
+
+      // Create skill object
+      const skill: Partial<Skill> = {
+        id: skillId,
+        scope,
+        path: skillFilePath,
+        frontmatter: {
+          name,
+          description,
+          ...frontmatter,
+        },
+        content: content || '',
+      };
+
+      // Serialize and write to file
+      const serialized = serializeSkill(skill);
+      await writeMarkdownFile(skillFilePath, serialized);
+
+      // Read back the created skill
+      const createdSkill = await readSkill(skillDir, scope);
+      if (!createdSkill) {
+        throw new Error('Failed to read created skill');
+      }
+
+      console.log(`[SkillHandlers] Created skill: ${skillId}`);
+      return createdSkill;
+    } catch (error) {
+      console.error('[SkillHandlers] Failed to create skill:', error);
+      throw error;
     }
-  );
+  });
 
   // Update an existing skill
   router.handle(
@@ -277,7 +273,7 @@ export function registerSkillHandlers(router: IPCRouter): void {
         updates: SkillUpdateInput;
         scope: 'global' | 'project';
         projectPath?: string;
-      }
+      },
     ): Promise<Skill> => {
       const { id, updates, scope, projectPath } = args;
       console.log('[SkillHandlers] updateSkill called with:', { id, scope });
@@ -318,7 +314,7 @@ export function registerSkillHandlers(router: IPCRouter): void {
         console.error('[SkillHandlers] Failed to update skill:', error);
         throw error;
       }
-    }
+    },
   );
 
   // Delete a skill
@@ -326,7 +322,7 @@ export function registerSkillHandlers(router: IPCRouter): void {
     'deleteSkill',
     async (
       _event,
-      args: { id: string; scope: 'global' | 'project'; projectPath?: string }
+      args: { id: string; scope: 'global' | 'project'; projectPath?: string },
     ): Promise<void> => {
       const { id, scope, projectPath } = args;
       console.log('[SkillHandlers] deleteSkill called with:', { id, scope });
@@ -347,7 +343,7 @@ export function registerSkillHandlers(router: IPCRouter): void {
         console.error('[SkillHandlers] Failed to delete skill:', error);
         throw error;
       }
-    }
+    },
   );
 
   // Scan for all skills
@@ -413,24 +409,24 @@ export function registerSkillHandlers(router: IPCRouter): void {
         console.error('[SkillHandlers] Failed to scan skills:', error);
         throw error;
       }
-    }
+    },
   );
 
   // Validate skill structure
   router.handle(
     'validateSkill',
-    async (
-      _event,
-      input: SkillCreateInput | SkillUpdateInput
-    ): Promise<ValidationResult> => {
+    async (_event, input: SkillCreateInput | SkillUpdateInput): Promise<ValidationResult> => {
       console.log('[SkillHandlers] validateSkill called');
 
       try {
         // Build test skill content
         const testSkill: Partial<Skill> = {
-          frontmatter: 'frontmatter' in input ? input.frontmatter! : { name: '', description: '' },
+          frontmatter:
+            'frontmatter' in input && input.frontmatter
+              ? input.frontmatter
+              : { name: '', description: '' },
           content: input.content || '',
-        };
+        } as Partial<Skill>;
 
         const serialized = serializeSkill(testSkill);
         const validation = validateSkillStructure(serialized);
@@ -457,6 +453,6 @@ export function registerSkillHandlers(router: IPCRouter): void {
           warnings: [],
         };
       }
-    }
+    },
   );
 }

@@ -2,7 +2,7 @@
  * Window management
  */
 import path from 'node:path';
-import { BrowserWindow, app } from 'electron';
+import { app, BrowserWindow } from 'electron';
 
 export function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({

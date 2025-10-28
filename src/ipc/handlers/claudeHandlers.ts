@@ -54,7 +54,15 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
     skillId?: string,
     skillScope?: 'global' | 'project',
   ) => {
-    console.log('[Main] Execute request:', { projectPath, query, sessionId, mcpConfig, model, skillId, skillScope });
+    console.log('[Main] Execute request:', {
+      projectPath,
+      query,
+      sessionId,
+      mcpConfig,
+      model,
+      skillId,
+      skillScope,
+    });
 
     try {
       // Start execution using ProcessManager (returns sessionId)

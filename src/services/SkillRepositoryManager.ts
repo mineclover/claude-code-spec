@@ -3,20 +3,20 @@
  * Manages official skills repository (cloning, updating, browsing)
  */
 
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import * as os from 'os';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { exec } from 'node:child_process';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { promisify } from 'node:util';
 import { parseSkillMarkdown } from '../lib/skillParser';
+import type { Skill } from '../types/skill';
 import type {
-  SkillRepositoryConfig,
   OfficialSkill,
   RepositoryStatus,
   SkillImportOptions,
+  SkillRepositoryConfig,
   SkillUpdateInfo,
 } from '../types/skillRepository';
-import type { Skill } from '../types/skill';
 
 const execAsync = promisify(exec);
 
@@ -47,7 +47,7 @@ export class SkillRepositoryManager {
   async init(): Promise<void> {
     try {
       await this.loadConfig();
-    } catch (error) {
+    } catch (_error) {
       console.log('[SkillRepositoryManager] Using default configuration');
       await this.saveConfig();
     }
@@ -159,7 +159,7 @@ export class SkillRepositoryManager {
 
     // Clone repository
     await execAsync(
-      `git clone --depth 1 --branch ${this.config.branch} ${this.config.url} ${this.config.localPath}`
+      `git clone --depth 1 --branch ${this.config.branch} ${this.config.url} ${this.config.localPath}`,
     );
 
     // Add upstream if configured
@@ -240,11 +240,11 @@ export class SkillRepositoryManager {
         }
 
         // Get last commit info for this skill
-        let lastCommit;
+        let lastCommit: { hash: string; date: Date; message: string; author: string } | undefined;
         try {
           const { stdout: commitInfo } = await execAsync(
             `git log -1 --format="%H|%ci|%s|%an" -- ${entry.name}`,
-            { cwd: this.config.localPath }
+            { cwd: this.config.localPath },
           );
           const [hash, date, message, author] = commitInfo.trim().split('|');
           lastCommit = {
@@ -253,7 +253,7 @@ export class SkillRepositoryManager {
             message,
             author,
           };
-        } catch (error) {
+        } catch (_error) {
           console.warn(`[SkillRepositoryManager] Failed to get commit info for ${entry.name}`);
         }
 
@@ -294,7 +294,7 @@ export class SkillRepositoryManager {
       (skill) =>
         skill.name.toLowerCase().includes(lowerQuery) ||
         skill.description.toLowerCase().includes(lowerQuery) ||
-        skill.id.toLowerCase().includes(lowerQuery)
+        skill.id.toLowerCase().includes(lowerQuery),
     );
   }
 
@@ -312,10 +312,13 @@ export class SkillRepositoryManager {
 
     // Determine destination
     const targetName = customName || skillId;
+    if (scope === 'project' && !projectPath) {
+      throw new Error('projectPath is required for project scope');
+    }
     const baseDir =
       scope === 'global'
         ? path.join(os.homedir(), '.claude', 'skills')
-        : path.join(projectPath!, '.claude', 'skills');
+        : path.join(projectPath, '.claude', 'skills');
 
     const targetDir = path.join(baseDir, targetName);
 
@@ -363,13 +366,16 @@ export class SkillRepositoryManager {
   async checkUpdates(
     skillId: string,
     scope: 'global' | 'project',
-    projectPath?: string
+    projectPath?: string,
   ): Promise<SkillUpdateInfo> {
     // Get installed skill path
+    if (scope === 'project' && !projectPath) {
+      throw new Error('projectPath is required for project scope');
+    }
     const baseDir =
       scope === 'global'
         ? path.join(os.homedir(), '.claude', 'skills')
-        : path.join(projectPath!, '.claude', 'skills');
+        : path.join(projectPath, '.claude', 'skills');
 
     const installedPath = path.join(baseDir, skillId, SKILL_FILE_NAME);
 
