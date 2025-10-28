@@ -21,7 +21,7 @@ export const AgentsPage: React.FC = () => {
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [allowedTools, setAllowedTools] = useState<string[]>([]);
-  const [model, setModel] = useState<'sonnet' | 'opus' | 'haiku'>('sonnet');
+  const [model, setModel] = useState<'sonnet' | 'opus' | 'haiku' | 'heroku'>('sonnet');
   const [color, setColor] = useState('blue');
   const [permissions, setPermissions] = useState<AgentMetadata['permissions']>(undefined);
   const [sourceType, setSourceType] = useState<'project' | 'user'>('project');
@@ -406,11 +406,12 @@ export const AgentsPage: React.FC = () => {
                     id="model"
                     className={styles.select}
                     value={model}
-                    onChange={(e) => setModel(e.target.value as 'sonnet' | 'opus' | 'haiku')}
+                    onChange={(e) => setModel(e.target.value as 'sonnet' | 'opus' | 'haiku' | 'heroku')}
                   >
                     <option value="sonnet">Sonnet (Balanced)</option>
                     <option value="opus">Opus (Powerful)</option>
                     <option value="haiku">Haiku (Fast)</option>
+                    <option value="heroku">Heroku (Experimental)</option>
                   </select>
                   <p className={styles.hint}>
                     Claude model for this agent (Claude Code compatible)

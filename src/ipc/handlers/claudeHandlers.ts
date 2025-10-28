@@ -50,7 +50,7 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
     query: string,
     sessionId?: string,
     mcpConfig?: string,
-    model?: 'sonnet' | 'opus',
+    model?: 'sonnet' | 'opus' | 'heroku',
     skillId?: string,
     skillScope?: 'global' | 'project',
   ) => {
@@ -141,7 +141,7 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
       query: string,
       sessionId?: string,
       mcpConfig?: string,
-      model?: 'sonnet' | 'opus',
+      model?: 'sonnet' | 'opus' | 'heroku',
     ) => {
       return executeClaudeCommand(event, projectPath, query, sessionId, mcpConfig, model);
     },

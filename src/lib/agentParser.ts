@@ -115,7 +115,7 @@ export function parseAgentMarkdown(
     name: metadata.name,
     description: metadata.description,
     allowedTools: metadata.allowedTools,
-    model: metadata.model as 'sonnet' | 'opus' | 'haiku' | undefined,
+    model: metadata.model as 'sonnet' | 'opus' | 'haiku' | 'heroku' | undefined,
     color: metadata.color,
     permissions: metadata.permissions,
     content: body,

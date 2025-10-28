@@ -19,7 +19,7 @@ export interface ExecutionInfo {
   startTime: number;
   endTime: number | null;
   mcpConfig?: string;
-  model?: 'sonnet' | 'opus';
+  model?: 'sonnet' | 'opus' | 'heroku';
   skillId?: string;
   skillScope?: 'global' | 'project';
 }
@@ -63,7 +63,7 @@ export interface ClaudeAPI {
     query: string,
     sessionId?: string,
     mcpConfig?: string,
-    model?: 'sonnet' | 'opus',
+    model?: 'sonnet' | 'opus' | 'heroku',
     skillId?: string,
     skillScope?: 'global' | 'project',
   ) => Promise<{ success: boolean; sessionId?: string; pid?: number; error?: string }>;

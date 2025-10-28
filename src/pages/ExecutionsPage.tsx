@@ -24,7 +24,7 @@ export const ExecutionsPage: React.FC = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [mcpConfigs, setMcpConfigs] = useState<Array<{ name: string; path: string }>>([]);
   const [selectedMcpConfig, setSelectedMcpConfig] = useState<string>('');
-  const [selectedModel, setSelectedModel] = useState<'sonnet' | 'opus'>('sonnet');
+  const [selectedModel, setSelectedModel] = useState<'sonnet' | 'opus' | 'heroku'>('sonnet');
   const [availableSkills, setAvailableSkills] = useState<SkillListItem[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<string>('');
   const [selectedSkillScope, setSelectedSkillScope] = useState<'global' | 'project'>('project');
@@ -588,11 +588,12 @@ export const ExecutionsPage: React.FC = () => {
           <select
             id={modelSelectId}
             value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value as 'sonnet' | 'opus')}
+            onChange={(e) => setSelectedModel(e.target.value as 'sonnet' | 'opus' | 'heroku')}
             className={styles.select}
           >
             <option value="sonnet">Sonnet (Default - Balanced)</option>
             <option value="opus">Opus (Most Capable)</option>
+            <option value="heroku">Heroku (Experimental)</option>
           </select>
         </div>
 
