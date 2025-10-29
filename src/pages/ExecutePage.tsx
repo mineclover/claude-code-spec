@@ -5,7 +5,7 @@ import { Pagination } from '../components/common/Pagination';
 import { ExecutionsList } from '../components/execution/ExecutionsList';
 import { StreamOutput } from '../components/stream/StreamOutput';
 import { useProject } from '../contexts/ProjectContext';
-import type { StreamEvent } from '../lib/types';
+import type { StreamEvent } from '@context-action/code-api';
 import { getCachedSessionsPage, setCachedSessionsPage } from '../services/cache';
 import type { ExecutionInfo } from '../types/api';
 import styles from './ExecutePage.module.css';

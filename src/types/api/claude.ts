@@ -1,4 +1,4 @@
-import type { StreamEvent } from '../../lib/types';
+import type { StreamEvent } from '@context-action/code-api';
 
 export interface SessionInfo {
   sessionId: string;

@@ -4,11 +4,10 @@
  */
 
 import { BrowserWindow, type IpcMainInvokeEvent } from 'electron';
-import type { SessionManager } from '../../lib/SessionManager';
-import type { StreamEvent } from '../../lib/StreamParser';
-import { extractSessionId, isResultEvent, isSystemInitEvent } from '../../lib/types';
+import type { SessionManager, StreamEvent } from '@context-action/code-api';
+import { extractSessionId, isResultEvent, isSystemInitEvent } from '@context-action/code-api';
 import type { SessionLogger } from '../../services/logger';
-import { processManager } from '../../services/ProcessManager';
+import { processManager } from '@context-action/code-api';
 import type { IPCRouter } from '../IPCRouter';
 
 interface ClaudeHandlersContext {

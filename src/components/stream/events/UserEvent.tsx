@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { UserEvent as UserEventType } from '../../../lib/types';
+import type { UserEvent as UserEventType } from '@context-action/code-api';
 import { EventBox } from '../common/EventBox';
 import styles from './UserEvent.module.css';
 

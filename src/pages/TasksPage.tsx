@@ -1,6 +1,7 @@
 import type React from 'react';
 import { useCallback, useEffect, useId, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import { AgentSelector } from '../components/task/AgentSelector';
 import { WorkAreaSelector } from '../components/task/WorkAreaSelector';
 import { useProject } from '../contexts/ProjectContext';
@@ -10,6 +11,7 @@ import styles from './TasksPage.module.css';
 
 export const TasksPage: React.FC = () => {
   const { projectPath } = useProject();
+  const navigate = useNavigate();
 
   // Generate unique IDs for form elements
   const titleId = useId();
@@ -22,6 +24,7 @@ export const TasksPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [executing, setExecuting] = useState(false);
 
   // Form state for individual fields
   const [title, setTitle] = useState('');
@@ -204,6 +207,34 @@ export const TasksPage: React.FC = () => {
     setIsEditing(false);
   };
 
+  const handleExecute = async () => {
+    if (!projectPath || !selectedTaskId) return;
+
+    // Validate assigned agent exists
+    if (!assignedAgent || assignedAgent.trim() === '') {
+      toast.error('Task must have an assigned agent');
+      return;
+    }
+
+    setExecuting(true);
+    try {
+      const result = await window.taskAPI.executeTask(projectPath, selectedTaskId);
+
+      if (result.success && result.sessionId) {
+        toast.success('Task execution started');
+        // Navigate to execution detail page
+        navigate(`/execution/${result.sessionId}`);
+      } else {
+        toast.error(result.error || 'Failed to execute task');
+      }
+    } catch (error) {
+      console.error('Failed to execute task:', error);
+      toast.error('Failed to execute task');
+    } finally {
+      setExecuting(false);
+    }
+  };
+
   if (!projectPath) {
     return (
       <div className={styles.container}>
@@ -271,6 +302,14 @@ export const TasksPage: React.FC = () => {
                   <>
                     <button type="button" className={styles.deleteButton} onClick={handleDelete}>
                       Delete
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.executeButton}
+                      onClick={handleExecute}
+                      disabled={executing || !assignedAgent}
+                    >
+                      {executing ? 'Executing...' : 'Execute Task'}
                     </button>
                     <button
                       type="button"

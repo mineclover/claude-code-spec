@@ -1,6 +1,6 @@
 import type { BookmarksAPI, ClaudeAPI, LoggerAPI, SessionInfo, SettingsAPI } from './preload';
 import type { LogEntry } from './services/logger';
-import type { StreamEvent } from './lib/types';
+import type { StreamEvent } from '@context-action/code-api';
 
 declare global {
   interface Window {

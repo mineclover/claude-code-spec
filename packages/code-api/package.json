@@ -1,0 +1,45 @@
+{
+  "name": "@context-action/code-api",
+  "version": "0.1.0",
+  "description": "Claude Code CLI Client Library",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "cli",
+    "client",
+    "stream",
+    "parser"
+  ],
+  "author": {
+    "name": "mineclover",
+    "email": "mineclover@naver.com"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "zod": "^3.0.0"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.12",
+    "tsup": "^8.3.5",
+    "typescript": "^5.9.2",
+    "zod": "^3.25.76"
+  }
+}

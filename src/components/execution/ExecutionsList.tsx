@@ -183,6 +183,16 @@ export const ExecutionsList: React.FC<ExecutionsListProps> = ({
                       {formatDuration(execution.startTime, execution.endTime)}
                     </span>
                     {execution.pid && <span className={styles.pid}>PID: {execution.pid}</span>}
+                    {execution.agentName && (
+                      <span className={styles.agent} title="Agent">
+                        Agent: {execution.agentName}
+                      </span>
+                    )}
+                    {execution.taskId && (
+                      <span className={styles.task} title="Task ID">
+                        Task: {execution.taskId}
+                      </span>
+                    )}
                   </div>
                 </button>
 

@@ -2,6 +2,7 @@
  * Agent API exposure
  */
 import { contextBridge, ipcRenderer } from 'electron';
+import type { AgentPoolStats, AgentStats } from '../../lib/agent-types';
 import type { AgentListItem } from '../../types/agent';
 
 export interface AgentAPI {
@@ -28,6 +29,8 @@ export interface AgentAPI {
     agentName: string,
     projectPath?: string,
   ) => Promise<{ success: boolean; error?: string }>;
+  getAgentStats: (agentName: string) => Promise<AgentStats | null>;
+  getPoolStats: () => Promise<AgentPoolStats>;
 }
 
 export function exposeAgentAPI(): void {
@@ -53,6 +56,11 @@ export function exposeAgentAPI(): void {
 
     deleteAgent: (source: 'project' | 'user', agentName: string, projectPath?: string) =>
       ipcRenderer.invoke('agent:deleteAgent', { source, agentName, projectPath }),
+
+    getAgentStats: (agentName: string) =>
+      ipcRenderer.invoke('agent:getAgentStats', { agentName }),
+
+    getPoolStats: () => ipcRenderer.invoke('agent:getPoolStats'),
   };
 
   contextBridge.exposeInMainWorld('agentAPI', agentAPI);

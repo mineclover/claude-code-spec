@@ -21,6 +21,10 @@ export interface TaskAPI {
     projectPath: string,
     taskId: string,
   ) => Promise<{ success: boolean; error?: string }>;
+  executeTask: (
+    projectPath: string,
+    taskId: string,
+  ) => Promise<{ success: boolean; sessionId?: string; error?: string }>;
 }
 
 export function exposeTaskAPI(): void {
@@ -38,6 +42,9 @@ export function exposeTaskAPI(): void {
 
     deleteTask: (projectPath: string, taskId: string) =>
       ipcRenderer.invoke('task:deleteTask', { projectPath, taskId }),
+
+    executeTask: (projectPath: string, taskId: string) =>
+      ipcRenderer.invoke('task:executeTask', { projectPath, taskId }),
   };
 
   contextBridge.exposeInMainWorld('taskAPI', taskAPI);

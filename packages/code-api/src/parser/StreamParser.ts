@@ -1,8 +1,10 @@
 /**
  * StreamParser - Handles line-by-line JSON parsing from Claude CLI stream-json output
+ * Now with Zod schema validation for runtime type safety
  */
 
 import type { StreamEvent } from './types';
+import { safeValidateStreamEvent } from './schemas';
 
 export type { StreamEvent };
 export type StreamCallback = (event: StreamEvent) => void;
@@ -55,12 +57,31 @@ export class StreamParser {
   }
 
   /**
-   * Parse a single line as JSON
+   * Parse a single line as JSON with runtime validation
    */
   private parseLine(line: string): void {
     try {
-      const event: StreamEvent = JSON.parse(line);
-      this.onEvent(event);
+      // Step 1: Parse JSON
+      const parsed = JSON.parse(line);
+
+      // Step 2: Validate with Zod schema
+      const validated = safeValidateStreamEvent(parsed);
+
+      if (!validated) {
+        // Validation failed - log and report error
+        console.error('[StreamParser] Schema validation failed:', {
+          line: line.substring(0, 100),
+          parsed,
+        });
+
+        if (this.onError) {
+          this.onError(`Schema validation failed: ${line.substring(0, 100)}`);
+        }
+        return;
+      }
+
+      // Step 3: Forward validated event
+      this.onEvent(validated as StreamEvent);
     } catch (error) {
       // Check if this looks like a truncated JSON (incomplete)
       const openBraces = (line.match(/{/g) || []).length;

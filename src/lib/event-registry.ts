@@ -7,7 +7,7 @@
 
 import type React from 'react';
 import type { ClaudeSessionEntry } from '../preload';
-import type { StreamEvent } from './types';
+import type { StreamEvent } from '@context-action/code-api';
 
 // ============================================================================
 // Unified Event Type

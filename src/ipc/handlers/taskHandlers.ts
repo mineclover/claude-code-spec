@@ -3,9 +3,14 @@
  */
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import matter from 'gray-matter';
+import { agentPoolManager } from '../../main/app-context';
+import { processManager } from '@context-action/code-api';
+import type { Task } from '../../services/TaskRouter';
+import { TaskRouter } from '../../services/TaskRouter';
 import type { IPCRouter } from '../IPCRouter';
 
-const TASKS_DIR = '.claude/tasks';
+const TASKS_DIR = 'workflow/tasks';
 
 interface TaskListItem {
   id: string;
@@ -164,4 +169,59 @@ export function registerTaskHandlers(router: IPCRouter): void {
       }
     },
   );
+
+  // Execute a task with assigned agent
+  router.handle<
+    [{ projectPath: string; taskId: string }],
+    { success: boolean; sessionId?: string; error?: string }
+  >('executeTask', async (_event, { projectPath, taskId }) => {
+    try {
+      const tasksPath = await ensureTasksDirectory(projectPath);
+      const filePath = path.join(tasksPath, `${taskId}.md`);
+
+      // Load and parse task file
+      const content = await fs.readFile(filePath, 'utf-8');
+      const parsed = matter(content);
+      const metadata = parsed.data;
+
+      // Create Task object
+      const task: Task = {
+        id: taskId,
+        title: metadata.title || 'Untitled',
+        description: parsed.content,
+        area: metadata.area || '',
+        assigned_agent: metadata.assigned_agent || '',
+        reviewer: metadata.reviewer,
+        status: metadata.status || 'pending',
+        references: metadata.references,
+        successCriteria: metadata.success_criteria,
+        projectPath,
+      };
+
+      // Validate assigned agent
+      if (!task.assigned_agent) {
+        return { success: false, error: 'Task must have an assigned_agent' };
+      }
+
+      // Load agent definitions if not already loaded
+      await agentPoolManager.loadAgentDefinitions(projectPath);
+
+      // Check if agent exists
+      if (!agentPoolManager.hasAgentDefinition(task.assigned_agent)) {
+        return {
+          success: false,
+          error: `Agent '${task.assigned_agent}' not found. Available agents: ${agentPoolManager.getAgentNames().join(', ')}`,
+        };
+      }
+
+      // Create TaskRouter and route task
+      const taskRouter = new TaskRouter(agentPoolManager, processManager);
+      const sessionId = await taskRouter.routeTask(task);
+
+      return { success: true, sessionId };
+    } catch (error) {
+      console.error(`[TaskHandlers] Failed to execute task ${taskId}:`, error);
+      return { success: false, error: String(error) };
+    }
+  });
 }

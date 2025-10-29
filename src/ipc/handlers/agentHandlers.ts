@@ -4,6 +4,7 @@
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { parseAgentMarkdown } from '../../lib/agentParser';
+import type { AgentPoolStats, AgentStats } from '../../lib/agent-types';
 import {
   deleteMarkdownFile,
   ensureDirectory,
@@ -12,10 +13,11 @@ import {
   readMarkdownFile,
   writeMarkdownFile,
 } from '../../lib/fileLoader';
+import { agentPoolManager } from '../../main/app-context';
 import type { AgentListItem } from '../../types/agent';
 import type { IPCRouter } from '../IPCRouter';
 
-const PROJECT_AGENTS_DIR = '.claude/agents';
+const PROJECT_AGENTS_DIR = 'workflow/agents';
 
 /**
  * Get user-level agents directory path
@@ -254,4 +256,34 @@ export function registerAgentHandlers(router: IPCRouter): void {
       }
     },
   );
+
+  // Get agent runtime statistics
+  router.handle(
+    'getAgentStats',
+    async (_event, args: { agentName: string }): Promise<AgentStats | null> => {
+      const { agentName } = args;
+      try {
+        const stats = agentPoolManager.getAgentStats(agentName);
+        return stats;
+      } catch (error) {
+        console.error(`[AgentHandlers] Failed to get agent stats for ${agentName}:`, error);
+        return null;
+      }
+    },
+  );
+
+  // Get agent pool statistics
+  router.handle('getPoolStats', async (): Promise<AgentPoolStats> => {
+    try {
+      return agentPoolManager.getPoolStats();
+    } catch (error) {
+      console.error('[AgentHandlers] Failed to get pool stats:', error);
+      return {
+        totalAgents: 0,
+        idleAgents: 0,
+        busyAgents: 0,
+        agentsByName: new Map(),
+      };
+    }
+  });
 }

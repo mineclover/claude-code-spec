@@ -129,7 +129,7 @@ npm run start
 
 ### 데이터 구조
 
-**Tasks** (`.claude/tasks/*.md`):
+**Tasks** (`workflow/tasks/*.md`):
 ```markdown
 ---
 id: task-001
@@ -145,7 +145,7 @@ status: pending | in_progress | completed | cancelled
 ## Review Notes
 ```
 
-**Agents** (`.claude/agents/*.md`):
+**Agents** (`workflow/agents/*.md`):
 ```markdown
 ---
 name: task-creator
@@ -158,7 +158,7 @@ allowedTools:
 permissions:
   allowList:
     - "read:**"
-    - "write:.claude/tasks/**"
+    - "write:workflow/tasks/**"
   denyList:
     - "read:.env"
     - "write:src/**"

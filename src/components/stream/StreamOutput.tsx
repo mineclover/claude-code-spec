@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useEffect, useRef } from 'react';
-import type { StreamEvent } from '../../lib/types';
+import type { StreamEvent } from '@context-action/code-api';
 import { StreamEventRenderer } from './StreamEventRenderer';
 import styles from './StreamOutput.module.css';
 

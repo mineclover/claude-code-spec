@@ -27,6 +27,13 @@
   flex-direction: column;
   gap: 4px;
   flex: 1;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
 }
 
 .title {
@@ -254,8 +261,20 @@
 }
 
 .duration,
-.pid {
+.pid,
+.agent,
+.task {
   font-family: "JetBrains Mono", monospace;
+}
+
+.agent {
+  color: #8b5cf6;
+  font-weight: 500;
+}
+
+.task {
+  color: #06b6d4;
+  font-weight: 500;
 }
 
 .itemActions {

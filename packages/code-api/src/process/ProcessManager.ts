@@ -8,17 +8,16 @@
  * for tracking executions, enabling persistence and recovery.
  */
 
-import { ClaudeClient, type ClaudeClientOptions } from '../lib/ClaudeClient';
-import type { StreamEvent } from '../lib/types';
-import { isSystemInitEvent } from '../lib/types';
-import { appLogger } from '../main/app-context';
+import { ClaudeClient, type ClaudeClientOptions } from '../client/ClaudeClient';
+import type { StreamEvent } from '../parser/types';
+import { isSystemInitEvent } from '../parser/types';
 import {
   ExecutionNotFoundError,
   MaxConcurrentError,
   ProcessKillError,
   ProcessStartError,
   ValidationError,
-} from '../lib/errors';
+} from '../errors/errors';
 
 export type ExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'killed';
 
@@ -93,7 +92,7 @@ export class ProcessManager {
       });
     }
 
-    appLogger.info('Starting execution', {
+    console.log('Starting execution', {
       module: 'ProcessManager',
       projectPath: params.projectPath,
       query: `${params.query.substring(0, 50)}...`,
@@ -111,7 +110,7 @@ export class ProcessManager {
         : `@${params.skillId}:project`;
       
       enhancedQuery = `${skillReference}\n\n${params.query}`;
-      appLogger.info('Enhanced query with skill', {
+      console.log('Enhanced query with skill', {
         module: 'ProcessManager',
         skillId: params.skillId,
       });
@@ -148,7 +147,7 @@ export class ProcessManager {
         // Extract sessionId from system:init event
         if (isSystemInitEvent(event) && !params.sessionId) {
           const newSessionId = event.session_id;
-          appLogger.debug('Received sessionId from system:init', {
+          console.debug('Received sessionId from system:init', {
             module: 'ProcessManager',
             sessionId: newSessionId,
           });
@@ -221,7 +220,7 @@ export class ProcessManager {
             execution.status = code === 0 ? 'completed' : 'failed';
             execution.endTime = Date.now();
 
-            appLogger.info('Execution completed', {
+            console.log('Execution completed', {
               module: 'ProcessManager',
               sessionId: currentSessionId,
               status: execution.status,
@@ -280,7 +279,7 @@ export class ProcessManager {
       executionInfo.pid = process.pid || null;
       executionInfo.status = 'running';
 
-      appLogger.info('Execution started', {
+      console.log('Execution started', {
         module: 'ProcessManager',
         sessionId: params.sessionId || 'pending',
         pid: executionInfo.pid,
@@ -296,7 +295,7 @@ export class ProcessManager {
       const errorMsg = error instanceof Error ? error.message : String(error);
       executionInfo.errors.push(errorMsg);
 
-      appLogger.error('Execution failed to start', error instanceof Error ? error : undefined, {
+      console.error('Execution failed to start', error instanceof Error ? error : undefined, {
         module: 'ProcessManager',
         sessionId: params.sessionId || 'unknown',
         error: errorMsg,
@@ -387,7 +386,7 @@ export class ProcessManager {
     }
 
     if (execution.status !== 'running' && execution.status !== 'pending') {
-      appLogger.warn('Execution already terminated', {
+      console.warn('Execution already terminated', {
         module: 'ProcessManager',
         sessionId,
         status: execution.status,
@@ -395,7 +394,7 @@ export class ProcessManager {
       return;
     }
 
-    appLogger.info('Killing execution', {
+    console.log('Killing execution', {
       module: 'ProcessManager',
       sessionId,
     });
@@ -408,7 +407,7 @@ export class ProcessManager {
       // Notify listeners of status change
       this.notifyExecutionsChanged();
     } catch (error) {
-      appLogger.error('Failed to kill execution', error instanceof Error ? error : undefined, {
+      console.error('Failed to kill execution', error instanceof Error ? error : undefined, {
         module: 'ProcessManager',
         sessionId,
       });
@@ -422,7 +421,7 @@ export class ProcessManager {
     const execution = this.executions.get(sessionId);
 
     if (!execution) {
-      appLogger.warn('Execution not found for cleanup', {
+      console.warn('Execution not found for cleanup', {
         module: 'ProcessManager',
         sessionId,
       });
@@ -437,7 +436,7 @@ export class ProcessManager {
       });
     }
 
-    appLogger.info('Cleaning up execution', {
+    console.log('Cleaning up execution', {
       module: 'ProcessManager',
       sessionId,
     });
@@ -457,7 +456,7 @@ export class ProcessManager {
       this.cleanupExecution(id);
     }
 
-    appLogger.info('Cleaned up executions', {
+    console.log('Cleaned up executions', {
       module: 'ProcessManager',
       count: completedIds.length,
     });
@@ -470,7 +469,7 @@ export class ProcessManager {
   killAll(): void {
     const activeExecutions = this.getActiveExecutions();
 
-    appLogger.info('Killing all executions', {
+    console.log('Killing all executions', {
       module: 'ProcessManager',
       count: activeExecutions.length,
     });
@@ -514,7 +513,7 @@ export class ProcessManager {
       });
     }
     this.maxConcurrent = max;
-    appLogger.info('Max concurrent set', {
+    console.log('Max concurrent set', {
       module: 'ProcessManager',
       maxConcurrent: max,
     });

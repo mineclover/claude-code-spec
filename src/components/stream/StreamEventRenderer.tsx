@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { StreamEvent } from '../../lib/types';
+import type { StreamEvent } from '@context-action/code-api';
 import { UnifiedEventRenderer } from '../common/UnifiedEventRenderer';
 
 interface StreamEventRendererProps {

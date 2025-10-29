@@ -3,9 +3,9 @@
  */
 
 import { type ChildProcess, spawn } from 'node:child_process';
-import { type ErrorCallback, type StreamCallback, StreamParser } from './StreamParser';
-import type { StreamEvent } from './types';
-import { isSystemInitEvent } from './types';
+import { type ErrorCallback, type StreamCallback, StreamParser } from '../parser/StreamParser';
+import type { StreamEvent } from '../parser/types';
+import { isSystemInitEvent } from '../parser/types';
 
 export interface ClaudeClientOptions {
   cwd: string;

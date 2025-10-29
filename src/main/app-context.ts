@@ -4,7 +4,15 @@
 
 import path from 'node:path';
 import { app } from 'electron';
-import { SessionManager } from '../lib/SessionManager';
+import { SessionManager } from '@context-action/code-api';
+import {
+  AppLogger,
+  ConsoleTransport,
+  FileTransport,
+  LogLevel,
+  parseLogLevel,
+} from '../services/AppLogger';
+import { AgentPoolManager } from '../services/AgentPoolManager';
 import { createConfig, createSessionLogger } from '../services/logger';
 
 // Session manager
@@ -18,6 +26,31 @@ const logDir = app.isPackaged
 
 export const loggerConfig = createConfig({ logDir });
 export const logger = createSessionLogger(loggerConfig);
+
+// Application logger (for general app logging, not stream events)
+const appLogDir = path.join(logDir, 'app');
+const logLevel = parseLogLevel(process.env.LOG_LEVEL || 'info');
+
+export const appLogger = new AppLogger({
+  level: logLevel,
+  transports: [
+    new ConsoleTransport(!app.isPackaged), // Colors in dev mode only
+    new FileTransport({
+      logDir: appLogDir,
+      filename: 'app.log',
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+      maxFiles: 5,
+    }),
+  ],
+});
+
+// Cleanup on app quit
+app.on('will-quit', () => {
+  appLogger.close();
+});
+
+// Agent Pool Manager (for LangGraph-style agent routing)
+export const agentPoolManager = new AgentPoolManager();
 
 // ProcessManager is now used for managing executions (see src/services/ProcessManager.ts)
 // activeClients Map is no longer needed as ProcessManager handles all execution lifecycle

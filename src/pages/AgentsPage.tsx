@@ -347,7 +347,7 @@ export const AgentsPage: React.FC = () => {
                     onChange={(e) => setSourceType(e.target.value as 'project' | 'user')}
                     disabled={!isCreating}
                   >
-                    <option value="project">Project (.claude/agents/)</option>
+                    <option value="project">Project (workflow/agents/)</option>
                     <option value="user">User (~/.claude/agents/)</option>
                   </select>
                   <p className={styles.hint}>

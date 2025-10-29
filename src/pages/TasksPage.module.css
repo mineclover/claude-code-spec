@@ -175,7 +175,8 @@
 .editButton,
 .saveButton,
 .cancelButton,
-.deleteButton {
+.deleteButton,
+.executeButton {
   padding: 8px 16px;
   border-radius: 4px;
   font-size: 13px;
@@ -226,6 +227,24 @@
 .deleteButton:hover {
   background: #c82333;
   border-color: #bd2130;
+}
+
+.executeButton {
+  background: #ff9800;
+  color: #fff;
+  border: 1px solid #ff9800;
+}
+
+.executeButton:hover:not(:disabled) {
+  background: #f57c00;
+  border-color: #f57c00;
+}
+
+.executeButton:disabled {
+  background: #ffb74d;
+  border-color: #ffb74d;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .editor {
