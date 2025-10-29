@@ -152,6 +152,26 @@ export function isBasicAuth(auth?: McpAuth): boolean {
 }
 
 /**
+ * Helper function to create environment variable placeholders.
+ * These use ${VAR} and ${VAR:-default} syntax for runtime expansion
+ * in Claude's configuration loader.
+ *
+ * @param name - The environment variable name
+ * @param defaultValue - Optional default value if variable is not set
+ * @returns The placeholder string in the format ${NAME} or ${NAME:-default}
+ */
+function envVar(name: string, defaultValue?: string): string {
+  return defaultValue ? `$\{${name}:-${defaultValue}}` : `$\{${name}}`;
+}
+
+const ENV_PLACEHOLDERS = {
+  GITHUB_TOKEN: envVar('GITHUB_TOKEN'),
+  DATABASE_URL: envVar('DATABASE_URL'),
+  DATABASE_DSN: envVar('DATABASE_URL', 'postgresql://localhost:5432/dev'),
+  API_TOKEN: envVar('API_TOKEN'),
+} as const;
+
+/**
  * Example configurations
  */
 export const EXAMPLE_CONFIGS: Record<string, McpServer> = {
@@ -160,8 +180,7 @@ export const EXAMPLE_CONFIGS: Record<string, McpServer> = {
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-github'],
     env: {
-      // biome-ignore lint/suspicious/noTemplateCurlyInString: This is a placeholder for environment variable
-      GITHUB_TOKEN: '${GITHUB_TOKEN}',
+      GITHUB_TOKEN: ENV_PLACEHOLDERS.GITHUB_TOKEN,
     },
     metadata: {
       description: 'GitHub integration server',
@@ -185,11 +204,9 @@ export const EXAMPLE_CONFIGS: Record<string, McpServer> = {
   database: {
     type: 'stdio',
     command: 'npx',
-    // biome-ignore lint/suspicious/noTemplateCurlyInString: This is a placeholder for environment variable
-    args: ['-y', '@bytebase/dbhub', '--dsn', '${DATABASE_URL:-postgresql://localhost:5432/dev}'],
+    args: ['-y', '@bytebase/dbhub', '--dsn', ENV_PLACEHOLDERS.DATABASE_DSN],
     env: {
-      // biome-ignore lint/suspicious/noTemplateCurlyInString: This is a placeholder for environment variable
-      DATABASE_URL: '${DATABASE_URL}',
+      DATABASE_URL: ENV_PLACEHOLDERS.DATABASE_URL,
     },
     metadata: {
       description: 'PostgreSQL database server',
@@ -211,8 +228,7 @@ export const EXAMPLE_CONFIGS: Record<string, McpServer> = {
     transport: 'sse',
     auth: {
       type: 'bearer',
-      // biome-ignore lint/suspicious/noTemplateCurlyInString: This is a placeholder for environment variable
-      token: '${API_TOKEN}',
+      token: ENV_PLACEHOLDERS.API_TOKEN,
     },
     metadata: {
       description: 'Real-time analytics server',

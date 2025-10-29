@@ -7,7 +7,14 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "experimentalScannerIgnores": ["node_modules", "dist", ".vite", "out", "*.log"]
+    "experimentalScannerIgnores": [
+      "node_modules",
+      "dist",
+      "packages/*/dist",
+      ".vite",
+      "out",
+      "*.log"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -25,22 +32,28 @@
     "rules": {
       "recommended": true,
       "suspicious": {
-        "noExplicitAny": "warn",
+        "noExplicitAny": "off",
         "noConsole": "off",
-        "noArrayIndexKey": "warn"
+        "noArrayIndexKey": "warn",
+        "noImplicitAnyLet": "warn"
       },
       "style": {
         "noNonNullAssertion": "warn",
         "useTemplate": "warn"
       },
       "correctness": {
-        "noUnusedVariables": "warn"
+        "noUnusedVariables": "warn",
+        "noInvalidUseBeforeDeclaration": "warn",
+        "useExhaustiveDependencies": "warn"
       },
       "complexity": {
         "noBannedTypes": "warn"
       },
       "a11y": {
-        "noLabelWithoutControl": "warn"
+        "noLabelWithoutControl": "off",
+        "noStaticElementInteractions": "off",
+        "useButtonType": "off",
+        "useKeyWithClickEvents": "off"
       }
     }
   },

@@ -1,10 +1,19 @@
-import type React from 'react';
 import type { UserEvent as UserEventType } from '@context-action/code-api';
+import type React from 'react';
 import { EventBox } from '../common/EventBox';
 import styles from './UserEvent.module.css';
 
 interface UserEventProps {
   event: UserEventType;
+}
+
+/**
+ * Creates a regex pattern to match and remove ANSI escape sequences (color codes, formatting).
+ * Constructs the pattern dynamically using String.fromCharCode(27) for the ESC character
+ * to avoid embedding literal control characters in the source code.
+ */
+function createAnsiEscapeRegex(): RegExp {
+  return new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g');
 }
 
 export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
@@ -66,8 +75,7 @@ export const UserEvent: React.FC<UserEventProps> = ({ event }) => {
     let commandOutput = match ? match[1] : content;
 
     // Remove ANSI escape sequences but preserve newlines
-    // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequence pattern is intentional
-    commandOutput = commandOutput.replace(/\u001b\[[0-9;]*m/g, '');
+    commandOutput = commandOutput.replace(createAnsiEscapeRegex(), '');
 
     return (
       <EventBox

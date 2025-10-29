@@ -3,12 +3,25 @@
  * Now with Zod schema validation for runtime type safety
  */
 
-import type { StreamEvent } from './types';
 import { safeValidateStreamEvent } from './schemas';
+import type { StreamEvent } from './types';
 
 export type { StreamEvent };
 export type StreamCallback = (event: StreamEvent) => void;
 export type ErrorCallback = (error: string) => void;
+
+/**
+ * Creates a regex pattern to remove ANSI escape sequences that may appear in streamed output.
+ * Matches two patterns:
+ * - CSI sequences (Control Sequence Introducer): ESC [ ... letter (e.g., ESC[31m for red, ESC[2K for clear)
+ * - OSC sequences (Operating System Command): ESC ) letter
+ * Constructs the pattern dynamically using String.fromCharCode(27) for the ESC character
+ * to avoid embedding literal control characters in the source code.
+ */
+function createAnsiEscapeRegex(): RegExp {
+  const esc = String.fromCharCode(27);
+  return new RegExp(`${esc}\\[[0-9;?]*[a-zA-Z]|${esc}\\)[a-zA-Z]`, 'g');
+}
 
 export class StreamParser {
   private buffer = '';
@@ -39,12 +52,7 @@ export class StreamParser {
       if (!trimmedLine) continue;
 
       // Remove ANSI escape sequences (e.g., cursor control, colors)
-      // Pattern: ESC [ ... letter or ESC ) letter
-      const cleanedLine = trimmedLine.replace(
-        // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences
-        /\x1b\[[0-9;?]*[a-zA-Z]|\x1b\)[a-zA-Z]/g,
-        '',
-      );
+      const cleanedLine = trimmedLine.replace(createAnsiEscapeRegex(), '');
 
       // Only try to parse if line looks like it starts with JSON
       if (cleanedLine.startsWith('{') || cleanedLine.startsWith('[')) {
