@@ -139,6 +139,41 @@ queryWithStandardSchema<T>(
 ): Promise<JSONExtractionResult<T>>
 ```
 
+## Development
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run specific tests
+npm run test:schema          # Schema validation tests
+npm run test:zod             # Zod schema tests
+npm run test:schema-validation  # Schema + Claude integration
+npm run test:zod-claude      # Zod + Claude integration
+npm run test:pipeline        # Full pipeline test
+```
+
+### Running Examples
+
+```bash
+# Query API usage
+npm run example:query
+
+# JSON extraction pipeline
+npm run example:json
+```
+
+### Test Coverage
+
+- ✅ Schema prompt building and validation
+- ✅ Zod schema integration
+- ✅ Standard Schema compliance
+- ✅ JSON extraction from Claude output
+- ✅ Type guards and runtime validation
+- ✅ Full pipeline (Schema → Claude → Extract → Validate)
+
 ## License
 
 MIT
