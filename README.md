@@ -4,6 +4,13 @@ Electron 데스크톱 앱으로 Claude CLI를 헤드리스 모드로 실행하�
 
 [image](img/image.png)
 
+## 프로젝트 구성
+
+이 프로젝트는 모노레포 구조로 구성되어 있습니다:
+
+- **GUI 앱** (root): Electron 기반 데스크톱 애플리케이션
+- **[@context-action/code-api](./packages/code-api/)**: Claude CLI 클라이언트 라이브러리 (재사용 가능)
+
 
 
 ## 주요 특징
@@ -118,27 +125,47 @@ claude -p "코드 분석" \
 
 ## 아키텍처
 
-### 핵심 모듈
+### 핵심 라이브러리: @context-action/code-api
 
-#### **StreamParser** (`src/lib/StreamParser.ts`)
-- Line-by-line JSON 파싱
-- 불완전한 JSON 라인 버퍼링
-- 에러 내성 파싱
+Claude CLI와의 통신을 담당하는 핵심 모듈들은 독립적인 라이브러리로 분리되어 있습니다.
+
+**자세한 사용법은 [packages/code-api/README.md](./packages/code-api/README.md)를 참고하세요.**
+
+#### 주요 모듈
 
 ```typescript
-const parser = new StreamParser(
-  (event) => handleEvent(event),
-  (error) => handleError(error)
-);
-parser.processChunk(data);
+import {
+  // 클라이언트
+  ClaudeClient,
+  ProcessManager,
+  SessionManager,
+
+  // 파서
+  StreamParser,
+
+  // 타입 및 타입 가드
+  type StreamEvent,
+  type SystemInitEvent,
+  type AssistantEvent,
+  isSystemInitEvent,
+  isAssistantEvent,
+  extractTextFromMessage,
+
+  // 쿼리 API (구조화된 출력)
+  ClaudeQueryAPI,
+
+  // 스키마 빌더
+  buildSchemaPrompt,
+  zodSchemaToPrompt,
+  validateWithZod,
+} from '@context-action/code-api';
 ```
 
-#### **ClaudeClient** (`src/lib/ClaudeClient.ts`)
-- Claude CLI 프로세스 실행 및 관리
-- `-p` 플래그와 `--output-format stream-json` 사용
-- 세션 ID 자동 추출 및 이어가기 지원
+#### 기본 사용 예제
 
 ```typescript
+import { ClaudeClient } from '@context-action/code-api';
+
 const client = new ClaudeClient({
   cwd: '/path/to/project',
   sessionId: 'previous-session-id', // optional
@@ -150,36 +177,28 @@ const client = new ClaudeClient({
 client.execute('List files in this directory');
 ```
 
-#### **SessionManager** (`src/lib/SessionManager.ts`)
-- 세션 정보 저장 및 조회
-- 대화 이력 관리
-- 세션 이어가기 지원
+#### 구조화된 JSON 쿼리
 
 ```typescript
-sessionManager.saveSession(sessionId, {
-  cwd: '/path',
-  query: 'My query',
-  timestamp: Date.now(),
+import { ClaudeQueryAPI } from '@context-action/code-api';
+import { z } from 'zod';
+
+const api = new ClaudeQueryAPI();
+
+// Zod 스키마로 타입 안전한 쿼리
+const schema = z.object({
+  file: z.string(),
+  linesOfCode: z.number().min(0),
+  language: z.enum(['typescript', 'javascript', 'python']),
 });
 
-const sessions = sessionManager.getAllSessions();
-```
+const result = await api.queryWithZod(
+  '/path/to/project',
+  'Analyze src/main.ts',
+  schema
+);
 
-### 타입 시스템 (`src/lib/types.ts`)
-
-완전한 TypeScript 타입 정의:
-
-- **StreamEvent**: 모든 이벤트 타입의 Union Type
-- **Type Guards**: isSystemInitEvent, isAssistantEvent, isResultEvent, isErrorEvent
-- **Helper Functions**: extractTextFromMessage, extractToolUsesFromMessage
-
-```typescript
-import { isAssistantEvent, extractTextFromMessage } from './lib/types';
-
-if (isAssistantEvent(event)) {
-  const text = extractTextFromMessage(event.message);
-  console.log(text);
-}
+console.log(result.data); // 타입 안전: { file: string, linesOfCode: number, ... }
 ```
 
 ### IPC 통신 구조
@@ -277,48 +296,54 @@ Claude CLI가 출력하는 주요 이벤트:
 ## 프로젝트 구조
 
 ```
-src/
-├── lib/
-│   ├── types.ts              # TypeScript 타입 정의
-│   ├── StreamParser.ts       # Stream JSON 파싱
-│   └── taskParser.ts         # Task 마크다운 파싱
-├── services/
-│   ├── ProcessManager.ts     # 병렬 프로세스 관리
-│   ├── SessionManager.ts     # 실행 이력 관리
-│   └── appSettings.ts        # 앱 설정 관리
-├── ipc/
-│   ├── IPCRouter.ts          # IPC 라우팅 시스템
-│   └── handlers/             # IPC 핸들러
-│       ├── claudeHandlers.ts
-│       ├── taskHandlers.ts
-│       ├── settingsHandlers.ts
-│       └── ...
-├── preload/
-│   └── apis/                 # Preload API 모듈
-│       ├── claude.ts
-│       ├── task.ts
-│       └── ...
-├── pages/                    # React 페이지
-│   ├── ExecutionsPage.tsx    # 실행 목록
-│   ├── ExecutionDetailPage.tsx # 실행 상세
-│   ├── TasksPage.tsx         # 작업 관리
-│   ├── ClaudeProjectsListPage.tsx
-│   ├── ClaudeSessionsListPage.tsx
-│   ├── MemoryPage.tsx
-│   └── ...
-├── components/               # React 컴포넌트
-│   ├── layout/
-│   ├── stream/
-│   ├── execution/
-│   └── ...
-├── types/                    # 타입 정의
-│   ├── api.ts
-│   ├── task.ts
-│   └── ...
-├── main.ts                   # Electron Main Process
-├── preload.ts                # IPC Bridge
-├── App.tsx                   # React App
-└── window.d.ts               # Window 타입 확장
+claude-code-spec/
+├── packages/
+│   └── code-api/             # 📦 Claude CLI 클라이언트 라이브러리
+│       ├── src/
+│       │   ├── client/       # ClaudeClient
+│       │   ├── parser/       # StreamParser, types
+│       │   ├── process/      # ProcessManager
+│       │   ├── session/      # SessionManager
+│       │   ├── query/        # ClaudeQueryAPI
+│       │   ├── schema/       # Schema builders (Zod, JSON)
+│       │   ├── errors/       # Error classes
+│       │   └── index.ts      # Public API
+│       ├── examples/         # 사용 예제
+│       ├── tests/            # 테스트
+│       └── dist/             # 빌드 출력 (CJS/ESM/DTS)
+│
+├── src/                      # 🖥️ GUI 앱 (Electron + React)
+│   ├── lib/
+│   │   ├── taskParser.ts     # Task 마크다운 파싱
+│   │   ├── agentParser.ts    # Agent 정의 파싱
+│   │   └── ...
+│   ├── services/
+│   │   ├── appSettings.ts    # 앱 설정 관리
+│   │   ├── AppLogger.ts      # 로깅
+│   │   └── ...
+│   ├── ipc/
+│   │   ├── IPCRouter.ts      # IPC 라우팅
+│   │   └── handlers/         # IPC 핸들러
+│   │       ├── claudeHandlers.ts
+│   │       ├── taskHandlers.ts
+│   │       └── ...
+│   ├── preload/
+│   │   └── apis/             # Preload API 모듈
+│   │       ├── claude.ts
+│   │       ├── task.ts
+│   │       └── ...
+│   ├── pages/                # React 페이지
+│   │   ├── ExecutionsPage.tsx
+│   │   ├── TasksPage.tsx
+│   │   └── ...
+│   ├── components/           # React 컴포넌트
+│   ├── main.ts              # Electron Main Process
+│   ├── preload.ts           # IPC Bridge
+│   └── App.tsx              # React App
+│
+├── docs/                     # 문서
+├── package.json             # Workspace 루트
+└── README.md                # 이 파일
 ```
 
 ## Tasks 기능 - Execute를 위한 작업 명세
@@ -398,35 +423,51 @@ area: src/auth  # src/auth 외부 파일 자동 차단
 
 ## 개발 가이드
 
-### 모듈 재사용
+### GUI 앱 개발
 
-각 모듈은 독립적으로 사용 가능합니다:
+```bash
+# 의존성 설치
+npm install
 
-```typescript
-// StreamParser만 사용
-import { StreamParser } from './lib/StreamParser';
+# 개발 모드 실행
+npm start
 
-// ProcessManager만 사용
-import { ProcessManager } from './services/ProcessManager';
-
-// SessionManager만 사용
-import { SessionManager } from './services/SessionManager';
-
-// Task Parser만 사용
-import { parseTaskMarkdown, generateTaskMarkdown } from './lib/taskParser';
+# 빌드
+npm run build
 ```
 
-### 타입 가드 활용
+### 라이브러리 개발 (@context-action/code-api)
+
+```bash
+cd packages/code-api
+
+# 라이브러리 빌드
+npm run build
+
+# 테스트 실행
+npm test
+
+# 예제 실행
+npm run example:query
+npm run example:json
+```
+
+### 라이브러리를 다른 프로젝트에서 사용
+
+```bash
+# npm link로 로컬 개발
+cd packages/code-api
+npm link
+
+cd your-other-project
+npm link @context-action/code-api
+```
 
 ```typescript
-import { isAssistantEvent, extractTextFromMessage } from './lib/types';
+// 다른 프로젝트에서 사용
+import { ClaudeClient, ProcessManager } from '@context-action/code-api';
 
-streamEvents.forEach(event => {
-  if (isAssistantEvent(event)) {
-    const text = extractTextFromMessage(event.message);
-    console.log(text);
-  }
-});
+const client = new ClaudeClient({ ... });
 ```
 
 ## 참고 문서
