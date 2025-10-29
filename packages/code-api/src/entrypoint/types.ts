@@ -18,6 +18,21 @@ export interface OutputFormat {
 }
 
 /**
+ * 시스템 프롬프트 설정
+ * Output Style과 별개로 AI의 역할, 행동 지침을 제어
+ */
+export interface SystemPromptConfig {
+  /** 완전 교체: 기본 시스템 프롬프트를 대체 */
+  custom?: string;
+
+  /** 추가: 기본 프롬프트에 지침 추가 */
+  append?: string;
+
+  /** 프리셋 사용 여부 */
+  useClaudeCodePreset?: boolean;
+}
+
+/**
  * 진입점 설정
  */
 export interface EntryPointConfig {
@@ -32,6 +47,13 @@ export interface EntryPointConfig {
 
   /** 출력 형식 */
   outputFormat: OutputFormat;
+
+  /**
+   * 시스템 프롬프트 설정 (선택)
+   * Output Style = 응답 형식 제어
+   * System Prompt = AI 역할/행동 제어
+   */
+  systemPrompt?: SystemPromptConfig;
 
   /** 실행 옵션 */
   options?: {

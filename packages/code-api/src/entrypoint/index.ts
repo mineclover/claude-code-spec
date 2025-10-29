@@ -17,4 +17,5 @@ export type {
   OutputFormat,
   ValidationResult,
   EntryPointDetail,
+  SystemPromptConfig,
 } from './types';

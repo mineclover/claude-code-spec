@@ -91,5 +91,6 @@ export type {
   SchemaDefinition,
   OutputFormat,
   ValidationResult,
-  EntryPointDetail
+  EntryPointDetail,
+  SystemPromptConfig
 } from './entrypoint';
