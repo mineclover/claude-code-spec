@@ -84,9 +84,11 @@ if (result.success) {
 
 The Entry Point system allows you to create pre-configured execution contexts where output formats and options are defined upfront. This is ideal for creating reusable query interfaces with consistent behavior.
 
+**Important**: When using `structured` output type, the corresponding schema must exist in `workflow/schemas/` before creating the entry point. The system validates schema existence automatically.
+
 #### 1. Define Schemas
 
-Create JSON schema definitions in `.claude/schemas/*.json`:
+Create JSON schema definitions in `workflow/schemas/*.json`:
 
 ```typescript
 import { SchemaManager } from '@context-action/code-api';
@@ -123,7 +125,7 @@ schemaManager.saveSchema(codeReviewSchema);
 
 #### 2. Configure Entry Points
 
-Define entry points in `.claude/entry-points.json`:
+Define entry points in `workflow/entry-points.json`:
 
 ```typescript
 import { EntryPointManager } from '@context-action/code-api';
@@ -147,7 +149,15 @@ const codeReviewEntry = {
 };
 
 entryPointManager.setEntryPoint(codeReviewEntry);
+// ✅ Automatically validates that 'code-review' schema exists
+// ❌ Throws error if schema not found: "Schema 'code-review' does not exist in workflow/schemas/"
 ```
+
+**Schema Validation Process**:
+1. When calling `setEntryPoint()` with `structured` output type
+2. System automatically checks if referenced schema exists in `workflow/schemas/`
+3. If schema not found, throws validation error with helpful message
+4. Prevents runtime errors by catching issues at configuration time
 
 #### 3. Execute via Entry Points
 

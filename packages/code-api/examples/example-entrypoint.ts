@@ -24,6 +24,7 @@ async function main() {
   // Step 1: 스키마 관리
   // ========================================
   console.log('--- Step 1: Schema Management ---\n');
+  console.log('⚠️  Schemas will be saved to: workflow/schemas/*.json\n');
 
   const schemaManager = new SchemaManager(projectPath);
 
@@ -77,6 +78,8 @@ async function main() {
   // Step 2: 진입점 설정
   // ========================================
   console.log('--- Step 2: Entry Point Configuration ---\n');
+  console.log('⚠️  Entry points will be saved to: workflow/entry-points.json\n');
+  console.log('🔍 Schema validation enabled: System will check if schemas exist before saving\n');
 
   const entryPointManager = new EntryPointManager(projectPath);
 
@@ -102,7 +105,24 @@ async function main() {
   };
 
   entryPointManager.setEntryPoint(codeReviewEntry);
-  console.log('✅ Entry point saved: code-review');
+  console.log('✅ Entry point saved: code-review (schema validated)\n');
+
+  // Schema validation 테스트 (실패 케이스)
+  console.log('Testing schema validation with non-existent schema...');
+  try {
+    const invalidEntry: EntryPointConfig = {
+      name: 'invalid-test',
+      description: 'Test entry with non-existent schema',
+      outputFormat: {
+        type: 'structured',
+        schemaName: 'non-existent-schema',
+      },
+    };
+    entryPointManager.setEntryPoint(invalidEntry);
+  } catch (error) {
+    console.log('❌ Validation failed as expected:', (error as Error).message.split('\n')[0]);
+    console.log('   This prevents runtime errors!\n');
+  }
 
   // Quick JSON 진입점 생성 (스키마 없음)
   const quickJsonEntry: EntryPointConfig = {
