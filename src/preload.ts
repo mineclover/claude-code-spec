@@ -13,6 +13,7 @@ import { exposeFileAPI } from './preload/apis/file';
 import { exposeLoggerAPI } from './preload/apis/logger';
 import { exposeMetadataAPI } from './preload/apis/metadata';
 import { exposeOutputStyleAPI } from './preload/apis/outputStyle';
+import { exposeQueryAPI } from './preload/apis/query';
 import { exposeSessionsAPI } from './preload/apis/sessions';
 import { exposeSettingsAPI } from './preload/apis/settings';
 import { exposeSkillAPI } from './preload/apis/skill';
@@ -36,6 +37,7 @@ exposeSkillAPI();
 exposeSkillRepositoryAPI();
 exposeWorkAreaAPI();
 exposeOutputStyleAPI();
+exposeQueryAPI();
 
 // Re-export types for convenience
 export * from './types/api';

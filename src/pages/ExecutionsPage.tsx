@@ -3,6 +3,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Pagination } from '../components/common/Pagination';
 import { ExecutionsList } from '../components/execution/ExecutionsList';
+import { OutputStyleSelector } from '../components/execution/OutputStyleSelector';
 import { useProject } from '../contexts/ProjectContext';
 import type { StreamEvent } from '../lib/types';
 import { getCachedSessionsPage, setCachedSessionsPage } from '../services/cache';
@@ -30,6 +31,7 @@ export const ExecutionsPage: React.FC = () => {
   const [availableSkills, setAvailableSkills] = useState<SkillListItem[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<string>('');
   const [selectedSkillScope, setSelectedSkillScope] = useState<'global' | 'project'>('project');
+  const [selectedOutputStyle, setSelectedOutputStyle] = useState<string | undefined>(undefined);
   const [recentSessions, setRecentSessions] = useState<
     Array<{ sessionId: string; firstUserMessage?: string; lastModified: number }>
   >([]);
@@ -269,6 +271,7 @@ export const ExecutionsPage: React.FC = () => {
         selectedModel,
         selectedSkillId || undefined,
         selectedSkillScope,
+        selectedOutputStyle,
       );
 
       if (result.success && result.sessionId) {
@@ -591,6 +594,14 @@ export const ExecutionsPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {projectPath && (
+          <OutputStyleSelector
+            projectPath={projectPath}
+            value={selectedOutputStyle}
+            onChange={setSelectedOutputStyle}
+          />
+        )}
 
         <div className={styles.inputGroup}>
           <label htmlFor={mcpConfigSelectId}>MCP Configuration</label>

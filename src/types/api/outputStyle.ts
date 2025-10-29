@@ -1,25 +1,26 @@
-import type { OutputStyle, OutputStyleListItem } from '../outputStyle';
+/**
+ * Output-Style API Types
+ */
+
+export interface OutputStyle {
+  name: string;
+  description: string;
+  content: string;
+  filePath: string;
+}
 
 export interface OutputStyleAPI {
-  listOutputStyles: (args: { projectPath: string }) => Promise<OutputStyleListItem[]>;
-  getOutputStyle: (args: { name: string; projectPath: string }) => Promise<OutputStyle | null>;
-  createOutputStyle: (args: {
-    name: string;
-    description: string;
-    instructions: string;
-    type: 'user' | 'project';
-    projectPath: string;
-  }) => Promise<void>;
-  updateOutputStyle: (args: {
-    name: string;
-    description: string;
-    instructions: string;
-    type: 'user' | 'project';
-    projectPath: string;
-  }) => Promise<void>;
-  deleteOutputStyle: (args: {
-    name: string;
-    type: 'user' | 'project';
-    projectPath: string;
-  }) => Promise<void>;
+  listStyles: (projectPath: string) => Promise<OutputStyle[]>;
+  getStyle: (projectPath: string, name: string) => Promise<OutputStyle | null>;
+  createStyle: (
+    projectPath: string,
+    style: Omit<OutputStyle, 'filePath'>
+  ) => Promise<{ success: boolean; error?: string; style?: OutputStyle }>;
+  updateStyle: (
+    projectPath: string,
+    name: string,
+    style: Omit<OutputStyle, 'filePath'>
+  ) => Promise<{ success: boolean; error?: string }>;
+  deleteStyle: (projectPath: string, name: string) => Promise<{ success: boolean; error?: string }>;
+  listNames: (projectPath: string) => Promise<string[]>;
 }

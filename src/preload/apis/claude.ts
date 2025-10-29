@@ -18,6 +18,7 @@ export function exposeClaudeAPI(): void {
       model?: 'sonnet' | 'opus' | 'heroku',
       skillId?: string,
       skillScope?: 'global' | 'project',
+      outputStyle?: string,
     ) =>
       ipcRenderer.invoke(
         'claude:execute',
@@ -28,6 +29,7 @@ export function exposeClaudeAPI(): void {
         model,
         skillId,
         skillScope,
+        outputStyle,
       ),
 
     selectDirectory: () => ipcRenderer.invoke('dialog:selectDirectory'),

@@ -13,6 +13,7 @@ import { registerFileHandlers } from '../ipc/handlers/fileHandlers';
 import { registerLoggerHandlers } from '../ipc/handlers/loggerHandlers';
 import { registerMetadataHandlers } from '../ipc/handlers/metadataHandlers';
 import { registerOutputStyleHandlers } from '../ipc/handlers/outputStyleHandlers';
+import { registerQueryHandlers } from '../ipc/handlers/queryHandlers';
 import { registerSettingsHandlers } from '../ipc/handlers/settingsHandlers';
 import { registerSkillHandlers } from '../ipc/handlers/skillHandlers';
 import { registerSkillRepositoryHandlers } from '../ipc/handlers/skillRepositoryHandlers';
@@ -92,6 +93,10 @@ export function setupIPCHandlers(): void {
   // Skill repository handlers
   const skillRepoRouter = ipcRegistry.router('skill-repo');
   registerSkillRepositoryHandlers(skillRepoRouter);
+
+  // Query API handlers
+  const queryRouter = ipcRegistry.router('query');
+  registerQueryHandlers(queryRouter);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }

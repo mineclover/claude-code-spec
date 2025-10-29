@@ -1,77 +1,29 @@
 /**
- * Output Style API exposure
+ * Output-Style API exposure
  */
-import { contextBridge, ipcRenderer } from 'electron';
-import type { OutputStyleListItem } from '../../types/outputStyle';
 
-export interface OutputStyleAPI {
-  listOutputStyles: (projectPath: string) => Promise<OutputStyleListItem[]>;
-  getOutputStyle: (
-    name: string,
-    type: 'builtin' | 'user' | 'project',
-    projectPath?: string,
-  ) => Promise<string | null>;
-  createOutputStyle: (
-    name: string,
-    description: string,
-    instructions: string,
-    type: 'user' | 'project',
-    projectPath?: string,
-  ) => Promise<{ success: boolean; error?: string }>;
-  updateOutputStyle: (
-    name: string,
-    description: string,
-    instructions: string,
-    type: 'user' | 'project',
-    projectPath?: string,
-  ) => Promise<{ success: boolean; error?: string }>;
-  deleteOutputStyle: (
-    name: string,
-    type: 'user' | 'project',
-    projectPath?: string,
-  ) => Promise<{ success: boolean; error?: string }>;
-}
+import { contextBridge, ipcRenderer } from 'electron';
+import type { OutputStyleAPI } from '../../types/api/outputStyle';
 
 export function exposeOutputStyleAPI(): void {
   const outputStyleAPI: OutputStyleAPI = {
-    listOutputStyles: (projectPath: string) =>
-      ipcRenderer.invoke('output-style:listOutputStyles', { projectPath }),
+    listStyles: (projectPath) =>
+      ipcRenderer.invoke('output-style:list', { projectPath }),
 
-    getOutputStyle: (name: string, type: 'builtin' | 'user' | 'project', projectPath?: string) =>
-      ipcRenderer.invoke('output-style:getOutputStyle', { name, type, projectPath }),
+    getStyle: (projectPath, name) =>
+      ipcRenderer.invoke('output-style:get', { projectPath, name }),
 
-    createOutputStyle: (
-      name: string,
-      description: string,
-      instructions: string,
-      type: 'user' | 'project',
-      projectPath?: string,
-    ) =>
-      ipcRenderer.invoke('output-style:createOutputStyle', {
-        name,
-        description,
-        instructions,
-        type,
-        projectPath,
-      }),
+    createStyle: (projectPath, style) =>
+      ipcRenderer.invoke('output-style:create', { projectPath, style }),
 
-    updateOutputStyle: (
-      name: string,
-      description: string,
-      instructions: string,
-      type: 'user' | 'project',
-      projectPath?: string,
-    ) =>
-      ipcRenderer.invoke('output-style:updateOutputStyle', {
-        name,
-        description,
-        instructions,
-        type,
-        projectPath,
-      }),
+    updateStyle: (projectPath, name, style) =>
+      ipcRenderer.invoke('output-style:update', { projectPath, name, style }),
 
-    deleteOutputStyle: (name: string, type: 'user' | 'project', projectPath?: string) =>
-      ipcRenderer.invoke('output-style:deleteOutputStyle', { name, type, projectPath }),
+    deleteStyle: (projectPath, name) =>
+      ipcRenderer.invoke('output-style:delete', { projectPath, name }),
+
+    listNames: (projectPath) =>
+      ipcRenderer.invoke('output-style:list-names', { projectPath })
   };
 
   contextBridge.exposeInMainWorld('outputStyleAPI', outputStyleAPI);

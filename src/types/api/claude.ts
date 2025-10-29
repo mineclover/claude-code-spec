@@ -22,6 +22,9 @@ export interface ExecutionInfo {
   model?: 'sonnet' | 'opus' | 'heroku';
   skillId?: string;
   skillScope?: 'global' | 'project';
+  outputStyle?: string;
+  agentName?: string; // Agent Pool: 실행 중인 Agent 이름
+  taskId?: string; // Task 기반 실행인 경우 Task ID
 }
 
 export interface ExecutionStats {
@@ -66,6 +69,7 @@ export interface ClaudeAPI {
     model?: 'sonnet' | 'opus' | 'heroku',
     skillId?: string,
     skillScope?: 'global' | 'project',
+    outputStyle?: string,
   ) => Promise<{ success: boolean; sessionId?: string; pid?: number; error?: string }>;
 
   // Directory selection

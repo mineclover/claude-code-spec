@@ -11,6 +11,14 @@
 import { ClaudeClient, type ClaudeClientOptions } from '../lib/ClaudeClient';
 import type { StreamEvent } from '../lib/types';
 import { isSystemInitEvent } from '../lib/types';
+import { appLogger } from '../main/app-context';
+import {
+  ExecutionNotFoundError,
+  MaxConcurrentError,
+  ProcessKillError,
+  ProcessStartError,
+  ValidationError,
+} from '../lib/errors';
 
 export type ExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'killed';
 
@@ -29,6 +37,9 @@ export interface ExecutionInfo {
   model?: 'sonnet' | 'opus' | 'heroku';
   skillId?: string;
   skillScope?: 'global' | 'project';
+  outputStyle?: string;
+  agentName?: string; // Agent Pool: 실행 중인 Agent 이름
+  taskId?: string; // Task 기반 실행인 경우 Task ID
 }
 
 export interface StartExecutionParams {
@@ -39,6 +50,9 @@ export interface StartExecutionParams {
   model?: 'sonnet' | 'opus' | 'heroku';
   skillId?: string;
   skillScope?: 'global' | 'project';
+  outputStyle?: string;
+  agentName?: string; // Agent Pool: Agent 이름
+  taskId?: string; // Task ID (Task 실행인 경우)
   onStream?: (sessionId: string, event: StreamEvent) => void;
   onError?: (sessionId: string, error: string) => void;
   onComplete?: (sessionId: string, code: number) => void;
@@ -73,10 +87,14 @@ export class ProcessManager {
     // Check concurrent execution limit
     const activeCount = this.getActiveExecutions().length;
     if (activeCount >= this.maxConcurrent) {
-      throw new Error(`Maximum concurrent executions (${this.maxConcurrent}) reached`);
+      throw new MaxConcurrentError(this.maxConcurrent, {
+        activeCount,
+        projectPath: params.projectPath,
+      });
     }
 
-    console.log('[ProcessManager] Starting execution:', {
+    appLogger.info('Starting execution', {
+      module: 'ProcessManager',
       projectPath: params.projectPath,
       query: `${params.query.substring(0, 50)}...`,
       resumeSession: params.sessionId || 'new',
@@ -93,13 +111,19 @@ export class ProcessManager {
         : `@${params.skillId}:project`;
       
       enhancedQuery = `${skillReference}\n\n${params.query}`;
-      console.log('[ProcessManager] Enhanced query with skill:', params.skillId);
+      appLogger.info('Enhanced query with skill', {
+        module: 'ProcessManager',
+        skillId: params.skillId,
+      });
     }
 
     // For resume, we already have sessionId
     if (params.sessionId) {
       if (this.executions.has(params.sessionId)) {
-        throw new Error(`Execution with sessionId ${params.sessionId} already exists`);
+        throw new ProcessStartError(`Execution with sessionId ${params.sessionId} already exists`, {
+          sessionId: params.sessionId,
+          projectPath: params.projectPath,
+        });
       }
     }
 
@@ -124,7 +148,10 @@ export class ProcessManager {
         // Extract sessionId from system:init event
         if (isSystemInitEvent(event) && !params.sessionId) {
           const newSessionId = event.session_id;
-          console.log('[ProcessManager] Received sessionId from system:init:', newSessionId);
+          appLogger.debug('Received sessionId from system:init', {
+            module: 'ProcessManager',
+            sessionId: newSessionId,
+          });
 
           // Resolve the promise
           resolveSessionId?.(newSessionId);
@@ -194,7 +221,8 @@ export class ProcessManager {
             execution.status = code === 0 ? 'completed' : 'failed';
             execution.endTime = Date.now();
 
-            console.log('[ProcessManager] Execution completed:', {
+            appLogger.info('Execution completed', {
+              module: 'ProcessManager',
               sessionId: currentSessionId,
               status: execution.status,
               duration: execution.endTime - execution.startTime,
@@ -230,6 +258,9 @@ export class ProcessManager {
       model: params.model,
       skillId: params.skillId,
       skillScope: params.skillScope,
+      outputStyle: params.outputStyle,
+      agentName: params.agentName,
+      taskId: params.taskId,
     };
 
     // If resuming, store immediately with sessionId
@@ -249,7 +280,8 @@ export class ProcessManager {
       executionInfo.pid = process.pid || null;
       executionInfo.status = 'running';
 
-      console.log('[ProcessManager] Execution started:', {
+      appLogger.info('Execution started', {
+        module: 'ProcessManager',
         sessionId: params.sessionId || 'pending',
         pid: executionInfo.pid,
       });
@@ -264,17 +296,28 @@ export class ProcessManager {
       const errorMsg = error instanceof Error ? error.message : String(error);
       executionInfo.errors.push(errorMsg);
 
-      console.error('[ProcessManager] Execution failed to start:', {
+      appLogger.error('Execution failed to start', error instanceof Error ? error : undefined, {
+        module: 'ProcessManager',
         sessionId: params.sessionId || 'unknown',
         error: errorMsg,
       });
 
       // Reject sessionId promise if not resuming
       if (!params.sessionId) {
-        rejectSessionId?.(new Error(`Execution failed to start: ${errorMsg}`));
+        const startError =
+          error instanceof Error
+            ? new ProcessStartError(error.message, {
+                projectPath: params.projectPath,
+                query: params.query,
+              })
+            : new ProcessStartError(errorMsg, {
+                projectPath: params.projectPath,
+                query: params.query,
+              });
+        rejectSessionId?.(startError);
       }
 
-      throw error;
+      throw error instanceof Error ? error : new ProcessStartError(errorMsg);
     }
 
     // Wait for sessionId with timeout (will resolve immediately if resuming)
@@ -340,18 +383,22 @@ export class ProcessManager {
     const execution = this.executions.get(sessionId);
 
     if (!execution) {
-      throw new Error(`Execution not found: ${sessionId}`);
+      throw new ExecutionNotFoundError(sessionId);
     }
 
     if (execution.status !== 'running' && execution.status !== 'pending') {
-      console.warn('[ProcessManager] Execution already terminated:', {
+      appLogger.warn('Execution already terminated', {
+        module: 'ProcessManager',
         sessionId,
         status: execution.status,
       });
       return;
     }
 
-    console.log('[ProcessManager] Killing execution:', sessionId);
+    appLogger.info('Killing execution', {
+      module: 'ProcessManager',
+      sessionId,
+    });
 
     try {
       execution.client.kill();
@@ -361,9 +408,9 @@ export class ProcessManager {
       // Notify listeners of status change
       this.notifyExecutionsChanged();
     } catch (error) {
-      console.error('[ProcessManager] Failed to kill execution:', {
+      appLogger.error('Failed to kill execution', error instanceof Error ? error : undefined, {
+        module: 'ProcessManager',
         sessionId,
-        error,
       });
     }
   }
@@ -375,16 +422,25 @@ export class ProcessManager {
     const execution = this.executions.get(sessionId);
 
     if (!execution) {
-      console.warn('[ProcessManager] Execution not found for cleanup:', sessionId);
+      appLogger.warn('Execution not found for cleanup', {
+        module: 'ProcessManager',
+        sessionId,
+      });
       return;
     }
 
     // Only cleanup completed executions
     if (execution.status === 'running' || execution.status === 'pending') {
-      throw new Error('Cannot cleanup active execution. Kill it first.');
+      throw new ProcessKillError('Cannot cleanup active execution. Kill it first.', {
+        sessionId,
+        status: execution.status,
+      });
     }
 
-    console.log('[ProcessManager] Cleaning up execution:', sessionId);
+    appLogger.info('Cleaning up execution', {
+      module: 'ProcessManager',
+      sessionId,
+    });
     this.executions.delete(sessionId);
 
     // Notify listeners of execution removal
@@ -401,7 +457,10 @@ export class ProcessManager {
       this.cleanupExecution(id);
     }
 
-    console.log('[ProcessManager] Cleaned up executions:', completedIds.length);
+    appLogger.info('Cleaned up executions', {
+      module: 'ProcessManager',
+      count: completedIds.length,
+    });
     return completedIds.length;
   }
 
@@ -411,7 +470,10 @@ export class ProcessManager {
   killAll(): void {
     const activeExecutions = this.getActiveExecutions();
 
-    console.log('[ProcessManager] Killing all executions:', activeExecutions.length);
+    appLogger.info('Killing all executions', {
+      module: 'ProcessManager',
+      count: activeExecutions.length,
+    });
 
     for (const execution of activeExecutions) {
       this.killExecution(execution.sessionId);
@@ -446,10 +508,16 @@ export class ProcessManager {
    */
   setMaxConcurrent(max: number): void {
     if (max < 1) {
-      throw new Error('Maximum concurrent executions must be at least 1');
+      throw new ValidationError('Maximum concurrent executions must be at least 1', 'INVALID_MAX_CONCURRENT', {
+        providedValue: max,
+        minimumValue: 1,
+      });
     }
     this.maxConcurrent = max;
-    console.log('[ProcessManager] Max concurrent set to:', max);
+    appLogger.info('Max concurrent set', {
+      module: 'ProcessManager',
+      maxConcurrent: max,
+    });
   }
 
   /**

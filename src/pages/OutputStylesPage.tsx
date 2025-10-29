@@ -1,343 +1,190 @@
-import { useCallback, useEffect, useId, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { OutputStyleEditor } from '../components/outputStyles/OutputStyleEditor';
 import { useProject } from '../contexts/ProjectContext';
-import type { OutputStyle, OutputStyleListItem } from '../types/outputStyle';
 import styles from './OutputStylesPage.module.css';
+
+interface OutputStyle {
+  name: string;
+  description: string;
+  content: string;
+  filePath: string;
+}
 
 export function OutputStylesPage() {
   const { projectPath } = useProject();
-
-  // Generate unique IDs for form elements
-  const styleNameId = useId();
-  const styleDescriptionId = useId();
-  const styleTypeId = useId();
-  const styleInstructionsId = useId();
-  const [builtinStyles, setBuiltinStyles] = useState<OutputStyleListItem[]>([]);
-  const [customStyles, setCustomStyles] = useState<OutputStyleListItem[]>([]);
+  const [stylesList, setStylesList] = useState<OutputStyle[]>([]);
   const [selectedStyle, setSelectedStyle] = useState<OutputStyle | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [newStyleName, setNewStyleName] = useState('');
-  const [newStyleDescription, setNewStyleDescription] = useState('');
-  const [newStyleInstructions, setNewStyleInstructions] = useState('');
-  const [newStyleType, setNewStyleType] = useState<'user' | 'project'>('user');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingStyle, setEditingStyle] = useState<OutputStyle | undefined>(undefined);
 
-  const loadOutputStyles = useCallback(async () => {
-    if (!projectPath) return;
-
-    try {
-      const allStyles = await window.outputStyleAPI.listOutputStyles(projectPath);
-
-      const builtin = allStyles.filter((s) => s.type === 'builtin');
-      const custom = allStyles.filter((s) => s.type === 'user' || s.type === 'project');
-
-      setBuiltinStyles(builtin);
-      setCustomStyles(custom);
-    } catch (error) {
-      console.error('Failed to load output styles:', error);
-    }
+  useEffect(() => {
+    loadStyles();
   }, [projectPath]);
 
-  // Load all output styles
-  useEffect(() => {
+  const loadStyles = async () => {
     if (!projectPath) return;
 
-    loadOutputStyles();
-  }, [projectPath, loadOutputStyles]);
+    setLoading(true);
+    setError(null);
 
-  const handleCreateStyle = async () => {
-    if (!projectPath) {
-      alert('No project selected');
-      return;
+    try {
+      const styles = await window.outputStyleAPI.listStyles(projectPath);
+      setStylesList(styles);
+
+      // Select first style if available
+      if (styles.length > 0 && !selectedStyle) {
+        setSelectedStyle(styles[0]);
+      }
+    } catch (err) {
+      console.error('Failed to load output-styles:', err);
+      setError('Failed to load output-styles');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    if (!newStyleName || !newStyleDescription) {
-      alert('Name and description are required');
+  const handleCreate = () => {
+    setEditingStyle(undefined);
+    setIsEditorOpen(true);
+  };
+
+  const handleEdit = (style: OutputStyle) => {
+    setEditingStyle(style);
+    setIsEditorOpen(true);
+  };
+
+  const handleDelete = async (style: OutputStyle) => {
+    if (!confirm(`Are you sure you want to delete "${style.name}"?`)) {
       return;
     }
 
     try {
-      const result = await window.outputStyleAPI.createOutputStyle(
-        newStyleName,
-        newStyleDescription,
-        newStyleInstructions,
-        newStyleType,
-        projectPath,
-      );
-
+      const result = await window.outputStyleAPI.deleteStyle(projectPath, style.name);
       if (result.success) {
-        // Reset form and reload
-        setIsCreating(false);
-        setNewStyleName('');
-        setNewStyleDescription('');
-        setNewStyleInstructions('');
-        await loadOutputStyles();
+        await loadStyles();
+        if (selectedStyle?.name === style.name) {
+          setSelectedStyle(null);
+        }
       } else {
-        alert(`Failed to create output style: ${result.error}`);
+        alert(result.error || 'Failed to delete output-style');
       }
-    } catch (error) {
-      console.error('Failed to create output style:', error);
-      alert('Failed to create output style');
+    } catch (err) {
+      console.error('Failed to delete output-style:', err);
+      alert('Failed to delete output-style');
     }
   };
 
-  const handleSelectStyle = async (style: OutputStyleListItem) => {
-    if (style.type === 'builtin') {
-      // Built-in styles don't have editable content
-      setSelectedStyle({
-        ...style,
-        instructions: undefined,
-      });
-      return;
-    }
-
-    if (!projectPath) return;
-
-    try {
-      const content = await window.outputStyleAPI.getOutputStyle(
-        style.name,
-        style.type,
-        projectPath,
-      );
-
-      if (content) {
-        // Parse the content to get instructions
-        const instructionsMatch = content.match(/^---\n[\s\S]*?\n---\n\n([\s\S]*)$/);
-        const instructions = instructionsMatch ? instructionsMatch[1] : '';
-
-        setSelectedStyle({
-          ...style,
-          instructions,
-        });
-      }
-    } catch (error) {
-      console.error('Failed to load output style details:', error);
-    }
+  const handleEditorSave = () => {
+    loadStyles();
   };
 
-  const handleDeleteStyle = async (name: string, type: 'user' | 'project') => {
-    if (!projectPath) return;
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.loading}>Loading output-styles...</div>
+      </div>
+    );
+  }
 
-    try {
-      const result = await window.outputStyleAPI.deleteOutputStyle(name, type, projectPath);
-      if (result.success) {
-        setSelectedStyle(null);
-        await loadOutputStyles();
-      } else {
-        alert(`Failed to delete output style: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('Failed to delete output style:', error);
-      alert('Failed to delete output style');
-    }
-  };
+  if (error) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.error}>{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>Output Styles</h1>
-        <p className={styles.description}>Configure Claude Code's output style and behavior</p>
+        <h1 className={styles.title}>Output-Styles</h1>
+        <button className={styles.createButton} onClick={handleCreate}>
+          + Create Output-Style
+        </button>
       </div>
 
       <div className={styles.content}>
-        {/* Built-in Styles Section */}
-        <section className={styles.section}>
-          <h2>Built-in Styles</h2>
-          <div className={styles.stylesList}>
-            {builtinStyles.map((style) => (
-              <button
-                key={style.name}
-                type="button"
-                className={styles.styleCard}
-                onClick={() => handleSelectStyle(style)}
-              >
-                <h3>{style.name}</h3>
-                <p>{style.description}</p>
-                {style.name === 'json-output' && (
-                  <div className={styles.priorityBadge}>Priority Feature</div>
-                )}
+        {/* List Panel */}
+        <div className={styles.listPanel}>
+          {stylesList.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p>No output-styles found</p>
+              <button className={styles.emptyCreateButton} onClick={handleCreate}>
+                Create your first output-style
               </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Custom Styles Section */}
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2>Custom Styles</h2>
-            <button
-              type="button"
-              className={styles.createButton}
-              onClick={() => setIsCreating(true)}
-            >
-              + New Custom Style
-            </button>
-          </div>
-
-          {customStyles.length === 0 && !isCreating && (
-            <p className={styles.emptyState}>
-              No custom styles yet. Create one to define custom output behavior.
-            </p>
-          )}
-
-          {customStyles.length > 0 && (
-            <div className={styles.stylesList}>
-              {customStyles.map((style) => (
-                <button
+            </div>
+          ) : (
+            <div className={styles.list}>
+              {stylesList.map((style) => (
+                <div
                   key={style.name}
-                  type="button"
-                  className={styles.styleCard}
-                  onClick={() => handleSelectStyle(style)}
+                  className={`${styles.listItem} ${
+                    selectedStyle?.name === style.name ? styles.selected : ''
+                  }`}
+                  onClick={() => setSelectedStyle(style)}
                 >
-                  <h3>{style.name}</h3>
-                  <p>{style.description}</p>
-                  <span className={styles.typeBadge}>{style.type}</span>
-                </button>
+                  <div className={styles.listItemHeader}>
+                    <h3 className={styles.listItemName}>{style.name}</h3>
+                  </div>
+                  <p className={styles.listItemDescription}>{style.description}</p>
+                </div>
               ))}
             </div>
           )}
-        </section>
+        </div>
 
-        {/* Create Custom Style Form */}
-        {isCreating && (
-          <section className={styles.createSection}>
-            <h2>Create Custom Output Style</h2>
-            <form
-              className={styles.createForm}
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleCreateStyle();
-              }}
-            >
-              <div className={styles.formGroup}>
-                <label htmlFor={styleNameId}>Style Name:</label>
-                <input
-                  id={styleNameId}
-                  type="text"
-                  value={newStyleName}
-                  onChange={(e) => setNewStyleName(e.target.value)}
-                  placeholder="e.g., json-formatter, code-reviewer"
-                  required
-                />
-                <p className={styles.hint}>Use lowercase with hyphens (e.g., my-custom-style)</p>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor={styleDescriptionId}>Description:</label>
-                <input
-                  id={styleDescriptionId}
-                  type="text"
-                  value={newStyleDescription}
-                  onChange={(e) => setNewStyleDescription(e.target.value)}
-                  placeholder="Brief description of this style's purpose"
-                  required
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor={styleTypeId}>Storage Location:</label>
-                <select
-                  id={styleTypeId}
-                  value={newStyleType}
-                  onChange={(e) => setNewStyleType(e.target.value as 'user' | 'project')}
-                >
-                  <option value="user">User (~/.claude/output-styles/)</option>
-                  <option value="project">Project (.claude/output-styles/)</option>
-                </select>
-                <p className={styles.hint}>
-                  User styles are available globally, project styles are shared with team
-                </p>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor={styleInstructionsId}>Instructions (Markdown):</label>
-                <textarea
-                  id={styleInstructionsId}
-                  value={newStyleInstructions}
-                  onChange={(e) => setNewStyleInstructions(e.target.value)}
-                  placeholder={`# Custom Style Instructions
-
-## Output Format
-- Use structured format
-- Include examples
-
-## Tone
-- Professional and clear
-
-## Focus Areas
-- Specific aspects to emphasize`}
-                  rows={15}
-                  className={styles.textarea}
-                />
-                <p className={styles.hint}>
-                  Define custom behavior modifications in Markdown format
-                </p>
-              </div>
-
-              <div className={styles.formActions}>
-                <button type="submit" className={styles.submitButton}>
-                  Create Style
-                </button>
-                <button
-                  type="button"
-                  className={styles.cancelButton}
-                  onClick={() => {
-                    setIsCreating(false);
-                    setNewStyleName('');
-                    setNewStyleDescription('');
-                    setNewStyleInstructions('');
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </section>
-        )}
-
-        {/* Style Detail View */}
-        {selectedStyle && !isCreating && (
-          <section className={styles.detailSection}>
-            <h2>Style Details: {selectedStyle.name}</h2>
-            <div className={styles.detailCard}>
-              <p>
-                <strong>Type:</strong> {selectedStyle.type}
-              </p>
-              <p>
-                <strong>Description:</strong> {selectedStyle.description}
-              </p>
-              {selectedStyle.instructions && (
-                <div className={styles.instructions}>
-                  <strong>Instructions:</strong>
-                  <pre>{selectedStyle.instructions}</pre>
+        {/* Detail Panel */}
+        <div className={styles.detailPanel}>
+          {selectedStyle ? (
+            <>
+              <div className={styles.detailHeader}>
+                <div>
+                  <h2 className={styles.detailTitle}>{selectedStyle.name}</h2>
+                  <p className={styles.detailDescription}>{selectedStyle.description}</p>
                 </div>
-              )}
-              <div className={styles.detailActions}>
-                {(selectedStyle.type === 'user' || selectedStyle.type === 'project') && (
+                <div className={styles.detailActions}>
                   <button
-                    type="button"
+                    className={styles.editButton}
+                    onClick={() => handleEdit(selectedStyle)}
+                  >
+                    Edit
+                  </button>
+                  <button
                     className={styles.deleteButton}
-                    onClick={() =>
-                      handleDeleteStyle(
-                        selectedStyle.name,
-                        selectedStyle.type as 'user' | 'project',
-                      )
-                    }
+                    onClick={() => handleDelete(selectedStyle)}
                   >
                     Delete
                   </button>
-                )}
-                <button
-                  type="button"
-                  className={styles.closeButton}
-                  onClick={() => setSelectedStyle(null)}
-                >
-                  Close
-                </button>
+                </div>
               </div>
+
+              <div className={styles.detailContent}>
+                <h3 className={styles.contentLabel}>Content:</h3>
+                <pre className={styles.contentPre}>{selectedStyle.content}</pre>
+              </div>
+
+              <div className={styles.detailMeta}>
+                <span className={styles.metaLabel}>File:</span>
+                <span className={styles.metaValue}>{selectedStyle.filePath}</span>
+              </div>
+            </>
+          ) : (
+            <div className={styles.detailEmpty}>
+              <p>Select an output-style to view details</p>
             </div>
-          </section>
-        )}
+          )}
+        </div>
       </div>
+
+      <OutputStyleEditor
+        isOpen={isEditorOpen}
+        onClose={() => setIsEditorOpen(false)}
+        projectPath={projectPath}
+        editingStyle={editingStyle}
+        onSave={handleEditorSave}
+      />
     </div>
   );
 }

@@ -35,6 +35,8 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
       model: exec.model,
       skillId: exec.skillId,
       skillScope: exec.skillScope,
+      agentName: exec.agentName,
+      taskId: exec.taskId,
     }));
 
     // Broadcast to all renderer windows
@@ -53,6 +55,7 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
     model?: 'sonnet' | 'opus' | 'heroku',
     skillId?: string,
     skillScope?: 'global' | 'project',
+    outputStyle?: string,
   ) => {
     console.log('[Main] Execute request:', {
       projectPath,
@@ -62,6 +65,7 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
       model,
       skillId,
       skillScope,
+      outputStyle,
     });
 
     try {
@@ -74,6 +78,7 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
         model: model || 'sonnet',
         skillId,
         skillScope,
+        outputStyle,
         onStream: (sid: string, streamEvent: StreamEvent) => {
           // Forward stream event to renderer with sessionId
           event.sender.send('claude:stream', {
@@ -206,6 +211,8 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
       endTime: execution.endTime,
       mcpConfig: execution.mcpConfig,
       model: execution.model,
+      agentName: execution.agentName,
+      taskId: execution.taskId,
     };
   });
 
@@ -224,6 +231,8 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
       endTime: exec.endTime,
       mcpConfig: exec.mcpConfig,
       model: exec.model,
+      agentName: exec.agentName,
+      taskId: exec.taskId,
     }));
   });
 
@@ -242,6 +251,8 @@ export function registerClaudeHandlers(router: IPCRouter, context: ClaudeHandler
       endTime: exec.endTime,
       mcpConfig: exec.mcpConfig,
       model: exec.model,
+      agentName: exec.agentName,
+      taskId: exec.taskId,
     }));
   });
 
