@@ -2,19 +2,22 @@
  * Entry Point Manager
  *
  * 진입점 설정 파일을 관리하는 클래스
- * Convention: .claude/entry-points.json
+ * Convention: workflow/entry-points.json
  */
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { EntryPointConfig, EntryPointsConfig, ValidationResult } from './types';
+import { SchemaManager } from './SchemaManager';
 
 export class EntryPointManager {
   private configPath: string;
+  private projectPath: string;
   private cachedConfig: EntryPointsConfig | null = null;
 
   constructor(projectPath: string) {
-    this.configPath = path.join(projectPath, '.claude', 'entry-points.json');
+    this.projectPath = projectPath;
+    this.configPath = path.join(projectPath, 'workflow', 'entry-points.json');
     this.ensureConfigFile();
   }
 
@@ -22,10 +25,10 @@ export class EntryPointManager {
    * 설정 파일 초기화
    */
   private ensureConfigFile(): void {
-    const claudeDir = path.dirname(this.configPath);
+    const workflowDir = path.dirname(this.configPath);
 
-    if (!fs.existsSync(claudeDir)) {
-      fs.mkdirSync(claudeDir, { recursive: true });
+    if (!fs.existsSync(workflowDir)) {
+      fs.mkdirSync(workflowDir, { recursive: true });
     }
 
     if (!fs.existsSync(this.configPath)) {
@@ -73,6 +76,20 @@ export class EntryPointManager {
    * 진입점 추가/업데이트
    */
   setEntryPoint(config: EntryPointConfig): void {
+    // 검증 수행
+    const validation = this.validateEntryPoint(config);
+
+    if (!validation.valid) {
+      const errorMessage = `Entry point validation failed:\n${validation.errors.join('\n')}`;
+      console.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    if (validation.warnings.length > 0) {
+      console.warn('Entry point validation warnings:');
+      validation.warnings.forEach((warning) => console.warn(`  - ${warning}`));
+    }
+
     const allConfig = this.loadConfig();
 
     allConfig.entryPoints[config.name] = config;
@@ -158,6 +175,17 @@ export class EntryPointManager {
 
       if (config.outputFormat.type === 'structured' && !config.outputFormat.schema && !config.outputFormat.schemaName) {
         errors.push('Schema is required for structured output');
+      }
+
+      // structured 타입일 때 스키마 존재 여부 확인
+      if (config.outputFormat.type === 'structured') {
+        const schemaName = config.outputFormat.schemaName || config.outputFormat.schema?.replace('.json', '');
+        if (schemaName) {
+          const schemaManager = new SchemaManager(this.projectPath);
+          if (!schemaManager.schemaExists(schemaName)) {
+            errors.push(`Schema '${schemaName}' does not exist in workflow/schemas/. Please create it first using SchemaManager.`);
+          }
+        }
       }
     }
 

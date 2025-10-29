@@ -2,7 +2,7 @@
  * Schema Manager
  *
  * JSON 스키마 파일들을 관리하는 클래스
- * Convention: .claude/schemas/*.json
+ * Convention: workflow/schemas/*.json
  */
 
 import * as fs from 'node:fs';
@@ -14,7 +14,7 @@ export class SchemaManager {
   private cachedSchemas: Map<string, SchemaDefinition> = new Map();
 
   constructor(projectPath: string) {
-    this.schemasDir = path.join(projectPath, '.claude', 'schemas');
+    this.schemasDir = path.join(projectPath, 'workflow', 'schemas');
     this.ensureSchemasDir();
   }
 
