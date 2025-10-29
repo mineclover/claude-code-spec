@@ -23,7 +23,8 @@
     "test:zod-claude": "tsx tests/test-zod-with-claude.ts",
     "test:pipeline": "tsx tests/test-full-pipeline.ts",
     "example:query": "tsx examples/example-query-api.ts",
-    "example:json": "tsx examples/example-json-extraction.ts"
+    "example:json": "tsx examples/example-json-extraction.ts",
+    "example:entrypoint": "tsx examples/example-entrypoint.ts"
   },
   "keywords": [
     "claude",

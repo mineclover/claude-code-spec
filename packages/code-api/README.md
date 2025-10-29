@@ -9,6 +9,7 @@ Claude Code CLI Client Library - A TypeScript library for interacting with Claud
 - **SessionManager**: Track and persist Claude CLI sessions
 - **StreamParser**: Parse Claude CLI stream JSON output
 - **ClaudeQueryAPI**: Schema-validated queries with Zod integration
+- **Entry Point System**: Pre-configured execution contexts with schema management
 - **Error Handling**: Comprehensive error types and handling
 
 ## Installation
@@ -78,6 +79,103 @@ if (result.success) {
   console.log(result.data.issues);
 }
 ```
+
+### Entry Point System
+
+The Entry Point system allows you to create pre-configured execution contexts where output formats and options are defined upfront. This is ideal for creating reusable query interfaces with consistent behavior.
+
+#### 1. Define Schemas
+
+Create JSON schema definitions in `.claude/schemas/*.json`:
+
+```typescript
+import { SchemaManager } from '@context-action/code-api';
+
+const schemaManager = new SchemaManager('./my-project');
+
+const codeReviewSchema = {
+  name: 'code-review',
+  description: 'Code review and quality analysis results',
+  schema: {
+    file: {
+      type: 'string',
+      description: 'Analyzed file path',
+      required: true
+    },
+    score: {
+      type: 'number',
+      description: 'Overall quality score',
+      min: 1,
+      max: 10,
+      required: true
+    },
+    issues: {
+      type: 'array',
+      arrayItemType: 'object',
+      description: 'List of issues found',
+      required: true
+    }
+  }
+};
+
+schemaManager.saveSchema(codeReviewSchema);
+```
+
+#### 2. Configure Entry Points
+
+Define entry points in `.claude/entry-points.json`:
+
+```typescript
+import { EntryPointManager } from '@context-action/code-api';
+
+const entryPointManager = new EntryPointManager('./my-project');
+
+const codeReviewEntry = {
+  name: 'code-review',
+  description: 'Analyze code files for quality, complexity, and improvements',
+  outputStyle: 'structured-json',
+  outputFormat: {
+    type: 'structured',
+    schemaName: 'code-review'
+  },
+  options: {
+    model: 'sonnet',
+    timeout: 120000,
+    filterThinking: true
+  },
+  tags: ['code-quality', 'analysis']
+};
+
+entryPointManager.setEntryPoint(codeReviewEntry);
+```
+
+#### 3. Execute via Entry Points
+
+Execute queries through pre-configured entry points:
+
+```typescript
+import { EntryPointExecutor } from '@context-action/code-api';
+
+const executor = new EntryPointExecutor('./my-project');
+
+const result = await executor.execute({
+  entryPoint: 'code-review',
+  projectPath: './my-project',
+  query: 'Analyze src/main.ts for code quality'
+});
+
+if (result.success) {
+  console.log('File:', result.data.file);
+  console.log('Score:', result.data.score);
+  console.log('Issues:', result.data.issues);
+}
+```
+
+#### Output Format Types
+
+- **`text`**: Plain text output (no schema)
+- **`json`**: JSON output without schema validation
+- **`structured`**: JSON output with schema validation
 
 ## API Reference
 
@@ -163,6 +261,9 @@ npm run example:query
 
 # JSON extraction pipeline
 npm run example:json
+
+# Entry Point system usage
+npm run example:entrypoint
 ```
 
 ### Test Coverage
