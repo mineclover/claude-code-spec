@@ -7,7 +7,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { EntryPointConfig, EntryPointsConfig, ValidationResult } from './types';
+import type { EntryPointConfig, EntryPointsConfig, ValidationResult, EntryPointDetail } from './types';
 import { SchemaManager } from './SchemaManager';
 
 export class EntryPointManager {
@@ -104,6 +104,64 @@ export class EntryPointManager {
   getEntryPoint(name: string): EntryPointConfig | null {
     const config = this.loadConfig();
     return config.entryPoints[name] || null;
+  }
+
+  /**
+   * 진입점 상세 정보 조회 (스키마 포함)
+   * 실행 전에 예상 출력 형식을 명확히 파악하기 위한 메서드
+   */
+  getEntryPointDetail(name: string): EntryPointDetail | null {
+    const entryPoint = this.getEntryPoint(name);
+
+    if (!entryPoint) {
+      return null;
+    }
+
+    const schemaManager = new SchemaManager(this.projectPath);
+    let schema;
+    let fields;
+    let examples;
+
+    // structured 타입인 경우 스키마 로드
+    if (entryPoint.outputFormat.type === 'structured') {
+      const schemaName =
+        entryPoint.outputFormat.schemaName || entryPoint.outputFormat.schema?.replace('.json', '');
+
+      if (schemaName) {
+        schema = schemaManager.loadSchema(schemaName);
+        if (schema) {
+          fields = schema.schema;
+          examples = schema.examples;
+        }
+      }
+    }
+
+    // 예상 출력 형식 설명 생성
+    let description: string;
+    switch (entryPoint.outputFormat.type) {
+      case 'text':
+        description = '일반 텍스트 형식의 자유로운 응답';
+        break;
+      case 'json':
+        description = 'JSON 형식의 구조화된 응답 (스키마 검증 없음)';
+        break;
+      case 'structured':
+        description = schema
+          ? `${schema.description} - JSON 형식의 스키마 검증된 응답`
+          : 'JSON 형식의 스키마 검증된 응답';
+        break;
+    }
+
+    return {
+      config: entryPoint,
+      schema: schema || undefined,
+      expectedOutput: {
+        type: entryPoint.outputFormat.type,
+        description,
+        fields,
+        examples,
+      },
+    };
   }
 
   /**

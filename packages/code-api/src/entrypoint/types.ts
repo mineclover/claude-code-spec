@@ -142,3 +142,26 @@ export interface ValidationResult {
   /** 경고 메시지 */
   warnings: string[];
 }
+
+/**
+ * 진입점 상세 정보 (스키마 포함)
+ */
+export interface EntryPointDetail {
+  /** 진입점 설정 */
+  config: EntryPointConfig;
+
+  /** 스키마 정의 (structured 타입인 경우) */
+  schema?: SchemaDefinition;
+
+  /** 예상 출력 형식 설명 */
+  expectedOutput: {
+    /** 출력 타입 */
+    type: 'text' | 'json' | 'structured';
+    /** 출력 구조 설명 */
+    description: string;
+    /** 스키마 필드 정보 (structured인 경우) */
+    fields?: Record<string, any>;
+    /** 출력 예시 */
+    examples?: any[];
+  };
+}

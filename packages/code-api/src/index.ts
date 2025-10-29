@@ -90,5 +90,6 @@ export type {
   EntryPointResult,
   SchemaDefinition,
   OutputFormat,
-  ValidationResult
+  ValidationResult,
+  EntryPointDetail
 } from './entrypoint';

@@ -16,4 +16,5 @@ export type {
   SchemaDefinition,
   OutputFormat,
   ValidationResult,
+  EntryPointDetail,
 } from './types';
