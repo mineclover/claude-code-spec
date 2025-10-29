@@ -1,0 +1,100 @@
+{
+  "name": "task-analysis",
+  "description": "작업 분석 및 실행 계획",
+  "schema": {
+    "taskId": {
+      "type": "string",
+      "description": "작업 고유 ID",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "description": "작업 제목",
+      "required": true
+    },
+    "category": {
+      "type": "string",
+      "description": "작업 카테고리",
+      "enum": ["feature", "bugfix", "refactor", "docs", "test"],
+      "required": true
+    },
+    "priority": {
+      "type": "string",
+      "description": "우선순위",
+      "enum": ["critical", "high", "medium", "low"],
+      "required": true
+    },
+    "estimatedHours": {
+      "type": "number",
+      "description": "예상 소요 시간 (시간)",
+      "min": 0.5,
+      "max": 160,
+      "required": true
+    },
+    "dependencies": {
+      "type": "array",
+      "arrayItemType": "string",
+      "description": "의존하는 다른 작업 ID들",
+      "required": false
+    },
+    "steps": {
+      "type": "array",
+      "arrayItemType": "object",
+      "description": "실행 단계",
+      "required": true
+    },
+    "risks": {
+      "type": "array",
+      "arrayItemType": "string",
+      "description": "잠재적 리스크",
+      "required": true
+    },
+    "successCriteria": {
+      "type": "array",
+      "arrayItemType": "string",
+      "description": "완료 조건",
+      "required": true
+    }
+  },
+  "examples": [
+    {
+      "taskId": "TASK-001",
+      "title": "사용자 인증 API 구현",
+      "category": "feature",
+      "priority": "high",
+      "estimatedHours": 16,
+      "dependencies": [],
+      "steps": [
+        {
+          "order": 1,
+          "description": "JWT 토큰 생성 로직 구현",
+          "estimatedHours": 4
+        },
+        {
+          "order": 2,
+          "description": "로그인 API 엔드포인트 구현",
+          "estimatedHours": 6
+        },
+        {
+          "order": 3,
+          "description": "미들웨어 및 가드 구현",
+          "estimatedHours": 4
+        },
+        {
+          "order": 4,
+          "description": "단위 테스트 작성",
+          "estimatedHours": 2
+        }
+      ],
+      "risks": [
+        "보안 취약점 발생 가능성",
+        "기존 세션 관리와의 충돌"
+      ],
+      "successCriteria": [
+        "모든 테스트 통과",
+        "보안 리뷰 완료",
+        "API 문서 작성 완료"
+      ]
+    }
+  ]
+}

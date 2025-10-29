@@ -1,0 +1,105 @@
+{
+  "version": "1.0.0",
+  "entryPoints": {
+    "code-review": {
+      "name": "code-review",
+      "description": "코드 파일을 분석하여 품질, 복잡도, 개선사항을 평가합니다",
+      "outputStyle": "structured-json",
+      "outputFormat": {
+        "type": "structured",
+        "schemaName": "code-review"
+      },
+      "options": {
+        "model": "sonnet",
+        "mcpConfig": ".claude/.mcp-dev.json",
+        "timeout": 120000,
+        "filterThinking": true
+      },
+      "examples": [
+        "Analyze src/main.ts for code quality",
+        "Review src/components/Header.tsx",
+        "Check src/utils/helpers.ts for maintainability"
+      ],
+      "tags": ["code-quality", "analysis", "structured"]
+    },
+    "task-planner": {
+      "name": "task-planner",
+      "description": "요구사항을 분석하여 상세한 작업 계획을 수립합니다",
+      "outputStyle": "structured-json",
+      "outputFormat": {
+        "type": "structured",
+        "schemaName": "task-analysis"
+      },
+      "options": {
+        "model": "opus",
+        "mcpConfig": ".claude/.mcp-analysis.json",
+        "timeout": 180000,
+        "filterThinking": true
+      },
+      "examples": [
+        "Plan implementation for user authentication",
+        "Create task breakdown for API refactoring",
+        "Analyze requirements for dashboard feature"
+      ],
+      "tags": ["planning", "analysis", "structured"]
+    },
+    "quick-json": {
+      "name": "quick-json",
+      "description": "간단한 JSON 형식 쿼리 (스키마 없음)",
+      "outputFormat": {
+        "type": "json"
+      },
+      "options": {
+        "model": "sonnet",
+        "timeout": 60000,
+        "filterThinking": true
+      },
+      "examples": [
+        "List all TypeScript files in src/",
+        "Count lines of code in each module",
+        "Find all TODO comments"
+      ],
+      "tags": ["quick", "json", "utility"]
+    },
+    "documentation": {
+      "name": "documentation",
+      "description": "코드 문서화 및 설명 생성 (텍스트 출력)",
+      "outputFormat": {
+        "type": "text"
+      },
+      "options": {
+        "model": "sonnet",
+        "mcpConfig": ".claude/.mcp-dev.json",
+        "timeout": 120000,
+        "filterThinking": false
+      },
+      "examples": [
+        "Generate JSDoc for src/utils/api.ts",
+        "Explain the purpose of src/hooks/useAuth.ts",
+        "Document the API endpoints in src/routes/"
+      ],
+      "tags": ["documentation", "text", "explanation"]
+    },
+    "refactor-suggestions": {
+      "name": "refactor-suggestions",
+      "description": "리팩토링 제안 및 개선점 분석",
+      "outputStyle": "structured-json",
+      "outputFormat": {
+        "type": "structured",
+        "schemaName": "code-review"
+      },
+      "options": {
+        "model": "opus",
+        "mcpConfig": ".claude/.mcp-analysis.json",
+        "timeout": 180000,
+        "filterThinking": true
+      },
+      "examples": [
+        "Suggest refactoring for src/services/DataProcessor.ts",
+        "Analyze coupling in src/components/",
+        "Identify code duplication patterns"
+      ],
+      "tags": ["refactoring", "code-quality", "structured"]
+    }
+  }
+}
