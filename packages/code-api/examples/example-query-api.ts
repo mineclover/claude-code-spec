@@ -5,7 +5,7 @@
  * Demonstrates how to use the API-style query executor
  */
 
-import { ClaudeQueryAPI } from '../src/services/ClaudeQueryAPI';
+import { ClaudeQueryAPI } from '../src/query/ClaudeQueryAPI';
 
 async function main() {
   const api = new ClaudeQueryAPI();

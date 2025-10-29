@@ -10,8 +10,8 @@ import {
   number,
   enumField,
   validateAgainstSchema
-} from '../src/lib/schemaBuilder';
-import { extractJSON } from '../src/lib/jsonExtractor';
+} from '../src/schema/schemaBuilder';
+import { extractJSON } from '../src/schema/jsonExtractor';
 
 console.log('==================================================');
 console.log('Full Pipeline Test: Schema → Claude → Extract → Validate');

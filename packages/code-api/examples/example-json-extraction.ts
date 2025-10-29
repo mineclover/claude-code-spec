@@ -5,10 +5,10 @@
  * Demonstrates the full process from raw output to clean JSON
  */
 
-import { ClaudeQueryAPI } from '../src/services/ClaudeQueryAPI';
-import { extractJSON, extractAndValidate } from '../src/lib/jsonExtractor';
-import type { ReviewResult, ReviewResults } from '../src/types/query-types';
-import { isReviewResult, isReviewResults } from '../src/types/query-types';
+import { ClaudeQueryAPI } from '../src/query/ClaudeQueryAPI';
+import { extractJSON, extractAndValidate } from '../src/schema/jsonExtractor';
+import type { ReviewResult, ReviewResults } from './types';
+import { isReviewResult, isReviewResults } from './types';
 
 async function main() {
   const api = new ClaudeQueryAPI();

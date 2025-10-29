@@ -14,7 +14,7 @@ import {
   array,
   enumField,
   validateAgainstSchema
-} from '../src/lib/schemaBuilder';
+} from '../src/schema/schemaBuilder';
 
 console.log('==================================================');
 console.log('Schema Validation Tests (Standalone)');

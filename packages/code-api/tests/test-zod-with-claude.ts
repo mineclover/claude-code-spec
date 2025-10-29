@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import { ClaudeQueryAPI } from '../src/services/ClaudeQueryAPI';
+import { ClaudeQueryAPI } from '../src/query/ClaudeQueryAPI';
 
 console.log('==================================================');
 console.log('Zod + Claude CLI Integration Test');

@@ -15,7 +15,15 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "npm run test:schema && npm run test:zod",
+    "test:schema": "tsx tests/test-schema-standalone.ts",
+    "test:schema-validation": "tsx tests/test-schema-validation.ts",
+    "test:zod": "tsx tests/test-zod-schema.ts",
+    "test:zod-claude": "tsx tests/test-zod-with-claude.ts",
+    "test:pipeline": "tsx tests/test-full-pipeline.ts",
+    "example:query": "tsx examples/example-query-api.ts",
+    "example:json": "tsx examples/example-json-extraction.ts"
   },
   "keywords": [
     "claude",
@@ -39,6 +47,7 @@
   "devDependencies": {
     "@types/node": "^22.18.12",
     "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
     "typescript": "^5.9.2",
     "zod": "^3.25.76"
   }

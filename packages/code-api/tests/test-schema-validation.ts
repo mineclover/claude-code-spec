@@ -5,7 +5,7 @@
  * Tests dynamic schema injection and validation
  */
 
-import { ClaudeQueryAPI } from '../src/services/ClaudeQueryAPI';
+import { ClaudeQueryAPI } from '../src/query/ClaudeQueryAPI';
 import {
   buildSchemaPrompt,
   CommonSchemas,
@@ -14,7 +14,7 @@ import {
   number,
   array,
   enumField
-} from '../src/lib/schemaBuilder';
+} from '../src/schema/schemaBuilder';
 
 async function main() {
   const api = new ClaudeQueryAPI();

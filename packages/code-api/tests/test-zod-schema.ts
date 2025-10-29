@@ -11,7 +11,7 @@ import {
   CommonSchemas,
   validateWithZod,
   isStandardSchema
-} from '../src/lib/zodSchemaBuilder';
+} from '../src/schema/zodSchemaBuilder';
 
 console.log('==================================================');
 console.log('Zod Schema Builder Tests');
