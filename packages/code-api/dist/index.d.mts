@@ -886,6 +886,18 @@ interface OutputFormat {
     schemaName?: string;
 }
 /**
+ * 시스템 프롬프트 설정
+ * Output Style과 별개로 AI의 역할, 행동 지침을 제어
+ */
+interface SystemPromptConfig {
+    /** 완전 교체: 기본 시스템 프롬프트를 대체 */
+    custom?: string;
+    /** 추가: 기본 프롬프트에 지침 추가 */
+    append?: string;
+    /** 프리셋 사용 여부 */
+    useClaudeCodePreset?: boolean;
+}
+/**
  * 진입점 설정
  */
 interface EntryPointConfig {
@@ -897,6 +909,12 @@ interface EntryPointConfig {
     outputStyle?: string;
     /** 출력 형식 */
     outputFormat: OutputFormat;
+    /**
+     * 시스템 프롬프트 설정 (선택)
+     * Output Style = 응답 형식 제어
+     * System Prompt = AI 역할/행동 제어
+     */
+    systemPrompt?: SystemPromptConfig;
     /** 실행 옵션 */
     options?: {
         /** 모델 선택 */
@@ -1162,4 +1180,4 @@ declare class EntryPointExecutor {
     getQueryAPI(): ClaudeQueryAPI;
 }
 
-export { type AssistantEvent, ClaudeClient, type ClaudeClientOptions, ClaudeQueryAPI, CommonSchemas, type EntryPointConfig, type EntryPointDetail, EntryPointExecutor, EntryPointManager, type EntryPointResult, type EntryPointsConfig, type ErrorEvent, type ExecuteEntryPointParams, type ExecutionInfo, ExecutionNotFoundError, type ExecutionStatus, type JSONExtractionResult, type JSONSchema, MaxConcurrentError, type OutputFormat, ProcessKillError, ProcessManager, ProcessStartError, type QueryOptions, type QueryResult, type ResultEvent, type SchemaDefinition, SchemaManager, type SessionInfo, SessionManager, StandardSchemaV1, type StartExecutionParams, type StreamEvent$1 as StreamEvent, StreamParser, type SystemInitEvent, type UserEvent, ValidationError, type ValidationResult, buildSchemaPrompt, extractAndValidate, extractJSON, extractSessionId, extractTextFromMessage, extractToolUsesFromMessage, isAssistantEvent, isErrorEvent, isResultEvent, isSystemInitEvent, isUserEvent, processManager, validateAgainstSchema, validateWithStandardSchema, validateWithZod, zodSchemaToPrompt };
+export { type AssistantEvent, ClaudeClient, type ClaudeClientOptions, ClaudeQueryAPI, CommonSchemas, type EntryPointConfig, type EntryPointDetail, EntryPointExecutor, EntryPointManager, type EntryPointResult, type EntryPointsConfig, type ErrorEvent, type ExecuteEntryPointParams, type ExecutionInfo, ExecutionNotFoundError, type ExecutionStatus, type JSONExtractionResult, type JSONSchema, MaxConcurrentError, type OutputFormat, ProcessKillError, ProcessManager, ProcessStartError, type QueryOptions, type QueryResult, type ResultEvent, type SchemaDefinition, SchemaManager, type SessionInfo, SessionManager, StandardSchemaV1, type StartExecutionParams, type StreamEvent$1 as StreamEvent, StreamParser, type SystemInitEvent, type SystemPromptConfig, type UserEvent, ValidationError, type ValidationResult, buildSchemaPrompt, extractAndValidate, extractJSON, extractSessionId, extractTextFromMessage, extractToolUsesFromMessage, isAssistantEvent, isErrorEvent, isResultEvent, isSystemInitEvent, isUserEvent, processManager, validateAgainstSchema, validateWithStandardSchema, validateWithZod, zodSchemaToPrompt };
