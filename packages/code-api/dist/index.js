@@ -1918,28 +1918,137 @@ Respond with valid JSON.`;
 init_zodSchemaBuilder();
 
 // src/entrypoint/EntryPointManager.ts
+var fs2 = __toESM(require("fs"));
+var path2 = __toESM(require("path"));
+
+// src/entrypoint/SchemaManager.ts
 var fs = __toESM(require("fs"));
 var path = __toESM(require("path"));
+var SchemaManager = class {
+  constructor(projectPath) {
+    this.cachedSchemas = /* @__PURE__ */ new Map();
+    this.schemasDir = path.join(projectPath, "workflow", "schemas");
+    this.ensureSchemasDir();
+  }
+  /**
+   * 스키마 디렉토리 생성
+   */
+  ensureSchemasDir() {
+    if (!fs.existsSync(this.schemasDir)) {
+      fs.mkdirSync(this.schemasDir, { recursive: true });
+    }
+  }
+  /**
+   * 스키마 로드
+   */
+  loadSchema(schemaName) {
+    if (this.cachedSchemas.has(schemaName)) {
+      return this.cachedSchemas.get(schemaName);
+    }
+    const schemaPath = path.join(this.schemasDir, `${schemaName}.json`);
+    if (!fs.existsSync(schemaPath)) {
+      return null;
+    }
+    try {
+      const content = fs.readFileSync(schemaPath, "utf-8");
+      const schema = JSON.parse(content);
+      this.cachedSchemas.set(schemaName, schema);
+      return schema;
+    } catch (error) {
+      console.error(`Failed to load schema ${schemaName}:`, error);
+      return null;
+    }
+  }
+  /**
+   * 스키마 저장
+   */
+  saveSchema(schema) {
+    const schemaPath = path.join(this.schemasDir, `${schema.name}.json`);
+    try {
+      fs.writeFileSync(schemaPath, JSON.stringify(schema, null, 2), "utf-8");
+      this.cachedSchemas.set(schema.name, schema);
+      console.log(`Schema saved: ${schema.name}`);
+    } catch (error) {
+      console.error(`Failed to save schema ${schema.name}:`, error);
+      throw error;
+    }
+  }
+  /**
+   * 모든 스키마 목록 조회
+   */
+  listSchemas() {
+    if (!fs.existsSync(this.schemasDir)) {
+      return [];
+    }
+    try {
+      const files = fs.readdirSync(this.schemasDir);
+      return files.filter((f) => f.endsWith(".json")).map((f) => f.replace(".json", ""));
+    } catch (error) {
+      console.error("Failed to list schemas:", error);
+      return [];
+    }
+  }
+  /**
+   * 스키마 삭제
+   */
+  deleteSchema(schemaName) {
+    const schemaPath = path.join(this.schemasDir, `${schemaName}.json`);
+    if (!fs.existsSync(schemaPath)) {
+      return false;
+    }
+    try {
+      fs.unlinkSync(schemaPath);
+      this.cachedSchemas.delete(schemaName);
+      console.log(`Schema deleted: ${schemaName}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to delete schema ${schemaName}:`, error);
+      return false;
+    }
+  }
+  /**
+   * 스키마 존재 여부 확인
+   */
+  schemaExists(schemaName) {
+    const schemaPath = path.join(this.schemasDir, `${schemaName}.json`);
+    return fs.existsSync(schemaPath);
+  }
+  /**
+   * 캐시 초기화
+   */
+  clearCache() {
+    this.cachedSchemas.clear();
+  }
+  /**
+   * 스키마 디렉토리 경로 반환
+   */
+  getSchemasDir() {
+    return this.schemasDir;
+  }
+};
+
+// src/entrypoint/EntryPointManager.ts
 var EntryPointManager = class {
   constructor(projectPath) {
     this.cachedConfig = null;
-    this.configPath = path.join(projectPath, ".claude", "entry-points.json");
+    this.projectPath = projectPath;
+    this.configPath = path2.join(projectPath, "workflow", "entry-points.json");
     this.ensureConfigFile();
   }
   /**
    * 설정 파일 초기화
    */
   ensureConfigFile() {
-    const claudeDir = path.dirname(this.configPath);
-    if (!fs.existsSync(claudeDir)) {
-      fs.mkdirSync(claudeDir, { recursive: true });
+    const workflowDir = path2.dirname(this.configPath);
+    if (!fs2.existsSync(workflowDir)) {
+      fs2.mkdirSync(workflowDir, { recursive: true });
     }
-    if (!fs.existsSync(this.configPath)) {
+    if (!fs2.existsSync(this.configPath)) {
       const defaultConfig = {
         version: "1.0.0",
         entryPoints: {}
       };
-      fs.writeFileSync(this.configPath, JSON.stringify(defaultConfig, null, 2), "utf-8");
+      fs2.writeFileSync(this.configPath, JSON.stringify(defaultConfig, null, 2), "utf-8");
     }
   }
   /**
@@ -1950,7 +2059,7 @@ var EntryPointManager = class {
       return this.cachedConfig;
     }
     try {
-      const content = fs.readFileSync(this.configPath, "utf-8");
+      const content = fs2.readFileSync(this.configPath, "utf-8");
       this.cachedConfig = JSON.parse(content);
       return this.cachedConfig;
     } catch (error) {
@@ -1963,7 +2072,7 @@ var EntryPointManager = class {
    */
   saveConfig(config) {
     try {
-      fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), "utf-8");
+      fs2.writeFileSync(this.configPath, JSON.stringify(config, null, 2), "utf-8");
       this.cachedConfig = config;
     } catch (error) {
       console.error("Failed to save entry points config:", error);
@@ -1974,6 +2083,17 @@ var EntryPointManager = class {
    * 진입점 추가/업데이트
    */
   setEntryPoint(config) {
+    const validation = this.validateEntryPoint(config);
+    if (!validation.valid) {
+      const errorMessage = `Entry point validation failed:
+${validation.errors.join("\n")}`;
+      console.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+    if (validation.warnings.length > 0) {
+      console.warn("Entry point validation warnings:");
+      validation.warnings.forEach((warning) => console.warn(`  - ${warning}`));
+    }
     const allConfig = this.loadConfig();
     allConfig.entryPoints[config.name] = config;
     this.saveConfig(allConfig);
@@ -2042,6 +2162,15 @@ var EntryPointManager = class {
       if (config.outputFormat.type === "structured" && !config.outputFormat.schema && !config.outputFormat.schemaName) {
         errors.push("Schema is required for structured output");
       }
+      if (config.outputFormat.type === "structured") {
+        const schemaName = config.outputFormat.schemaName || config.outputFormat.schema?.replace(".json", "");
+        if (schemaName) {
+          const schemaManager = new SchemaManager(this.projectPath);
+          if (!schemaManager.schemaExists(schemaName)) {
+            errors.push(`Schema '${schemaName}' does not exist in workflow/schemas/. Please create it first using SchemaManager.`);
+          }
+        }
+      }
     }
     if (config.options) {
       if (config.options.model && !["sonnet", "opus", "haiku"].includes(config.options.model)) {
@@ -2085,112 +2214,6 @@ var EntryPointManager = class {
    */
   getConfigPath() {
     return this.configPath;
-  }
-};
-
-// src/entrypoint/SchemaManager.ts
-var fs2 = __toESM(require("fs"));
-var path2 = __toESM(require("path"));
-var SchemaManager = class {
-  constructor(projectPath) {
-    this.cachedSchemas = /* @__PURE__ */ new Map();
-    this.schemasDir = path2.join(projectPath, ".claude", "schemas");
-    this.ensureSchemasDir();
-  }
-  /**
-   * 스키마 디렉토리 생성
-   */
-  ensureSchemasDir() {
-    if (!fs2.existsSync(this.schemasDir)) {
-      fs2.mkdirSync(this.schemasDir, { recursive: true });
-    }
-  }
-  /**
-   * 스키마 로드
-   */
-  loadSchema(schemaName) {
-    if (this.cachedSchemas.has(schemaName)) {
-      return this.cachedSchemas.get(schemaName);
-    }
-    const schemaPath = path2.join(this.schemasDir, `${schemaName}.json`);
-    if (!fs2.existsSync(schemaPath)) {
-      return null;
-    }
-    try {
-      const content = fs2.readFileSync(schemaPath, "utf-8");
-      const schema = JSON.parse(content);
-      this.cachedSchemas.set(schemaName, schema);
-      return schema;
-    } catch (error) {
-      console.error(`Failed to load schema ${schemaName}:`, error);
-      return null;
-    }
-  }
-  /**
-   * 스키마 저장
-   */
-  saveSchema(schema) {
-    const schemaPath = path2.join(this.schemasDir, `${schema.name}.json`);
-    try {
-      fs2.writeFileSync(schemaPath, JSON.stringify(schema, null, 2), "utf-8");
-      this.cachedSchemas.set(schema.name, schema);
-      console.log(`Schema saved: ${schema.name}`);
-    } catch (error) {
-      console.error(`Failed to save schema ${schema.name}:`, error);
-      throw error;
-    }
-  }
-  /**
-   * 모든 스키마 목록 조회
-   */
-  listSchemas() {
-    if (!fs2.existsSync(this.schemasDir)) {
-      return [];
-    }
-    try {
-      const files = fs2.readdirSync(this.schemasDir);
-      return files.filter((f) => f.endsWith(".json")).map((f) => f.replace(".json", ""));
-    } catch (error) {
-      console.error("Failed to list schemas:", error);
-      return [];
-    }
-  }
-  /**
-   * 스키마 삭제
-   */
-  deleteSchema(schemaName) {
-    const schemaPath = path2.join(this.schemasDir, `${schemaName}.json`);
-    if (!fs2.existsSync(schemaPath)) {
-      return false;
-    }
-    try {
-      fs2.unlinkSync(schemaPath);
-      this.cachedSchemas.delete(schemaName);
-      console.log(`Schema deleted: ${schemaName}`);
-      return true;
-    } catch (error) {
-      console.error(`Failed to delete schema ${schemaName}:`, error);
-      return false;
-    }
-  }
-  /**
-   * 스키마 존재 여부 확인
-   */
-  schemaExists(schemaName) {
-    const schemaPath = path2.join(this.schemasDir, `${schemaName}.json`);
-    return fs2.existsSync(schemaPath);
-  }
-  /**
-   * 캐시 초기화
-   */
-  clearCache() {
-    this.cachedSchemas.clear();
-  }
-  /**
-   * 스키마 디렉토리 경로 반환
-   */
-  getSchemasDir() {
-    return this.schemasDir;
   }
 };
 

@@ -991,11 +991,12 @@ interface ValidationResult {
  * Entry Point Manager
  *
  * 진입점 설정 파일을 관리하는 클래스
- * Convention: .claude/entry-points.json
+ * Convention: workflow/entry-points.json
  */
 
 declare class EntryPointManager {
     private configPath;
+    private projectPath;
     private cachedConfig;
     constructor(projectPath: string);
     /**
@@ -1060,7 +1061,7 @@ declare class EntryPointManager {
  * Schema Manager
  *
  * JSON 스키마 파일들을 관리하는 클래스
- * Convention: .claude/schemas/*.json
+ * Convention: workflow/schemas/*.json
  */
 
 declare class SchemaManager {
