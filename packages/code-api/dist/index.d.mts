@@ -868,4 +868,272 @@ declare class ValidationError extends AppError {
     constructor(message: string, code: string, context?: Record<string, unknown>);
 }
 
-export { type AssistantEvent, ClaudeClient, type ClaudeClientOptions, ClaudeQueryAPI, CommonSchemas, type ErrorEvent, type ExecutionInfo, ExecutionNotFoundError, type ExecutionStatus, type JSONExtractionResult, type JSONSchema, MaxConcurrentError, ProcessKillError, ProcessManager, ProcessStartError, type QueryOptions, type QueryResult, type ResultEvent, type SessionInfo, SessionManager, StandardSchemaV1, type StartExecutionParams, type StreamEvent$1 as StreamEvent, StreamParser, type SystemInitEvent, type UserEvent, ValidationError, buildSchemaPrompt, extractAndValidate, extractJSON, extractSessionId, extractTextFromMessage, extractToolUsesFromMessage, isAssistantEvent, isErrorEvent, isResultEvent, isSystemInitEvent, isUserEvent, processManager, validateAgainstSchema, validateWithStandardSchema, validateWithZod, zodSchemaToPrompt };
+/**
+ * Entry Point System Types
+ *
+ * Entry Point는 output style, 옵션, 스키마를 미리 설정해두고
+ * 쿼리만 받아서 일관된 형식으로 실행하는 진입점입니다.
+ */
+/**
+ * 출력 형식 정의
+ */
+interface OutputFormat {
+    /** 출력 타입 */
+    type: 'text' | 'json' | 'structured';
+    /** 스키마 파일 경로 (structured인 경우) */
+    schema?: string;
+    /** 스키마 이름 (미리 정의된 스키마) */
+    schemaName?: string;
+}
+/**
+ * 진입점 설정
+ */
+interface EntryPointConfig {
+    /** 진입점 이름 (고유 ID) */
+    name: string;
+    /** 진입점 설명 */
+    description: string;
+    /** 출력 스타일 이름 (.claude/output-styles/*.md) */
+    outputStyle?: string;
+    /** 출력 형식 */
+    outputFormat: OutputFormat;
+    /** 실행 옵션 */
+    options?: {
+        /** 모델 선택 */
+        model?: 'sonnet' | 'opus' | 'haiku';
+        /** MCP 설정 파일 경로 */
+        mcpConfig?: string;
+        /** 타임아웃 (ms) */
+        timeout?: number;
+        /** Thinking 필터링 여부 */
+        filterThinking?: boolean;
+    };
+    /** 사용 예시 */
+    examples?: string[];
+    /** 태그 (분류용) */
+    tags?: string[];
+}
+/**
+ * 진입점 설정 파일 구조
+ */
+interface EntryPointsConfig {
+    /** 버전 */
+    version: string;
+    /** 진입점 목록 */
+    entryPoints: Record<string, EntryPointConfig>;
+}
+/**
+ * 진입점 실행 파라미터
+ */
+interface ExecuteEntryPointParams {
+    /** 진입점 이름 */
+    entryPoint: string;
+    /** 실행할 쿼리 */
+    query: string;
+    /** 프로젝트 경로 */
+    projectPath: string;
+    /** 옵션 오버라이드 */
+    options?: {
+        model?: 'sonnet' | 'opus' | 'haiku';
+        mcpConfig?: string;
+        timeout?: number;
+    };
+}
+/**
+ * 진입점 실행 결과
+ */
+interface EntryPointResult<T = any> {
+    /** 성공 여부 */
+    success: boolean;
+    /** 파싱된 데이터 (structured인 경우) */
+    data?: T;
+    /** 원본 텍스트 결과 */
+    rawResult?: string;
+    /** 에러 메시지 */
+    error?: string;
+    /** 실행 메타데이터 */
+    metadata: {
+        entryPoint: string;
+        duration: number;
+        model: string;
+        tokens?: {
+            input: number;
+            output: number;
+        };
+    };
+}
+/**
+ * 스키마 정의
+ */
+interface SchemaDefinition {
+    /** 스키마 이름 */
+    name: string;
+    /** 스키마 설명 */
+    description: string;
+    /** JSON Schema */
+    schema: Record<string, any>;
+    /** 예제 데이터 */
+    examples?: any[];
+}
+/**
+ * 진입점 검증 결과
+ */
+interface ValidationResult {
+    /** 유효 여부 */
+    valid: boolean;
+    /** 에러 메시지 */
+    errors: string[];
+    /** 경고 메시지 */
+    warnings: string[];
+}
+
+/**
+ * Entry Point Manager
+ *
+ * 진입점 설정 파일을 관리하는 클래스
+ * Convention: .claude/entry-points.json
+ */
+
+declare class EntryPointManager {
+    private configPath;
+    private cachedConfig;
+    constructor(projectPath: string);
+    /**
+     * 설정 파일 초기화
+     */
+    private ensureConfigFile;
+    /**
+     * 설정 로드
+     */
+    private loadConfig;
+    /**
+     * 설정 저장
+     */
+    private saveConfig;
+    /**
+     * 진입점 추가/업데이트
+     */
+    setEntryPoint(config: EntryPointConfig): void;
+    /**
+     * 진입점 조회
+     */
+    getEntryPoint(name: string): EntryPointConfig | null;
+    /**
+     * 모든 진입점 조회
+     */
+    getAllEntryPoints(): Record<string, EntryPointConfig>;
+    /**
+     * 진입점 목록 조회
+     */
+    listEntryPoints(): string[];
+    /**
+     * 진입점 삭제
+     */
+    deleteEntryPoint(name: string): boolean;
+    /**
+     * 진입점 존재 여부 확인
+     */
+    entryPointExists(name: string): boolean;
+    /**
+     * 진입점 검증
+     */
+    validateEntryPoint(config: EntryPointConfig): ValidationResult;
+    /**
+     * 태그로 진입점 필터링
+     */
+    filterByTag(tag: string): EntryPointConfig[];
+    /**
+     * 진입점 검색
+     */
+    searchEntryPoints(query: string): EntryPointConfig[];
+    /**
+     * 캐시 초기화
+     */
+    clearCache(): void;
+    /**
+     * 설정 파일 경로 반환
+     */
+    getConfigPath(): string;
+}
+
+/**
+ * Schema Manager
+ *
+ * JSON 스키마 파일들을 관리하는 클래스
+ * Convention: .claude/schemas/*.json
+ */
+
+declare class SchemaManager {
+    private schemasDir;
+    private cachedSchemas;
+    constructor(projectPath: string);
+    /**
+     * 스키마 디렉토리 생성
+     */
+    private ensureSchemasDir;
+    /**
+     * 스키마 로드
+     */
+    loadSchema(schemaName: string): SchemaDefinition | null;
+    /**
+     * 스키마 저장
+     */
+    saveSchema(schema: SchemaDefinition): void;
+    /**
+     * 모든 스키마 목록 조회
+     */
+    listSchemas(): string[];
+    /**
+     * 스키마 삭제
+     */
+    deleteSchema(schemaName: string): boolean;
+    /**
+     * 스키마 존재 여부 확인
+     */
+    schemaExists(schemaName: string): boolean;
+    /**
+     * 캐시 초기화
+     */
+    clearCache(): void;
+    /**
+     * 스키마 디렉토리 경로 반환
+     */
+    getSchemasDir(): string;
+}
+
+declare class EntryPointExecutor {
+    private entryPointManager;
+    private schemaManager;
+    private queryAPI;
+    constructor(projectPath: string);
+    /**
+     * 진입점을 통해 쿼리 실행
+     */
+    execute<T = any>(params: ExecuteEntryPointParams): Promise<EntryPointResult<T>>;
+    /**
+     * Structured 형식으로 실행 (스키마 검증)
+     */
+    private executeStructured;
+    /**
+     * JSON 형식으로 실행 (스키마 없음)
+     */
+    private executeJSON;
+    /**
+     * Text 형식으로 실행
+     */
+    private executeText;
+    /**
+     * 진입점 목록 조회
+     */
+    listEntryPoints(): string[];
+    /**
+     * 진입점 상세 조회
+     */
+    getEntryPointInfo(name: string): EntryPointConfig | null;
+    /**
+     * 쿼리 API 인스턴스 반환 (Kill 등을 위해)
+     */
+    getQueryAPI(): ClaudeQueryAPI;
+}
+
+export { type AssistantEvent, ClaudeClient, type ClaudeClientOptions, ClaudeQueryAPI, CommonSchemas, type EntryPointConfig, EntryPointExecutor, EntryPointManager, type EntryPointResult, type EntryPointsConfig, type ErrorEvent, type ExecuteEntryPointParams, type ExecutionInfo, ExecutionNotFoundError, type ExecutionStatus, type JSONExtractionResult, type JSONSchema, MaxConcurrentError, type OutputFormat, ProcessKillError, ProcessManager, ProcessStartError, type QueryOptions, type QueryResult, type ResultEvent, type SchemaDefinition, SchemaManager, type SessionInfo, SessionManager, StandardSchemaV1, type StartExecutionParams, type StreamEvent$1 as StreamEvent, StreamParser, type SystemInitEvent, type UserEvent, ValidationError, type ValidationResult, buildSchemaPrompt, extractAndValidate, extractJSON, extractSessionId, extractTextFromMessage, extractToolUsesFromMessage, isAssistantEvent, isErrorEvent, isResultEvent, isSystemInitEvent, isUserEvent, processManager, validateAgainstSchema, validateWithStandardSchema, validateWithZod, zodSchemaToPrompt };

@@ -1637,15 +1637,514 @@ Respond with valid JSON.`;
     }
   }
 };
+
+// src/entrypoint/EntryPointManager.ts
+import * as fs from "fs";
+import * as path from "path";
+var EntryPointManager = class {
+  constructor(projectPath) {
+    this.cachedConfig = null;
+    this.configPath = path.join(projectPath, ".claude", "entry-points.json");
+    this.ensureConfigFile();
+  }
+  /**
+   * 설정 파일 초기화
+   */
+  ensureConfigFile() {
+    const claudeDir = path.dirname(this.configPath);
+    if (!fs.existsSync(claudeDir)) {
+      fs.mkdirSync(claudeDir, { recursive: true });
+    }
+    if (!fs.existsSync(this.configPath)) {
+      const defaultConfig = {
+        version: "1.0.0",
+        entryPoints: {}
+      };
+      fs.writeFileSync(this.configPath, JSON.stringify(defaultConfig, null, 2), "utf-8");
+    }
+  }
+  /**
+   * 설정 로드
+   */
+  loadConfig() {
+    if (this.cachedConfig) {
+      return this.cachedConfig;
+    }
+    try {
+      const content = fs.readFileSync(this.configPath, "utf-8");
+      this.cachedConfig = JSON.parse(content);
+      return this.cachedConfig;
+    } catch (error) {
+      console.error("Failed to load entry points config:", error);
+      return { version: "1.0.0", entryPoints: {} };
+    }
+  }
+  /**
+   * 설정 저장
+   */
+  saveConfig(config) {
+    try {
+      fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), "utf-8");
+      this.cachedConfig = config;
+    } catch (error) {
+      console.error("Failed to save entry points config:", error);
+      throw error;
+    }
+  }
+  /**
+   * 진입점 추가/업데이트
+   */
+  setEntryPoint(config) {
+    const allConfig = this.loadConfig();
+    allConfig.entryPoints[config.name] = config;
+    this.saveConfig(allConfig);
+    console.log(`Entry point saved: ${config.name}`);
+  }
+  /**
+   * 진입점 조회
+   */
+  getEntryPoint(name) {
+    const config = this.loadConfig();
+    return config.entryPoints[name] || null;
+  }
+  /**
+   * 모든 진입점 조회
+   */
+  getAllEntryPoints() {
+    const config = this.loadConfig();
+    return config.entryPoints;
+  }
+  /**
+   * 진입점 목록 조회
+   */
+  listEntryPoints() {
+    const config = this.loadConfig();
+    return Object.keys(config.entryPoints);
+  }
+  /**
+   * 진입점 삭제
+   */
+  deleteEntryPoint(name) {
+    const config = this.loadConfig();
+    if (!config.entryPoints[name]) {
+      return false;
+    }
+    delete config.entryPoints[name];
+    this.saveConfig(config);
+    console.log(`Entry point deleted: ${name}`);
+    return true;
+  }
+  /**
+   * 진입점 존재 여부 확인
+   */
+  entryPointExists(name) {
+    const config = this.loadConfig();
+    return !!config.entryPoints[name];
+  }
+  /**
+   * 진입점 검증
+   */
+  validateEntryPoint(config) {
+    const errors = [];
+    const warnings = [];
+    if (!config.name || config.name.trim() === "") {
+      errors.push("Entry point name is required");
+    }
+    if (!config.description || config.description.trim() === "") {
+      errors.push("Entry point description is required");
+    }
+    if (!config.outputFormat) {
+      errors.push("Output format is required");
+    }
+    if (config.outputFormat) {
+      if (!["text", "json", "structured"].includes(config.outputFormat.type)) {
+        errors.push("Invalid output format type");
+      }
+      if (config.outputFormat.type === "structured" && !config.outputFormat.schema && !config.outputFormat.schemaName) {
+        errors.push("Schema is required for structured output");
+      }
+    }
+    if (config.options) {
+      if (config.options.model && !["sonnet", "opus", "haiku"].includes(config.options.model)) {
+        errors.push("Invalid model name");
+      }
+      if (config.options.timeout && config.options.timeout < 1e3) {
+        warnings.push("Timeout should be at least 1000ms");
+      }
+    }
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+  /**
+   * 태그로 진입점 필터링
+   */
+  filterByTag(tag) {
+    const config = this.loadConfig();
+    return Object.values(config.entryPoints).filter((ep) => ep.tags?.includes(tag));
+  }
+  /**
+   * 진입점 검색
+   */
+  searchEntryPoints(query) {
+    const config = this.loadConfig();
+    const lowerQuery = query.toLowerCase();
+    return Object.values(config.entryPoints).filter(
+      (ep) => ep.name.toLowerCase().includes(lowerQuery) || ep.description.toLowerCase().includes(lowerQuery) || ep.tags?.some((tag) => tag.toLowerCase().includes(lowerQuery))
+    );
+  }
+  /**
+   * 캐시 초기화
+   */
+  clearCache() {
+    this.cachedConfig = null;
+  }
+  /**
+   * 설정 파일 경로 반환
+   */
+  getConfigPath() {
+    return this.configPath;
+  }
+};
+
+// src/entrypoint/SchemaManager.ts
+import * as fs2 from "fs";
+import * as path2 from "path";
+var SchemaManager = class {
+  constructor(projectPath) {
+    this.cachedSchemas = /* @__PURE__ */ new Map();
+    this.schemasDir = path2.join(projectPath, ".claude", "schemas");
+    this.ensureSchemasDir();
+  }
+  /**
+   * 스키마 디렉토리 생성
+   */
+  ensureSchemasDir() {
+    if (!fs2.existsSync(this.schemasDir)) {
+      fs2.mkdirSync(this.schemasDir, { recursive: true });
+    }
+  }
+  /**
+   * 스키마 로드
+   */
+  loadSchema(schemaName) {
+    if (this.cachedSchemas.has(schemaName)) {
+      return this.cachedSchemas.get(schemaName);
+    }
+    const schemaPath = path2.join(this.schemasDir, `${schemaName}.json`);
+    if (!fs2.existsSync(schemaPath)) {
+      return null;
+    }
+    try {
+      const content = fs2.readFileSync(schemaPath, "utf-8");
+      const schema = JSON.parse(content);
+      this.cachedSchemas.set(schemaName, schema);
+      return schema;
+    } catch (error) {
+      console.error(`Failed to load schema ${schemaName}:`, error);
+      return null;
+    }
+  }
+  /**
+   * 스키마 저장
+   */
+  saveSchema(schema) {
+    const schemaPath = path2.join(this.schemasDir, `${schema.name}.json`);
+    try {
+      fs2.writeFileSync(schemaPath, JSON.stringify(schema, null, 2), "utf-8");
+      this.cachedSchemas.set(schema.name, schema);
+      console.log(`Schema saved: ${schema.name}`);
+    } catch (error) {
+      console.error(`Failed to save schema ${schema.name}:`, error);
+      throw error;
+    }
+  }
+  /**
+   * 모든 스키마 목록 조회
+   */
+  listSchemas() {
+    if (!fs2.existsSync(this.schemasDir)) {
+      return [];
+    }
+    try {
+      const files = fs2.readdirSync(this.schemasDir);
+      return files.filter((f) => f.endsWith(".json")).map((f) => f.replace(".json", ""));
+    } catch (error) {
+      console.error("Failed to list schemas:", error);
+      return [];
+    }
+  }
+  /**
+   * 스키마 삭제
+   */
+  deleteSchema(schemaName) {
+    const schemaPath = path2.join(this.schemasDir, `${schemaName}.json`);
+    if (!fs2.existsSync(schemaPath)) {
+      return false;
+    }
+    try {
+      fs2.unlinkSync(schemaPath);
+      this.cachedSchemas.delete(schemaName);
+      console.log(`Schema deleted: ${schemaName}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to delete schema ${schemaName}:`, error);
+      return false;
+    }
+  }
+  /**
+   * 스키마 존재 여부 확인
+   */
+  schemaExists(schemaName) {
+    const schemaPath = path2.join(this.schemasDir, `${schemaName}.json`);
+    return fs2.existsSync(schemaPath);
+  }
+  /**
+   * 캐시 초기화
+   */
+  clearCache() {
+    this.cachedSchemas.clear();
+  }
+  /**
+   * 스키마 디렉토리 경로 반환
+   */
+  getSchemasDir() {
+    return this.schemasDir;
+  }
+};
+
+// src/entrypoint/EntryPointExecutor.ts
+var EntryPointExecutor = class {
+  constructor(projectPath) {
+    this.entryPointManager = new EntryPointManager(projectPath);
+    this.schemaManager = new SchemaManager(projectPath);
+    this.queryAPI = new ClaudeQueryAPI();
+  }
+  /**
+   * 진입점을 통해 쿼리 실행
+   */
+  async execute(params) {
+    const startTime = Date.now();
+    try {
+      const entryPoint = this.entryPointManager.getEntryPoint(params.entryPoint);
+      if (!entryPoint) {
+        return {
+          success: false,
+          error: `Entry point not found: ${params.entryPoint}`,
+          metadata: {
+            entryPoint: params.entryPoint,
+            duration: Date.now() - startTime,
+            model: "unknown"
+          }
+        };
+      }
+      console.log(`
+[EntryPoint: ${entryPoint.name}]`);
+      console.log(`Description: ${entryPoint.description}`);
+      console.log(`Output Format: ${entryPoint.outputFormat.type}`);
+      const model = params.options?.model || entryPoint.options?.model;
+      const mcpConfig = params.options?.mcpConfig || entryPoint.options?.mcpConfig;
+      const timeout = params.options?.timeout || entryPoint.options?.timeout;
+      const filterThinking = entryPoint.options?.filterThinking ?? true;
+      let result;
+      switch (entryPoint.outputFormat.type) {
+        case "structured":
+          result = await this.executeStructured(params, entryPoint, {
+            model,
+            mcpConfig,
+            timeout,
+            filterThinking
+          });
+          break;
+        case "json":
+          result = await this.executeJSON(params, entryPoint, {
+            model,
+            mcpConfig,
+            timeout,
+            filterThinking
+          });
+          break;
+        case "text":
+        default:
+          result = await this.executeText(params, entryPoint, {
+            model,
+            mcpConfig,
+            timeout,
+            filterThinking
+          });
+          break;
+      }
+      result.metadata.duration = Date.now() - startTime;
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        metadata: {
+          entryPoint: params.entryPoint,
+          duration: Date.now() - startTime,
+          model: "unknown"
+        }
+      };
+    }
+  }
+  /**
+   * Structured 형식으로 실행 (스키마 검증)
+   */
+  async executeStructured(params, entryPoint, options) {
+    const schemaName = entryPoint.outputFormat.schemaName || entryPoint.outputFormat.schema?.replace(".json", "");
+    if (!schemaName) {
+      return {
+        success: false,
+        error: "Schema not specified",
+        metadata: {
+          entryPoint: params.entryPoint,
+          duration: 0,
+          model: options.model || "sonnet"
+        }
+      };
+    }
+    const schemaDefinition = this.schemaManager.loadSchema(schemaName);
+    if (!schemaDefinition) {
+      return {
+        success: false,
+        error: `Schema not found: ${schemaName}`,
+        metadata: {
+          entryPoint: params.entryPoint,
+          duration: 0,
+          model: options.model || "sonnet"
+        }
+      };
+    }
+    console.log(`Using schema: ${schemaDefinition.name}`);
+    const schemaPrompt = buildSchemaPrompt(schemaDefinition.schema, params.query);
+    const queryResult = await this.queryAPI.query(params.projectPath, schemaPrompt, {
+      outputStyle: entryPoint.outputStyle,
+      model: options.model,
+      mcpConfig: options.mcpConfig,
+      timeout: options.timeout,
+      filterThinking: options.filterThinking
+    });
+    const extracted = extractJSON(queryResult.result);
+    if (!extracted.success) {
+      return {
+        success: false,
+        error: extracted.error,
+        rawResult: queryResult.result,
+        metadata: {
+          entryPoint: params.entryPoint,
+          duration: queryResult.metadata.durationMs,
+          model: options.model || "sonnet"
+        }
+      };
+    }
+    const validation = validateAgainstSchema(extracted.data, schemaDefinition.schema);
+    if (!validation.valid) {
+      console.warn("Schema validation warnings:", validation.errors);
+    }
+    return {
+      success: true,
+      data: extracted.data,
+      rawResult: queryResult.result,
+      metadata: {
+        entryPoint: params.entryPoint,
+        duration: queryResult.metadata.durationMs,
+        model: options.model || "sonnet"
+      }
+    };
+  }
+  /**
+   * JSON 형식으로 실행 (스키마 없음)
+   */
+  async executeJSON(params, entryPoint, options) {
+    const enhancedQuery = `${params.query}
+
+Respond with valid JSON only.`;
+    const queryResult = await this.queryAPI.query(params.projectPath, enhancedQuery, {
+      outputStyle: entryPoint.outputStyle || "json",
+      model: options.model,
+      mcpConfig: options.mcpConfig,
+      timeout: options.timeout,
+      filterThinking: options.filterThinking
+    });
+    const extracted = extractJSON(queryResult.result);
+    if (!extracted.success) {
+      return {
+        success: false,
+        error: extracted.error,
+        rawResult: queryResult.result,
+        metadata: {
+          entryPoint: params.entryPoint,
+          duration: queryResult.metadata.durationMs,
+          model: options.model || "sonnet"
+        }
+      };
+    }
+    return {
+      success: true,
+      data: extracted.data,
+      rawResult: queryResult.result,
+      metadata: {
+        entryPoint: params.entryPoint,
+        duration: queryResult.metadata.durationMs,
+        model: options.model || "sonnet"
+      }
+    };
+  }
+  /**
+   * Text 형식으로 실행
+   */
+  async executeText(params, entryPoint, options) {
+    const queryResult = await this.queryAPI.query(params.projectPath, params.query, {
+      outputStyle: entryPoint.outputStyle,
+      model: options.model,
+      mcpConfig: options.mcpConfig,
+      timeout: options.timeout,
+      filterThinking: options.filterThinking
+    });
+    return {
+      success: true,
+      rawResult: queryResult.result,
+      metadata: {
+        entryPoint: params.entryPoint,
+        duration: queryResult.metadata.durationMs,
+        model: options.model || "sonnet"
+      }
+    };
+  }
+  /**
+   * 진입점 목록 조회
+   */
+  listEntryPoints() {
+    return this.entryPointManager.listEntryPoints();
+  }
+  /**
+   * 진입점 상세 조회
+   */
+  getEntryPointInfo(name) {
+    return this.entryPointManager.getEntryPoint(name);
+  }
+  /**
+   * 쿼리 API 인스턴스 반환 (Kill 등을 위해)
+   */
+  getQueryAPI() {
+    return this.queryAPI;
+  }
+};
 export {
   ClaudeClient,
   ClaudeQueryAPI,
   CommonSchemas,
+  EntryPointExecutor,
+  EntryPointManager,
   ExecutionNotFoundError,
   MaxConcurrentError,
   ProcessKillError,
   ProcessManager,
   ProcessStartError,
+  SchemaManager,
   SessionManager,
   StreamParser,
   ValidationError,
