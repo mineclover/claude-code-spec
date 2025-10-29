@@ -1,6 +1,6 @@
 import { ChildProcess } from 'node:child_process';
 import * as zod from 'zod';
-import { ZodType, ZodTypeDef, z } from 'zod';
+import { z, ZodType, ZodTypeDef } from 'zod';
 
 /**
  * Type definitions for Claude CLI stream-json output
@@ -236,171 +236,161 @@ declare class ClaudeClient {
 }
 
 /**
- * SessionManager - Manages Claude CLI sessions and their history
+ * Entry Point System Types
+ *
+ * Entry Point는 output style, 옵션, 스키마를 미리 설정해두고
+ * 쿼리만 받아서 일관된 형식으로 실행하는 진입점입니다.
  */
-interface SessionInfo {
-    sessionId: string;
-    cwd: string;
-    query: string;
-    timestamp: number;
-    lastResult?: string;
-}
-declare class SessionManager {
-    private sessions;
-    private currentSessionId;
-    /**
-     * Create or update a session
-     */
-    saveSession(sessionId: string, info: Omit<SessionInfo, 'sessionId'>): void;
-    /**
-     * Get session by ID
-     */
-    getSession(sessionId: string): SessionInfo | undefined;
-    /**
-     * Get all sessions sorted by timestamp (most recent first)
-     */
-    getAllSessions(): SessionInfo[];
-    /**
-     * Get current session ID
-     */
-    getCurrentSessionId(): string | null;
-    /**
-     * Set current session ID
-     */
-    setCurrentSessionId(sessionId: string | null): void;
-    /**
-     * Update session with result
-     */
-    updateSessionResult(sessionId: string, result: string): void;
-    /**
-     * Clear all sessions
-     */
-    clearSessions(): void;
-    /**
-     * Remove a specific session
-     */
-    removeSession(sessionId: string): boolean;
-    /**
-     * Get session count
-     */
-    getSessionCount(): number;
-}
-
 /**
- * ProcessManager - Manages multiple Claude CLI executions
- *
- * Enables parallel execution of Claude CLI sessions with independent
- * stream handling and execution lifecycle management.
- *
- * Uses sessionId (from Claude CLI session logs) as the primary identifier
- * for tracking executions, enabling persistence and recovery.
+ * 출력 형식 정의
  */
-
-type ExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'killed';
-interface ExecutionInfo {
-    sessionId: string;
-    projectPath: string;
-    query: string;
-    status: ExecutionStatus;
-    pid: number | null;
-    client: ClaudeClient;
-    events: StreamEvent$1[];
-    errors: string[];
-    startTime: number;
-    endTime: number | null;
-    mcpConfig?: string;
-    model?: 'sonnet' | 'opus' | 'heroku';
-    skillId?: string;
-    skillScope?: 'global' | 'project';
-    outputStyle?: string;
-    agentName?: string;
-    taskId?: string;
+interface OutputFormat {
+    /** 출력 타입 */
+    type: 'text' | 'json' | 'structured';
+    /** 스키마 파일 경로 (structured인 경우) */
+    schema?: string;
+    /** 스키마 이름 (미리 정의된 스키마) */
+    schemaName?: string;
 }
-interface StartExecutionParams {
-    projectPath: string;
-    query: string;
-    sessionId?: string;
-    mcpConfig?: string;
-    model?: 'sonnet' | 'opus' | 'heroku';
-    skillId?: string;
-    skillScope?: 'global' | 'project';
-    outputStyle?: string;
-    agentName?: string;
-    taskId?: string;
-    onStream?: (sessionId: string, event: StreamEvent$1) => void;
-    onError?: (sessionId: string, error: string) => void;
-    onComplete?: (sessionId: string, code: number) => void;
+/**
+ * 시스템 프롬프트 설정
+ * Output Style과 별개로 AI의 역할, 행동 지침을 제어
+ */
+interface SystemPromptConfig {
+    /** 완전 교체: 기본 시스템 프롬프트를 대체 */
+    custom?: string;
+    /** 추가: 기본 프롬프트에 지침 추가 */
+    append?: string;
+    /** 프리셋 사용 여부 */
+    useClaudeCodePreset?: boolean;
 }
-declare class ProcessManager {
-    private executions;
-    private maxConcurrent;
-    private executionsChangeListener?;
+/**
+ * 진입점 설정
+ */
+interface EntryPointConfig {
+    /** 진입점 이름 (고유 ID) */
+    name: string;
+    /** 진입점 설명 */
+    description: string;
+    /** 출력 스타일 이름 (.claude/output-styles/*.md) */
+    outputStyle?: string;
+    /** 출력 형식 */
+    outputFormat: OutputFormat;
     /**
-     * Set listener for executions state changes
+     * 시스템 프롬프트 설정 (선택)
+     * Output Style = 응답 형식 제어
+     * System Prompt = AI 역할/행동 제어
      */
-    setExecutionsChangeListener(listener: () => void): void;
-    /**
-     * Notify listeners of executions state change
-     */
-    private notifyExecutionsChanged;
-    /**
-     * Start a new execution
-     * Returns a Promise that resolves with sessionId once it's received from Claude CLI
-     */
-    startExecution(params: StartExecutionParams): Promise<string>;
-    /**
-     * Get execution info by sessionId
-     */
-    getExecution(sessionId: string): ExecutionInfo | undefined;
-    /**
-     * Get all executions
-     */
-    getAllExecutions(): ExecutionInfo[];
-    /**
-     * Get active (running or pending) executions
-     */
-    getActiveExecutions(): ExecutionInfo[];
-    /**
-     * Get completed executions
-     */
-    getCompletedExecutions(): ExecutionInfo[];
-    /**
-     * Kill an execution
-     */
-    killExecution(sessionId: string): void;
-    /**
-     * Clean up an execution (remove from memory)
-     */
-    cleanupExecution(sessionId: string): void;
-    /**
-     * Clean up all completed executions
-     */
-    cleanupAllCompleted(): number;
-    /**
-     * Kill all active executions
-     */
-    killAll(): void;
-    /**
-     * Get execution statistics
-     */
-    getStats(): {
-        total: number;
-        running: number;
-        pending: number;
-        completed: number;
-        failed: number;
-        killed: number;
+    systemPrompt?: SystemPromptConfig;
+    /** 실행 옵션 */
+    options?: {
+        /** 모델 선택 */
+        model?: 'sonnet' | 'opus' | 'haiku';
+        /** MCP 설정 파일 경로 */
+        mcpConfig?: string;
+        /** 타임아웃 (ms) */
+        timeout?: number;
+        /** Thinking 필터링 여부 */
+        filterThinking?: boolean;
     };
-    /**
-     * Set maximum concurrent executions
-     */
-    setMaxConcurrent(max: number): void;
-    /**
-     * Get maximum concurrent executions
-     */
-    getMaxConcurrent(): number;
+    /** 사용 예시 */
+    examples?: string[];
+    /** 태그 (분류용) */
+    tags?: string[];
 }
-declare const processManager: ProcessManager;
+/**
+ * 진입점 설정 파일 구조
+ */
+interface EntryPointsConfig {
+    /** 버전 */
+    version: string;
+    /** 진입점 목록 */
+    entryPoints: Record<string, EntryPointConfig>;
+}
+/**
+ * 진입점 실행 파라미터
+ */
+interface ExecuteEntryPointParams {
+    /** 진입점 이름 */
+    entryPoint: string;
+    /** 실행할 쿼리 */
+    query: string;
+    /** 프로젝트 경로 */
+    projectPath: string;
+    /** 옵션 오버라이드 */
+    options?: {
+        model?: 'sonnet' | 'opus' | 'haiku';
+        mcpConfig?: string;
+        timeout?: number;
+    };
+}
+/**
+ * 진입점 실행 결과
+ */
+interface EntryPointResult<T = any> {
+    /** 성공 여부 */
+    success: boolean;
+    /** 파싱된 데이터 (structured인 경우) */
+    data?: T;
+    /** 원본 텍스트 결과 */
+    rawResult?: string;
+    /** 에러 메시지 */
+    error?: string;
+    /** 실행 메타데이터 */
+    metadata: {
+        entryPoint: string;
+        duration: number;
+        model: string;
+        tokens?: {
+            input: number;
+            output: number;
+        };
+    };
+}
+/**
+ * 스키마 정의
+ */
+interface SchemaDefinition {
+    /** 스키마 이름 */
+    name: string;
+    /** 스키마 설명 */
+    description: string;
+    /** JSON Schema */
+    schema: Record<string, any>;
+    /** 예제 데이터 */
+    examples?: any[];
+}
+/**
+ * 진입점 검증 결과
+ */
+interface ValidationResult {
+    /** 유효 여부 */
+    valid: boolean;
+    /** 에러 메시지 */
+    errors: string[];
+    /** 경고 메시지 */
+    warnings: string[];
+}
+/**
+ * 진입점 상세 정보 (스키마 포함)
+ */
+interface EntryPointDetail {
+    /** 진입점 설정 */
+    config: EntryPointConfig;
+    /** 스키마 정의 (structured 타입인 경우) */
+    schema?: SchemaDefinition;
+    /** 예상 출력 형식 설명 */
+    expectedOutput: {
+        /** 출력 타입 */
+        type: 'text' | 'json' | 'structured';
+        /** 출력 구조 설명 */
+        description: string;
+        /** 스키마 필드 정보 (structured인 경우) */
+        fields?: Record<string, any>;
+        /** 출력 예시 */
+        examples?: any[];
+    };
+}
 
 /**
  * Zod Schema Builder - Standard Schema 기반 검증 시스템
@@ -834,195 +824,39 @@ declare class ClaudeQueryAPI {
     queryWithStandardSchema<T extends StandardSchemaV1>(projectPath: string, instruction: string, schema: T, options?: Omit<QueryOptions, 'outputStyle' | 'filterThinking'>): Promise<JSONExtractionResult<StandardSchemaV1.InferOutput<T>>>;
 }
 
-/**
- * Error class hierarchy for the application
- *
- * Provides structured error types for better error handling and debugging.
- * All custom errors extend AppError with specific codes and contexts.
- */
-declare class AppError extends Error {
-    readonly code: string;
-    readonly context?: Record<string, unknown> | undefined;
-    constructor(message: string, code: string, context?: Record<string, unknown> | undefined);
+declare class EntryPointExecutor {
+    private entryPointManager;
+    private schemaManager;
+    private queryAPI;
+    constructor(projectPath: string);
     /**
-     * Convert error to JSON for logging/serialization
+     * 진입점을 통해 쿼리 실행
      */
-    toJSON(): Record<string, unknown>;
-}
-declare class ExecutionError extends AppError {
-    constructor(message: string, code: string, context?: Record<string, unknown>);
-}
-declare class ProcessStartError extends ExecutionError {
-    constructor(message: string, context?: Record<string, unknown>);
-}
-declare class ProcessKillError extends ExecutionError {
-    constructor(message: string, context?: Record<string, unknown>);
-}
-declare class MaxConcurrentError extends ExecutionError {
-    constructor(maxConcurrent: number, context?: Record<string, unknown>);
-}
-declare class ExecutionNotFoundError extends ExecutionError {
-    constructor(sessionId: string, context?: Record<string, unknown>);
-}
-declare class ValidationError extends AppError {
-    constructor(message: string, code: string, context?: Record<string, unknown>);
-}
-
-/**
- * Entry Point System Types
- *
- * Entry Point는 output style, 옵션, 스키마를 미리 설정해두고
- * 쿼리만 받아서 일관된 형식으로 실행하는 진입점입니다.
- */
-/**
- * 출력 형식 정의
- */
-interface OutputFormat {
-    /** 출력 타입 */
-    type: 'text' | 'json' | 'structured';
-    /** 스키마 파일 경로 (structured인 경우) */
-    schema?: string;
-    /** 스키마 이름 (미리 정의된 스키마) */
-    schemaName?: string;
-}
-/**
- * 시스템 프롬프트 설정
- * Output Style과 별개로 AI의 역할, 행동 지침을 제어
- */
-interface SystemPromptConfig {
-    /** 완전 교체: 기본 시스템 프롬프트를 대체 */
-    custom?: string;
-    /** 추가: 기본 프롬프트에 지침 추가 */
-    append?: string;
-    /** 프리셋 사용 여부 */
-    useClaudeCodePreset?: boolean;
-}
-/**
- * 진입점 설정
- */
-interface EntryPointConfig {
-    /** 진입점 이름 (고유 ID) */
-    name: string;
-    /** 진입점 설명 */
-    description: string;
-    /** 출력 스타일 이름 (.claude/output-styles/*.md) */
-    outputStyle?: string;
-    /** 출력 형식 */
-    outputFormat: OutputFormat;
+    execute<T = any>(params: ExecuteEntryPointParams): Promise<EntryPointResult<T>>;
     /**
-     * 시스템 프롬프트 설정 (선택)
-     * Output Style = 응답 형식 제어
-     * System Prompt = AI 역할/행동 제어
+     * Structured 형식으로 실행 (스키마 검증)
      */
-    systemPrompt?: SystemPromptConfig;
-    /** 실행 옵션 */
-    options?: {
-        /** 모델 선택 */
-        model?: 'sonnet' | 'opus' | 'haiku';
-        /** MCP 설정 파일 경로 */
-        mcpConfig?: string;
-        /** 타임아웃 (ms) */
-        timeout?: number;
-        /** Thinking 필터링 여부 */
-        filterThinking?: boolean;
-    };
-    /** 사용 예시 */
-    examples?: string[];
-    /** 태그 (분류용) */
-    tags?: string[];
-}
-/**
- * 진입점 설정 파일 구조
- */
-interface EntryPointsConfig {
-    /** 버전 */
-    version: string;
-    /** 진입점 목록 */
-    entryPoints: Record<string, EntryPointConfig>;
-}
-/**
- * 진입점 실행 파라미터
- */
-interface ExecuteEntryPointParams {
-    /** 진입점 이름 */
-    entryPoint: string;
-    /** 실행할 쿼리 */
-    query: string;
-    /** 프로젝트 경로 */
-    projectPath: string;
-    /** 옵션 오버라이드 */
-    options?: {
-        model?: 'sonnet' | 'opus' | 'haiku';
-        mcpConfig?: string;
-        timeout?: number;
-    };
-}
-/**
- * 진입점 실행 결과
- */
-interface EntryPointResult<T = any> {
-    /** 성공 여부 */
-    success: boolean;
-    /** 파싱된 데이터 (structured인 경우) */
-    data?: T;
-    /** 원본 텍스트 결과 */
-    rawResult?: string;
-    /** 에러 메시지 */
-    error?: string;
-    /** 실행 메타데이터 */
-    metadata: {
-        entryPoint: string;
-        duration: number;
-        model: string;
-        tokens?: {
-            input: number;
-            output: number;
-        };
-    };
-}
-/**
- * 스키마 정의
- */
-interface SchemaDefinition {
-    /** 스키마 이름 */
-    name: string;
-    /** 스키마 설명 */
-    description: string;
-    /** JSON Schema */
-    schema: Record<string, any>;
-    /** 예제 데이터 */
-    examples?: any[];
-}
-/**
- * 진입점 검증 결과
- */
-interface ValidationResult {
-    /** 유효 여부 */
-    valid: boolean;
-    /** 에러 메시지 */
-    errors: string[];
-    /** 경고 메시지 */
-    warnings: string[];
-}
-/**
- * 진입점 상세 정보 (스키마 포함)
- */
-interface EntryPointDetail {
-    /** 진입점 설정 */
-    config: EntryPointConfig;
-    /** 스키마 정의 (structured 타입인 경우) */
-    schema?: SchemaDefinition;
-    /** 예상 출력 형식 설명 */
-    expectedOutput: {
-        /** 출력 타입 */
-        type: 'text' | 'json' | 'structured';
-        /** 출력 구조 설명 */
-        description: string;
-        /** 스키마 필드 정보 (structured인 경우) */
-        fields?: Record<string, any>;
-        /** 출력 예시 */
-        examples?: any[];
-    };
+    private executeStructured;
+    /**
+     * JSON 형식으로 실행 (스키마 없음)
+     */
+    private executeJSON;
+    /**
+     * Text 형식으로 실행
+     */
+    private executeText;
+    /**
+     * 진입점 목록 조회
+     */
+    listEntryPoints(): string[];
+    /**
+     * 진입점 상세 조회
+     */
+    getEntryPointInfo(name: string): EntryPointConfig | null;
+    /**
+     * 쿼리 API 인스턴스 반환 (Kill 등을 위해)
+     */
+    getQueryAPI(): ClaudeQueryAPI;
 }
 
 /**
@@ -1145,39 +979,205 @@ declare class SchemaManager {
     getSchemasDir(): string;
 }
 
-declare class EntryPointExecutor {
-    private entryPointManager;
-    private schemaManager;
-    private queryAPI;
-    constructor(projectPath: string);
+/**
+ * Error class hierarchy for the application
+ *
+ * Provides structured error types for better error handling and debugging.
+ * All custom errors extend AppError with specific codes and contexts.
+ */
+declare class AppError extends Error {
+    readonly code: string;
+    readonly context?: Record<string, unknown> | undefined;
+    constructor(message: string, code: string, context?: Record<string, unknown> | undefined);
     /**
-     * 진입점을 통해 쿼리 실행
+     * Convert error to JSON for logging/serialization
      */
-    execute<T = any>(params: ExecuteEntryPointParams): Promise<EntryPointResult<T>>;
+    toJSON(): Record<string, unknown>;
+}
+declare class ExecutionError extends AppError {
+    constructor(message: string, code: string, context?: Record<string, unknown>);
+}
+declare class ProcessStartError extends ExecutionError {
+    constructor(message: string, context?: Record<string, unknown>);
+}
+declare class ProcessKillError extends ExecutionError {
+    constructor(message: string, context?: Record<string, unknown>);
+}
+declare class MaxConcurrentError extends ExecutionError {
+    constructor(maxConcurrent: number, context?: Record<string, unknown>);
+}
+declare class ExecutionNotFoundError extends ExecutionError {
+    constructor(sessionId: string, context?: Record<string, unknown>);
+}
+declare class ValidationError extends AppError {
+    constructor(message: string, code: string, context?: Record<string, unknown>);
+}
+
+/**
+ * ProcessManager - Manages multiple Claude CLI executions
+ *
+ * Enables parallel execution of Claude CLI sessions with independent
+ * stream handling and execution lifecycle management.
+ *
+ * Uses sessionId (from Claude CLI session logs) as the primary identifier
+ * for tracking executions, enabling persistence and recovery.
+ */
+
+type ExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'killed';
+interface ExecutionInfo {
+    sessionId: string;
+    projectPath: string;
+    query: string;
+    status: ExecutionStatus;
+    pid: number | null;
+    client: ClaudeClient;
+    events: StreamEvent$1[];
+    errors: string[];
+    startTime: number;
+    endTime: number | null;
+    mcpConfig?: string;
+    model?: 'sonnet' | 'opus' | 'heroku';
+    skillId?: string;
+    skillScope?: 'global' | 'project';
+    outputStyle?: string;
+    agentName?: string;
+    taskId?: string;
+}
+interface StartExecutionParams {
+    projectPath: string;
+    query: string;
+    sessionId?: string;
+    mcpConfig?: string;
+    model?: 'sonnet' | 'opus' | 'heroku';
+    skillId?: string;
+    skillScope?: 'global' | 'project';
+    outputStyle?: string;
+    agentName?: string;
+    taskId?: string;
+    onStream?: (sessionId: string, event: StreamEvent$1) => void;
+    onError?: (sessionId: string, error: string) => void;
+    onComplete?: (sessionId: string, code: number) => void;
+}
+declare class ProcessManager {
+    private executions;
+    private maxConcurrent;
+    private executionsChangeListener?;
     /**
-     * Structured 형식으로 실행 (스키마 검증)
+     * Set listener for executions state changes
      */
-    private executeStructured;
+    setExecutionsChangeListener(listener: () => void): void;
     /**
-     * JSON 형식으로 실행 (스키마 없음)
+     * Notify listeners of executions state change
      */
-    private executeJSON;
+    private notifyExecutionsChanged;
     /**
-     * Text 형식으로 실행
+     * Start a new execution
+     * Returns a Promise that resolves with sessionId once it's received from Claude CLI
      */
-    private executeText;
+    startExecution(params: StartExecutionParams): Promise<string>;
     /**
-     * 진입점 목록 조회
+     * Get execution info by sessionId
      */
-    listEntryPoints(): string[];
+    getExecution(sessionId: string): ExecutionInfo | undefined;
     /**
-     * 진입점 상세 조회
+     * Get all executions
      */
-    getEntryPointInfo(name: string): EntryPointConfig | null;
+    getAllExecutions(): ExecutionInfo[];
     /**
-     * 쿼리 API 인스턴스 반환 (Kill 등을 위해)
+     * Get active (running or pending) executions
      */
-    getQueryAPI(): ClaudeQueryAPI;
+    getActiveExecutions(): ExecutionInfo[];
+    /**
+     * Get completed executions
+     */
+    getCompletedExecutions(): ExecutionInfo[];
+    /**
+     * Kill an execution
+     */
+    killExecution(sessionId: string): void;
+    /**
+     * Clean up an execution (remove from memory)
+     */
+    cleanupExecution(sessionId: string): void;
+    /**
+     * Clean up all completed executions
+     */
+    cleanupAllCompleted(): number;
+    /**
+     * Kill all active executions
+     */
+    killAll(): void;
+    /**
+     * Get execution statistics
+     */
+    getStats(): {
+        total: number;
+        running: number;
+        pending: number;
+        completed: number;
+        failed: number;
+        killed: number;
+    };
+    /**
+     * Set maximum concurrent executions
+     */
+    setMaxConcurrent(max: number): void;
+    /**
+     * Get maximum concurrent executions
+     */
+    getMaxConcurrent(): number;
+}
+declare const processManager: ProcessManager;
+
+/**
+ * SessionManager - Manages Claude CLI sessions and their history
+ */
+interface SessionInfo {
+    sessionId: string;
+    cwd: string;
+    query: string;
+    timestamp: number;
+    lastResult?: string;
+}
+declare class SessionManager {
+    private sessions;
+    private currentSessionId;
+    /**
+     * Create or update a session
+     */
+    saveSession(sessionId: string, info: Omit<SessionInfo, 'sessionId'>): void;
+    /**
+     * Get session by ID
+     */
+    getSession(sessionId: string): SessionInfo | undefined;
+    /**
+     * Get all sessions sorted by timestamp (most recent first)
+     */
+    getAllSessions(): SessionInfo[];
+    /**
+     * Get current session ID
+     */
+    getCurrentSessionId(): string | null;
+    /**
+     * Set current session ID
+     */
+    setCurrentSessionId(sessionId: string | null): void;
+    /**
+     * Update session with result
+     */
+    updateSessionResult(sessionId: string, result: string): void;
+    /**
+     * Clear all sessions
+     */
+    clearSessions(): void;
+    /**
+     * Remove a specific session
+     */
+    removeSession(sessionId: string): boolean;
+    /**
+     * Get session count
+     */
+    getSessionCount(): number;
 }
 
 export { type AssistantEvent, ClaudeClient, type ClaudeClientOptions, ClaudeQueryAPI, CommonSchemas, type EntryPointConfig, type EntryPointDetail, EntryPointExecutor, EntryPointManager, type EntryPointResult, type EntryPointsConfig, type ErrorEvent, type ExecuteEntryPointParams, type ExecutionInfo, ExecutionNotFoundError, type ExecutionStatus, type JSONExtractionResult, type JSONSchema, MaxConcurrentError, type OutputFormat, ProcessKillError, ProcessManager, ProcessStartError, type QueryOptions, type QueryResult, type ResultEvent, type SchemaDefinition, SchemaManager, type SessionInfo, SessionManager, StandardSchemaV1, type StartExecutionParams, type StreamEvent$1 as StreamEvent, StreamParser, type SystemInitEvent, type SystemPromptConfig, type UserEvent, ValidationError, type ValidationResult, buildSchemaPrompt, extractAndValidate, extractJSON, extractSessionId, extractTextFromMessage, extractToolUsesFromMessage, isAssistantEvent, isErrorEvent, isResultEvent, isSystemInitEvent, isUserEvent, processManager, validateAgainstSchema, validateWithStandardSchema, validateWithZod, zodSchemaToPrompt };

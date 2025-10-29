@@ -1,8 +1,8 @@
+import type { StreamEvent } from '@context-action/code-api';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { StreamOutput } from '../components/stream/StreamOutput';
-import type { StreamEvent } from '@context-action/code-api';
 import styles from './ExecutionDetailPage.module.css';
 
 export const ExecutionDetailPage: React.FC = () => {

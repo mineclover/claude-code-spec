@@ -4,7 +4,7 @@
  * Modal for creating/editing output-styles
  */
 
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './OutputStyleEditor.module.css';
 
 interface OutputStyle {
@@ -26,7 +26,7 @@ export function OutputStyleEditor({
   onClose,
   projectPath,
   editingStyle,
-  onSave
+  onSave,
 }: OutputStyleEditorProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -47,7 +47,7 @@ export function OutputStyleEditor({
       setContent('');
     }
     setError(null);
-  }, [editingStyle, isOpen]);
+  }, [editingStyle]);
 
   const handleSave = async () => {
     // Validation
@@ -73,16 +73,12 @@ export function OutputStyleEditor({
       const style = {
         name: name.trim(),
         description: description.trim(),
-        content: content.trim()
+        content: content.trim(),
       };
 
-      let result;
+      let result: { success: boolean; message?: string; error?: string };
       if (isEditMode) {
-        result = await window.outputStyleAPI.updateStyle(
-          projectPath,
-          editingStyle.name,
-          style
-        );
+        result = await window.outputStyleAPI.updateStyle(projectPath, editingStyle.name, style);
       } else {
         result = await window.outputStyleAPI.createStyle(projectPath, style);
       }
@@ -139,9 +135,7 @@ export function OutputStyleEditor({
               placeholder="e.g., structured-json"
               disabled={isEditMode || saving}
             />
-            {isEditMode && (
-              <div className={styles.hint}>Name cannot be changed</div>
-            )}
+            {isEditMode && <div className={styles.hint}>Name cannot be changed</div>}
           </div>
 
           <div className={styles.field}>
@@ -186,9 +180,7 @@ You must respond with...
               rows={15}
               disabled={saving}
             />
-            <div className={styles.hint}>
-              This will be injected into Claude's system prompt
-            </div>
+            <div className={styles.hint}>This will be injected into Claude's system prompt</div>
           </div>
         </div>
 

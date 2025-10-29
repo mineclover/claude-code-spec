@@ -7,10 +7,10 @@
  * - Task API: Loads task definitions
  */
 
+import type { ProcessManager, StartExecutionParams } from '@context-action/code-api';
 import type { AgentContext } from '../lib/agent-types';
 import { appLogger } from '../main/app-context';
 import type { AgentPoolManager } from './AgentPoolManager';
-import type { ProcessManager, StartExecutionParams } from '@context-action/code-api';
 
 // Task interface (matches workflow/tasks/*.md structure)
 export interface Task {

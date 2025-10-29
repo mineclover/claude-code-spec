@@ -131,10 +131,7 @@ function matchesPattern(action: string, pattern: string): boolean {
   // Convert glob pattern to regex
   // "read:**" -> "^read:.*$"
   // "write:.env" -> "^write:\\.env$"
-  const regexPattern = pattern
-    .replace(/\./g, '\\.')
-    .replace(/\*/g, '.*')
-    .replace(/\?/g, '.');
+  const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*').replace(/\?/g, '.');
 
   const regex = new RegExp(`^${regexPattern}$`);
   return regex.test(action);

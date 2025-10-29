@@ -67,8 +67,8 @@ export interface LogTransport {
 export class ConsoleTransport implements LogTransport {
   private colors = {
     [LogLevel.DEBUG]: '\x1b[36m', // Cyan
-    [LogLevel.INFO]: '\x1b[32m',  // Green
-    [LogLevel.WARN]: '\x1b[33m',  // Yellow
+    [LogLevel.INFO]: '\x1b[32m', // Green
+    [LogLevel.WARN]: '\x1b[33m', // Yellow
     [LogLevel.ERROR]: '\x1b[31m', // Red
   };
   private reset = '\x1b[0m';
@@ -186,7 +186,7 @@ export class FileTransport implements LogTransport {
       return;
     }
 
-    const logLine = JSON.stringify(entry) + '\n';
+    const logLine = `${JSON.stringify(entry)}\n`;
     const written = this.currentStream.write(logLine);
 
     if (written) {

@@ -6,7 +6,7 @@
  */
 
 import { ClaudeQueryAPI } from '../src/query/ClaudeQueryAPI';
-import { extractJSON, extractAndValidate } from '../src/schema/jsonExtractor';
+import { extractAndValidate, extractJSON } from '../src/schema/jsonExtractor';
 import type { ReviewResult, ReviewResults } from './types';
 import { isReviewResult, isReviewResults } from './types';
 
@@ -33,8 +33,8 @@ async function main() {
     {
       outputStyle: 'structured-json',
       filterThinking: true,
-      mcpConfig: '.claude/.mcp-empty.json'
-    }
+      mcpConfig: '.claude/.mcp-empty.json',
+    },
   );
 
   console.log('Raw result:');
@@ -58,10 +58,7 @@ async function main() {
   // ========================================
   console.log('\n\n--- Example 2: Validated JSON Extraction ---\n');
 
-  const validated = extractAndValidate<ReviewResult>(
-    rawResult1.result,
-    ['review', 'name', 'tags']
-  );
+  const validated = extractAndValidate<ReviewResult>(rawResult1.result, ['review', 'name', 'tags']);
 
   if (validated.success && validated.data) {
     console.log('✅ Validation successful!');
@@ -98,8 +95,8 @@ async function main() {
     Rate each from 1-10 and add relevant tags.`,
     {
       requiredFields: ['review', 'name', 'tags'],
-      mcpConfig: '.claude/.mcp-empty.json'
-    }
+      mcpConfig: '.claude/.mcp-empty.json',
+    },
   );
 
   if (jsonResult.success) {
@@ -108,11 +105,12 @@ async function main() {
 
     if (jsonResult.data && isReviewResults(jsonResult.data)) {
       console.log('\nSummary:');
-      const avgScore = jsonResult.data.reduce((sum, r) => sum + r.review, 0) / jsonResult.data.length;
+      const avgScore =
+        jsonResult.data.reduce((sum, r) => sum + r.review, 0) / jsonResult.data.length;
       console.log(`  Components reviewed: ${jsonResult.data.length}`);
       console.log(`  Average score: ${avgScore.toFixed(1)}/10`);
 
-      const allTags = new Set(jsonResult.data.flatMap(r => r.tags));
+      const allTags = new Set(jsonResult.data.flatMap((r) => r.tags));
       console.log(`  Unique tags: ${Array.from(allTags).join(', ')}`);
     }
   } else {
@@ -129,20 +127,20 @@ async function main() {
   const edgeCases = [
     {
       name: 'With markdown code blocks',
-      text: '```json\n{"review": 9, "name": "Test", "tags": ["good"]}\n```'
+      text: '```json\n{"review": 9, "name": "Test", "tags": ["good"]}\n```',
     },
     {
       name: 'With explanatory text',
-      text: 'Here is the review:\n\n{"review": 8, "name": "Component", "tags": ["clean"]}\n\nThis component is well-designed.'
+      text: 'Here is the review:\n\n{"review": 8, "name": "Component", "tags": ["clean"]}\n\nThis component is well-designed.',
     },
     {
       name: 'With trailing comma',
-      text: '{"review": 7, "name": "Service", "tags": ["useful",]}'
+      text: '{"review": 7, "name": "Service", "tags": ["useful",]}',
     },
     {
       name: 'Multiple objects',
-      text: '{"review": 9, "name": "A", "tags": ["x"]}\n{"review": 8, "name": "B", "tags": ["y"]}'
-    }
+      text: '{"review": 9, "name": "A", "tags": ["x"]}\n{"review": 8, "name": "B", "tags": ["y"]}',
+    },
   ];
 
   for (const testCase of edgeCases) {
@@ -165,7 +163,7 @@ async function main() {
     projectPath,
     'Review the ClaudeQueryAPI.ts file',
     ['review', 'name', 'tags'],
-    { mcpConfig: '.claude/.mcp-empty.json' }
+    { mcpConfig: '.claude/.mcp-empty.json' },
   );
 
   if (typedResult.success && typedResult.data) {
@@ -194,7 +192,7 @@ async function main() {
   console.log('==================================================\n');
 }
 
-main().catch(error => {
+main().catch((error) => {
   console.error('Error:', error);
   process.exit(1);
 });

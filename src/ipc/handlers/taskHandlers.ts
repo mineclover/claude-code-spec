@@ -3,9 +3,9 @@
  */
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { processManager } from '@context-action/code-api';
 import matter from 'gray-matter';
 import { agentPoolManager } from '../../main/app-context';
-import { processManager } from '@context-action/code-api';
 import type { Task } from '../../services/TaskRouter';
 import { TaskRouter } from '../../services/TaskRouter';
 import type { IPCRouter } from '../IPCRouter';

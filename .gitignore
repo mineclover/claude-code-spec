@@ -88,6 +88,10 @@ typings/
 # Vite
 .vite/
 
+# Build artifacts
+dist/
+packages/*/dist/
+
 # Electron-Forge
 out/
 

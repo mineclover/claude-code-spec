@@ -6,14 +6,14 @@
  */
 
 import {
+  array,
   buildSchemaPrompt,
   CommonSchemas,
+  enumField,
+  number,
   schema,
   string,
-  number,
-  array,
-  enumField,
-  validateAgainstSchema
+  validateAgainstSchema,
 } from '../src/schema/schemaBuilder';
 
 console.log('==================================================');
@@ -43,7 +43,7 @@ const customSchema = schema({
   linesOfCode: number('Total lines', { min: 0 }),
   language: enumField(['typescript', 'javascript', 'python'], 'Programming language'),
   hasTests: string('Whether tests exist'),
-  dependencies: array('string', 'External dependencies')
+  dependencies: array('string', 'External dependencies'),
 });
 
 console.log('Custom Schema:');
@@ -65,7 +65,7 @@ const validData = {
   linesOfCode: 150,
   language: 'typescript',
   hasTests: 'yes',
-  dependencies: ['react', 'electron']
+  dependencies: ['react', 'electron'],
 };
 
 const validResult = validateAgainstSchema(validData, customSchema);
@@ -85,7 +85,7 @@ console.log('\n--- Test 4: Schema Validation - Missing Field ---\n');
 
 const missingFieldData = {
   file: 'src/test.ts',
-  linesOfCode: 150
+  linesOfCode: 150,
   // Missing: language, hasTests, dependencies
 };
 
@@ -107,10 +107,10 @@ console.log('\n--- Test 5: Schema Validation - Invalid Type ---\n');
 
 const invalidTypeData = {
   file: 'src/test.ts',
-  linesOfCode: 'not a number',  // Should be number
+  linesOfCode: 'not a number', // Should be number
   language: 'typescript',
   hasTests: 'yes',
-  dependencies: ['react']
+  dependencies: ['react'],
 };
 
 const typeResult = validateAgainstSchema(invalidTypeData, customSchema);
@@ -132,9 +132,9 @@ console.log('\n--- Test 6: Schema Validation - Enum Violation ---\n');
 const enumViolationData = {
   file: 'src/test.ts',
   linesOfCode: 150,
-  language: 'rust',  // Not in enum: ['typescript', 'javascript', 'python']
+  language: 'rust', // Not in enum: ['typescript', 'javascript', 'python']
   hasTests: 'yes',
-  dependencies: ['react']
+  dependencies: ['react'],
 };
 
 const enumResult = validateAgainstSchema(enumViolationData, customSchema);
@@ -156,13 +156,13 @@ console.log('\n--- Test 7: Schema Validation - Range Violation ---\n');
 const strictSchema = schema({
   score: number('Must be 1-10', { min: 1, max: 10 }),
   status: enumField(['active', 'inactive'], 'Must be active or inactive'),
-  name: string('Required field')
+  name: string('Required field'),
 });
 
 const rangeViolationData = {
-  score: 999,  // Out of range
+  score: 999, // Out of range
   status: 'active',
-  name: 'Test'
+  name: 'Test',
 };
 
 const rangeResult = validateAgainstSchema(rangeViolationData, strictSchema);
@@ -185,7 +185,7 @@ console.log('\n--- Test 8: CommonSchemas - Agent Stats ---\n');
 const agentStatsSchema = CommonSchemas.agentStats();
 const agentStatsPrompt = buildSchemaPrompt(
   agentStatsSchema,
-  'Report statistics for agent "code-reviewer"'
+  'Report statistics for agent "code-reviewer"',
 );
 
 console.log('Agent Stats Schema Prompt:');
@@ -201,7 +201,7 @@ console.log('\n--- Test 9: CommonSchemas - Task Plan ---\n');
 const taskPlanSchema = CommonSchemas.taskPlan();
 const taskPlanPrompt = buildSchemaPrompt(
   taskPlanSchema,
-  'Create execution plan for implementing authentication'
+  'Create execution plan for implementing authentication',
 );
 
 console.log('Task Plan Schema Prompt:');

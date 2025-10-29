@@ -7,11 +7,9 @@ import type { OutputStyleAPI } from '../../types/api/outputStyle';
 
 export function exposeOutputStyleAPI(): void {
   const outputStyleAPI: OutputStyleAPI = {
-    listStyles: (projectPath) =>
-      ipcRenderer.invoke('output-style:list', { projectPath }),
+    listStyles: (projectPath) => ipcRenderer.invoke('output-style:list', { projectPath }),
 
-    getStyle: (projectPath, name) =>
-      ipcRenderer.invoke('output-style:get', { projectPath, name }),
+    getStyle: (projectPath, name) => ipcRenderer.invoke('output-style:get', { projectPath, name }),
 
     createStyle: (projectPath, style) =>
       ipcRenderer.invoke('output-style:create', { projectPath, style }),
@@ -22,8 +20,7 @@ export function exposeOutputStyleAPI(): void {
     deleteStyle: (projectPath, name) =>
       ipcRenderer.invoke('output-style:delete', { projectPath, name }),
 
-    listNames: (projectPath) =>
-      ipcRenderer.invoke('output-style:list-names', { projectPath })
+    listNames: (projectPath) => ipcRenderer.invoke('output-style:list-names', { projectPath }),
   };
 
   contextBridge.exposeInMainWorld('outputStyleAPI', outputStyleAPI);

@@ -3,8 +3,8 @@
  */
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { parseAgentMarkdown } from '../../lib/agentParser';
 import type { AgentPoolStats, AgentStats } from '../../lib/agent-types';
+import { parseAgentMarkdown } from '../../lib/agentParser';
 import {
   deleteMarkdownFile,
   ensureDirectory,

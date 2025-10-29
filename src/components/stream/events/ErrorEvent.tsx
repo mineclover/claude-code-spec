@@ -1,5 +1,5 @@
-import type React from 'react';
 import type { ErrorEvent as ErrorEventType } from '@context-action/code-api';
+import type React from 'react';
 import { EventBox } from '../common/EventBox';
 import styles from './ErrorEvent.module.css';
 

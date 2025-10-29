@@ -33,7 +33,10 @@ export class SchemaManager {
   loadSchema(schemaName: string): SchemaDefinition | null {
     // 캐시 확인
     if (this.cachedSchemas.has(schemaName)) {
-      return this.cachedSchemas.get(schemaName)!;
+      const cachedSchema = this.cachedSchemas.get(schemaName);
+      if (cachedSchema) {
+        return cachedSchema;
+      }
     }
 
     const schemaPath = path.join(this.schemasDir, `${schemaName}.json`);
@@ -85,9 +88,7 @@ export class SchemaManager {
 
     try {
       const files = fs.readdirSync(this.schemasDir);
-      return files
-        .filter((f) => f.endsWith('.json'))
-        .map((f) => f.replace('.json', ''));
+      return files.filter((f) => f.endsWith('.json')).map((f) => f.replace('.json', ''));
     } catch (error) {
       console.error('Failed to list schemas:', error);
       return [];

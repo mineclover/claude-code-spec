@@ -396,81 +396,1279 @@ var ClaudeClient = class {
   }
 };
 
-// src/session/SessionManager.ts
-var SessionManager = class {
-  constructor() {
-    this.sessions = /* @__PURE__ */ new Map();
-    this.currentSessionId = null;
-  }
-  /**
-   * Create or update a session
-   */
-  saveSession(sessionId, info) {
-    const session = {
-      sessionId,
-      ...info
+// src/query/ClaudeQueryAPI.ts
+import { spawn as spawn2 } from "child_process";
+
+// src/schema/jsonExtractor.ts
+function extractJSON(text) {
+  if (!text || text.trim() === "") {
+    return {
+      success: false,
+      error: "Empty input text",
+      raw: text
     };
-    this.sessions.set(sessionId, session);
-    this.currentSessionId = sessionId;
-    console.log("[SessionManager] Saved session:", sessionId);
+  }
+  const cleaned = removeMarkdownCodeBlocks(text);
+  const directParse = tryParse(cleaned);
+  if (directParse.success) {
+    return {
+      success: true,
+      data: directParse.data,
+      raw: text,
+      cleanedText: cleaned
+    };
+  }
+  const extracted = extractJSONFromMixedContent(cleaned);
+  if (extracted) {
+    const extractedParse = tryParse(extracted);
+    if (extractedParse.success) {
+      return {
+        success: true,
+        data: extractedParse.data,
+        raw: text,
+        cleanedText: extracted
+      };
+    }
+  }
+  const fixed = tryCommonFixes(cleaned);
+  if (fixed) {
+    const fixedParse = tryParse(fixed);
+    if (fixedParse.success) {
+      return {
+        success: true,
+        data: fixedParse.data,
+        raw: text,
+        cleanedText: fixed
+      };
+    }
+  }
+  return {
+    success: false,
+    error: directParse.error || "Could not extract valid JSON",
+    raw: text,
+    cleanedText: cleaned
+  };
+}
+function removeMarkdownCodeBlocks(text) {
+  text = text.replace(/```json\s*\n?([\s\S]*?)```/g, "$1");
+  text = text.replace(/```\s*\n?([\s\S]*?)```/g, "$1");
+  return text.trim();
+}
+function tryParse(text) {
+  try {
+    const data = JSON.parse(text);
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+function extractJSONFromMixedContent(text) {
+  const objectMatch = text.match(/\{[\s\S]*\}/);
+  if (objectMatch) {
+    return objectMatch[0];
+  }
+  const arrayMatch = text.match(/\[[\s\S]*\]/);
+  if (arrayMatch) {
+    return arrayMatch[0];
+  }
+  return null;
+}
+function tryCommonFixes(text) {
+  let fixed = text;
+  fixed = fixed.replace(/,(\s*[}\]])/g, "$1");
+  fixed = fixed.replace(/(\{|,)\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+  if (fixed !== text) {
+    return fixed;
+  }
+  return null;
+}
+function validateJSONStructure(data, requiredFields) {
+  if (!data || typeof data !== "object") {
+    return false;
+  }
+  const obj = data;
+  for (const field of requiredFields) {
+    if (!(field in obj)) {
+      return false;
+    }
+  }
+  return true;
+}
+function extractAndValidate(text, requiredFields) {
+  const result = extractJSON(text);
+  if (!result.success || !result.data) {
+    return result;
+  }
+  if (!validateJSONStructure(result.data, requiredFields)) {
+    return {
+      success: false,
+      error: `JSON missing required fields: ${requiredFields.join(", ")}`,
+      raw: text,
+      cleanedText: result.cleanedText
+    };
+  }
+  return result;
+}
+
+// src/schema/schemaBuilder.ts
+function buildSchemaPrompt(schema, instruction) {
+  const sections = [];
+  if (instruction) {
+    sections.push(instruction);
+    sections.push("");
+  }
+  sections.push("Respond with JSON matching this exact schema:");
+  sections.push("");
+  sections.push("```");
+  sections.push("{");
+  const fields = Object.entries(schema);
+  fields.forEach(([key, field], index) => {
+    const isLast = index === fields.length - 1;
+    const line = buildFieldLine(key, field, isLast);
+    sections.push(`  ${line}`);
+  });
+  sections.push("}");
+  sections.push("```");
+  sections.push("");
+  sections.push("**Important:**");
+  sections.push("- Output ONLY the JSON, no explanations");
+  sections.push("- Do NOT use markdown code blocks in your response");
+  sections.push("- Ensure all required fields are present");
+  sections.push("- Match types exactly");
+  return sections.join("\n");
+}
+function buildFieldLine(key, field, isLast) {
+  const parts = [];
+  parts.push(`"${key}":`);
+  if (field.type === "array" && field.arrayItemType) {
+    parts.push(`array<${field.arrayItemType}>`);
+  } else if (field.type === "object" && field.objectSchema) {
+    parts.push("object {...}");
+  } else {
+    parts.push(field.type);
+  }
+  const constraints = [];
+  if (field.enum) {
+    constraints.push(`enum: ${field.enum.join("|")}`);
+  }
+  if (field.min !== void 0 || field.max !== void 0) {
+    if (field.min !== void 0 && field.max !== void 0) {
+      constraints.push(`range: ${field.min}-${field.max}`);
+    } else if (field.min !== void 0) {
+      constraints.push(`min: ${field.min}`);
+    } else if (field.max !== void 0) {
+      constraints.push(`max: ${field.max}`);
+    }
+  }
+  if (field.required === false) {
+    constraints.push("optional");
+  }
+  if (constraints.length > 0) {
+    parts.push(`(${constraints.join(", ")})`);
+  }
+  if (field.description) {
+    parts.push(`// ${field.description}`);
+  }
+  if (!isLast) {
+    parts[parts.length - 1] += ",";
+  }
+  return parts.join(" ");
+}
+function validateAgainstSchema(data, schema) {
+  const errors = [];
+  if (!data || typeof data !== "object") {
+    return { valid: false, errors: ["Data is not an object"] };
+  }
+  const obj = data;
+  for (const [key, field] of Object.entries(schema)) {
+    if (field.required !== false && !(key in obj)) {
+      errors.push(`Missing required field: ${key}`);
+    }
+    if (key in obj) {
+      const value = obj[key];
+      if (!checkType(value, field.type)) {
+        errors.push(`Invalid type for ${key}: expected ${field.type}, got ${typeof value}`);
+      }
+      if (field.enum && !field.enum.includes(value)) {
+        errors.push(`Invalid value for ${key}: must be one of ${field.enum.join(", ")}`);
+      }
+      if (typeof value === "number") {
+        if (field.min !== void 0 && value < field.min) {
+          errors.push(`Value for ${key} is below minimum: ${value} < ${field.min}`);
+        }
+        if (field.max !== void 0 && value > field.max) {
+          errors.push(`Value for ${key} exceeds maximum: ${value} > ${field.max}`);
+        }
+      }
+    }
+  }
+  return { valid: errors.length === 0, errors };
+}
+function checkType(value, type) {
+  switch (type) {
+    case "string":
+      return typeof value === "string";
+    case "number":
+      return typeof value === "number";
+    case "boolean":
+      return typeof value === "boolean";
+    case "array":
+      return Array.isArray(value);
+    case "object":
+      return typeof value === "object" && value !== null && !Array.isArray(value);
+    case "null":
+      return value === null;
+    default:
+      return false;
+  }
+}
+
+// src/query/ClaudeQueryAPI.ts
+var ClaudeQueryAPI = class {
+  constructor() {
+    this.runningProcess = null;
   }
   /**
-   * Get session by ID
+   * Execute a query with output-style and get clean results
    */
-  getSession(sessionId) {
-    return this.sessions.get(sessionId);
+  async query(projectPath, query, options = {}) {
+    const { outputStyle, model, mcpConfig, filterThinking = true, timeout = 12e4 } = options;
+    console.info("Executing query with ClaudeQueryAPI", {
+      module: "ClaudeQueryAPI",
+      projectPath,
+      outputStyle,
+      model,
+      filterThinking
+    });
+    const enhancedQuery = this.buildQuery(query, outputStyle);
+    const events = await this.executeClaudeProcess(projectPath, enhancedQuery, {
+      model,
+      mcpConfig,
+      timeout
+    });
+    const processedEvents = filterThinking ? this.filterThinkingBlocks(events) : events;
+    const result = this.extractResult(processedEvents);
+    const messages = this.extractMessages(processedEvents);
+    const metadata = this.extractMetadata(events);
+    if (outputStyle) {
+      metadata.outputStyle = outputStyle;
+    }
+    return {
+      result,
+      messages,
+      events: processedEvents,
+      metadata
+    };
   }
   /**
-   * Get all sessions sorted by timestamp (most recent first)
+   * Build query with output-style injection
    */
-  getAllSessions() {
-    return Array.from(this.sessions.values()).sort((a, b) => b.timestamp - a.timestamp);
+  buildQuery(query, outputStyle) {
+    if (!outputStyle) {
+      return query;
+    }
+    return `/output-style ${outputStyle}
+
+${query}`;
   }
   /**
-   * Get current session ID
+   * Execute Claude process and collect events
    */
-  getCurrentSessionId() {
-    return this.currentSessionId;
+  async executeClaudeProcess(projectPath, query, options) {
+    return new Promise((resolve, reject) => {
+      const events = [];
+      const { model, mcpConfig, timeout = 12e4 } = options;
+      const args = ["-p", query, "--output-format", "stream-json", "--verbose"];
+      if (model) {
+        args.push("--model", model);
+      }
+      if (mcpConfig) {
+        args.push("--mcp-config", mcpConfig);
+        args.push("--strict-mcp-config");
+      }
+      console.debug("Spawning Claude process", {
+        module: "ClaudeQueryAPI",
+        args,
+        cwd: projectPath
+      });
+      const child = spawn2("claude", args, {
+        cwd: projectPath,
+        shell: true,
+        env: {
+          ...process.env,
+          FORCE_COLOR: "0"
+        }
+      });
+      this.runningProcess = child;
+      let buffer = "";
+      let timeoutHandle = null;
+      if (timeout > 0) {
+        timeoutHandle = setTimeout(() => {
+          console.warn("Query timeout, killing process", {
+            module: "ClaudeQueryAPI",
+            timeout
+          });
+          child.kill("SIGTERM");
+          reject(new Error(`Query timeout after ${timeout}ms`));
+        }, timeout);
+      }
+      child.stdout.on("data", (data) => {
+        buffer += data.toString();
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const event = JSON.parse(line);
+            events.push(event);
+          } catch (_error) {
+            console.debug("Failed to parse stream line", {
+              module: "ClaudeQueryAPI",
+              line: line.substring(0, 100)
+            });
+          }
+        }
+      });
+      child.stderr.on("data", (data) => {
+        console.debug("Claude stderr", {
+          module: "ClaudeQueryAPI",
+          data: data.toString()
+        });
+      });
+      child.on("close", (code) => {
+        this.runningProcess = null;
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        if (code === 0) {
+          console.info("Query completed successfully", {
+            module: "ClaudeQueryAPI",
+            eventsCount: events.length
+          });
+          resolve(events);
+        } else {
+          console.error("Query failed", void 0, {
+            module: "ClaudeQueryAPI",
+            code
+          });
+          reject(new Error(`Process exited with code ${code}`));
+        }
+      });
+      child.on("error", (error) => {
+        this.runningProcess = null;
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        console.error("Process error", error, {
+          module: "ClaudeQueryAPI"
+        });
+        reject(error);
+      });
+    });
   }
   /**
-   * Set current session ID
+   * Filter thinking blocks from events
    */
-  setCurrentSessionId(sessionId) {
-    this.currentSessionId = sessionId;
+  filterThinkingBlocks(events) {
+    return events.map((event) => {
+      if (event.type === "message" && event.message?.content) {
+        return {
+          ...event,
+          message: {
+            ...event.message,
+            content: event.message.content.filter((block) => block.type !== "thinking")
+          }
+        };
+      }
+      return event;
+    });
   }
   /**
-   * Update session with result
+   * Extract final result from events
    */
-  updateSessionResult(sessionId, result) {
-    const session = this.sessions.get(sessionId);
-    if (session) {
-      session.lastResult = result;
-      this.sessions.set(sessionId, session);
+  extractResult(events) {
+    const resultEvent = events.find((e) => e.type === "result");
+    return resultEvent?.result || "";
+  }
+  /**
+   * Extract all assistant messages
+   */
+  extractMessages(events) {
+    const messages = [];
+    for (const event of events) {
+      if (event.type === "message" && event.subtype === "assistant") {
+        const content = event.message?.content || [];
+        for (const block of content) {
+          if (block.type === "text") {
+            messages.push(block.text);
+          }
+        }
+      }
+    }
+    return messages;
+  }
+  /**
+   * Extract execution metadata
+   */
+  extractMetadata(events) {
+    const resultEvent = events.find((e) => e.type === "result");
+    return {
+      totalCost: resultEvent?.total_cost_usd || 0,
+      durationMs: resultEvent?.duration_ms || 0,
+      numTurns: resultEvent?.num_turns || 0
+    };
+  }
+  /**
+   * Execute query and extract JSON result
+   *
+   * Automatically:
+   * - Uses 'structured-json' output-style
+   * - Filters thinking blocks
+   * - Extracts and validates JSON
+   */
+  async queryJSON(projectPath, query, options = {}) {
+    const { requiredFields, ...queryOptions } = options;
+    console.info("Executing JSON query", {
+      module: "ClaudeQueryAPI",
+      projectPath,
+      requiredFields: requiredFields?.length || 0
+    });
+    try {
+      const result = await this.query(projectPath, query, {
+        ...queryOptions,
+        outputStyle: "structured-json",
+        filterThinking: true
+      });
+      if (requiredFields && requiredFields.length > 0) {
+        return extractAndValidate(
+          result.result,
+          requiredFields
+        );
+      } else {
+        return extractJSON(result.result);
+      }
+    } catch (error) {
+      console.error("JSON query failed", error instanceof Error ? error : void 0, {
+        module: "ClaudeQueryAPI"
+      });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
     }
   }
   /**
-   * Clear all sessions
+   * Execute query and get typed JSON result with validation
    */
-  clearSessions() {
-    this.sessions.clear();
-    this.currentSessionId = null;
-    console.log("[SessionManager] Cleared all sessions");
+  async queryTypedJSON(projectPath, query, requiredFields, options = {}) {
+    return this.queryJSON(projectPath, query, {
+      ...options,
+      requiredFields
+    });
   }
   /**
-   * Remove a specific session
+   * Execute query with explicit JSON schema
+   *
+   * Automatically injects schema into prompt and validates response
    */
-  removeSession(sessionId) {
-    const deleted = this.sessions.delete(sessionId);
-    if (deleted && this.currentSessionId === sessionId) {
-      this.currentSessionId = null;
+  async queryWithSchema(projectPath, instruction, schema, options = {}) {
+    console.info("Executing query with schema", {
+      module: "ClaudeQueryAPI",
+      projectPath,
+      schemaFields: Object.keys(schema).length
+    });
+    try {
+      const schemaPrompt = buildSchemaPrompt(schema, instruction);
+      console.debug("Built schema prompt", {
+        module: "ClaudeQueryAPI",
+        promptLength: schemaPrompt.length
+      });
+      const result = await this.query(projectPath, schemaPrompt, {
+        ...options,
+        outputStyle: "json",
+        filterThinking: true
+      });
+      const extracted = extractJSON(result.result);
+      if (!extracted.success) {
+        return extracted;
+      }
+      const validation = validateAgainstSchema(extracted.data, schema);
+      if (!validation.valid) {
+        console.warn("Schema validation failed", {
+          module: "ClaudeQueryAPI",
+          errors: validation.errors
+        });
+        return {
+          success: false,
+          error: `Schema validation failed: ${validation.errors.join("; ")}`,
+          raw: extracted.raw,
+          cleanedText: extracted.cleanedText
+        };
+      }
+      console.info("Schema query successful", {
+        module: "ClaudeQueryAPI",
+        dataKeys: extracted.data ? Object.keys(extracted.data).length : 0
+      });
+      return extracted;
+    } catch (error) {
+      console.error("Schema query failed", error instanceof Error ? error : void 0, {
+        module: "ClaudeQueryAPI"
+      });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
     }
-    return deleted;
   }
   /**
-   * Get session count
+   * Kill running process
    */
-  getSessionCount() {
-    return this.sessions.size;
+  kill() {
+    if (this.runningProcess) {
+      console.info("Killing running query process", {
+        module: "ClaudeQueryAPI"
+      });
+      this.runningProcess.kill("SIGTERM");
+      this.runningProcess = null;
+    }
+  }
+  /**
+   * Execute query with Zod schema validation (Standard Schema compliant)
+   *
+   * Output-style은 힌트 역할, 실제 검증은 Zod가 수행
+   *
+   * @example
+   * ```typescript
+   * import { z } from 'zod';
+   *
+   * const schema = z.object({
+   *   file: z.string(),
+   *   complexity: z.number().min(1).max(20)
+   * });
+   *
+   * const result = await api.queryWithZod(
+   *   projectPath,
+   *   'Analyze src/main.ts',
+   *   schema
+   * );
+   *
+   * if (result.success) {
+   *   console.log(result.data.file);
+   * }
+   * ```
+   */
+  async queryWithZod(projectPath, instruction, schema, options = {}) {
+    const { zodSchemaToPrompt: zodSchemaToPrompt2, validateWithZod: validateWithZod2 } = await import("./zodSchemaBuilder-O2NJUWMP.mjs");
+    console.info("Executing query with Zod schema", {
+      module: "ClaudeQueryAPI",
+      projectPath,
+      schemaType: schema.constructor.name
+    });
+    try {
+      const schemaPrompt = zodSchemaToPrompt2(schema, instruction);
+      console.debug("Built Zod schema prompt", {
+        module: "ClaudeQueryAPI",
+        promptLength: schemaPrompt.length
+      });
+      const result = await this.query(projectPath, schemaPrompt, {
+        ...options,
+        outputStyle: "json",
+        filterThinking: true
+      });
+      const extracted = extractJSON(result.result);
+      if (!extracted.success) {
+        return extracted;
+      }
+      const validation = validateWithZod2(extracted.data, schema);
+      if (!validation.success) {
+        console.warn("Zod validation failed", {
+          module: "ClaudeQueryAPI",
+          error: validation.error,
+          issuesCount: validation.issues.length
+        });
+        return {
+          success: false,
+          error: `Schema validation failed: ${validation.error}`,
+          raw: extracted.raw,
+          cleanedText: extracted.cleanedText
+        };
+      }
+      console.info("Zod validation successful", {
+        module: "ClaudeQueryAPI",
+        dataKeys: extracted.data ? Object.keys(extracted.data).length : 0
+      });
+      return {
+        success: true,
+        data: validation.data,
+        raw: extracted.raw,
+        cleanedText: extracted.cleanedText
+      };
+    } catch (error) {
+      console.error("Zod query failed", error instanceof Error ? error : void 0, {
+        module: "ClaudeQueryAPI"
+      });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+  /**
+   * Execute query with Standard Schema validation
+   *
+   * Zod v3.24.0+ 스키마는 자동으로 Standard Schema를 구현합니다.
+   *
+   * @example
+   * ```typescript
+   * import { z } from 'zod';
+   *
+   * const schema = z.object({
+   *   name: z.string(),
+   *   age: z.number()
+   * });
+   *
+   * const result = await api.queryWithStandardSchema(
+   *   projectPath,
+   *   'Get user info',
+   *   schema
+   * );
+   * ```
+   */
+  async queryWithStandardSchema(projectPath, instruction, schema, options = {}) {
+    const { zodSchemaToPrompt: zodSchemaToPrompt2, validateWithStandardSchema: validateWithStandardSchema2, isStandardSchema } = await import("./zodSchemaBuilder-O2NJUWMP.mjs");
+    console.info("Executing query with Standard Schema", {
+      module: "ClaudeQueryAPI",
+      projectPath
+    });
+    if (!isStandardSchema(schema)) {
+      return {
+        success: false,
+        error: "Provided schema does not implement Standard Schema V1"
+      };
+    }
+    try {
+      let schemaPrompt = instruction;
+      if ("_def" in schema) {
+        schemaPrompt = zodSchemaToPrompt2(schema, instruction);
+      } else {
+        schemaPrompt = `${instruction}
+
+Respond with valid JSON.`;
+      }
+      const result = await this.query(projectPath, schemaPrompt, {
+        ...options,
+        outputStyle: "json",
+        filterThinking: true
+      });
+      const extracted = extractJSON(result.result);
+      if (!extracted.success) {
+        return extracted;
+      }
+      const validation = await validateWithStandardSchema2(extracted.data, schema);
+      if (!validation.success) {
+        console.warn("Standard Schema validation failed", {
+          module: "ClaudeQueryAPI",
+          error: validation.error
+        });
+        return {
+          success: false,
+          error: `Schema validation failed: ${validation.error}`,
+          raw: extracted.raw,
+          cleanedText: extracted.cleanedText
+        };
+      }
+      console.info("Standard Schema validation successful", {
+        module: "ClaudeQueryAPI"
+      });
+      return {
+        success: true,
+        data: validation.data,
+        raw: extracted.raw,
+        cleanedText: extracted.cleanedText
+      };
+    } catch (error) {
+      console.error("Standard Schema query failed", error instanceof Error ? error : void 0, {
+        module: "ClaudeQueryAPI"
+      });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+};
+
+// src/entrypoint/EntryPointManager.ts
+import * as fs2 from "fs";
+import * as path2 from "path";
+
+// src/entrypoint/SchemaManager.ts
+import * as fs from "fs";
+import * as path from "path";
+var SchemaManager = class {
+  constructor(projectPath) {
+    this.cachedSchemas = /* @__PURE__ */ new Map();
+    this.schemasDir = path.join(projectPath, "workflow", "schemas");
+    this.ensureSchemasDir();
+  }
+  /**
+   * 스키마 디렉토리 생성
+   */
+  ensureSchemasDir() {
+    if (!fs.existsSync(this.schemasDir)) {
+      fs.mkdirSync(this.schemasDir, { recursive: true });
+    }
+  }
+  /**
+   * 스키마 로드
+   */
+  loadSchema(schemaName) {
+    if (this.cachedSchemas.has(schemaName)) {
+      const cachedSchema = this.cachedSchemas.get(schemaName);
+      if (cachedSchema) {
+        return cachedSchema;
+      }
+    }
+    const schemaPath = path.join(this.schemasDir, `${schemaName}.json`);
+    if (!fs.existsSync(schemaPath)) {
+      return null;
+    }
+    try {
+      const content = fs.readFileSync(schemaPath, "utf-8");
+      const schema = JSON.parse(content);
+      this.cachedSchemas.set(schemaName, schema);
+      return schema;
+    } catch (error) {
+      console.error(`Failed to load schema ${schemaName}:`, error);
+      return null;
+    }
+  }
+  /**
+   * 스키마 저장
+   */
+  saveSchema(schema) {
+    const schemaPath = path.join(this.schemasDir, `${schema.name}.json`);
+    try {
+      fs.writeFileSync(schemaPath, JSON.stringify(schema, null, 2), "utf-8");
+      this.cachedSchemas.set(schema.name, schema);
+      console.log(`Schema saved: ${schema.name}`);
+    } catch (error) {
+      console.error(`Failed to save schema ${schema.name}:`, error);
+      throw error;
+    }
+  }
+  /**
+   * 모든 스키마 목록 조회
+   */
+  listSchemas() {
+    if (!fs.existsSync(this.schemasDir)) {
+      return [];
+    }
+    try {
+      const files = fs.readdirSync(this.schemasDir);
+      return files.filter((f) => f.endsWith(".json")).map((f) => f.replace(".json", ""));
+    } catch (error) {
+      console.error("Failed to list schemas:", error);
+      return [];
+    }
+  }
+  /**
+   * 스키마 삭제
+   */
+  deleteSchema(schemaName) {
+    const schemaPath = path.join(this.schemasDir, `${schemaName}.json`);
+    if (!fs.existsSync(schemaPath)) {
+      return false;
+    }
+    try {
+      fs.unlinkSync(schemaPath);
+      this.cachedSchemas.delete(schemaName);
+      console.log(`Schema deleted: ${schemaName}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to delete schema ${schemaName}:`, error);
+      return false;
+    }
+  }
+  /**
+   * 스키마 존재 여부 확인
+   */
+  schemaExists(schemaName) {
+    const schemaPath = path.join(this.schemasDir, `${schemaName}.json`);
+    return fs.existsSync(schemaPath);
+  }
+  /**
+   * 캐시 초기화
+   */
+  clearCache() {
+    this.cachedSchemas.clear();
+  }
+  /**
+   * 스키마 디렉토리 경로 반환
+   */
+  getSchemasDir() {
+    return this.schemasDir;
+  }
+};
+
+// src/entrypoint/EntryPointManager.ts
+var EntryPointManager = class {
+  constructor(projectPath) {
+    this.cachedConfig = null;
+    this.projectPath = projectPath;
+    this.configPath = path2.join(projectPath, "workflow", "entry-points.json");
+    this.ensureConfigFile();
+  }
+  /**
+   * 설정 파일 초기화
+   */
+  ensureConfigFile() {
+    const workflowDir = path2.dirname(this.configPath);
+    if (!fs2.existsSync(workflowDir)) {
+      fs2.mkdirSync(workflowDir, { recursive: true });
+    }
+    if (!fs2.existsSync(this.configPath)) {
+      const defaultConfig = {
+        version: "1.0.0",
+        entryPoints: {}
+      };
+      fs2.writeFileSync(this.configPath, JSON.stringify(defaultConfig, null, 2), "utf-8");
+    }
+  }
+  /**
+   * 설정 로드
+   */
+  loadConfig() {
+    if (this.cachedConfig) {
+      return this.cachedConfig;
+    }
+    try {
+      const content = fs2.readFileSync(this.configPath, "utf-8");
+      this.cachedConfig = JSON.parse(content);
+      return this.cachedConfig;
+    } catch (error) {
+      console.error("Failed to load entry points config:", error);
+      return { version: "1.0.0", entryPoints: {} };
+    }
+  }
+  /**
+   * 설정 저장
+   */
+  saveConfig(config) {
+    try {
+      fs2.writeFileSync(this.configPath, JSON.stringify(config, null, 2), "utf-8");
+      this.cachedConfig = config;
+    } catch (error) {
+      console.error("Failed to save entry points config:", error);
+      throw error;
+    }
+  }
+  /**
+   * 진입점 추가/업데이트
+   */
+  setEntryPoint(config) {
+    const validation = this.validateEntryPoint(config);
+    if (!validation.valid) {
+      const errorMessage = `Entry point validation failed:
+${validation.errors.join("\n")}`;
+      console.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+    if (validation.warnings.length > 0) {
+      console.warn("Entry point validation warnings:");
+      for (const warning of validation.warnings) {
+        console.warn(`  - ${warning}`);
+      }
+    }
+    const allConfig = this.loadConfig();
+    allConfig.entryPoints[config.name] = config;
+    this.saveConfig(allConfig);
+    console.log(`Entry point saved: ${config.name}`);
+  }
+  /**
+   * 진입점 조회
+   */
+  getEntryPoint(name) {
+    const config = this.loadConfig();
+    return config.entryPoints[name] || null;
+  }
+  /**
+   * 진입점 상세 정보 조회 (스키마 포함)
+   * 실행 전에 예상 출력 형식을 명확히 파악하기 위한 메서드
+   */
+  getEntryPointDetail(name) {
+    const entryPoint = this.getEntryPoint(name);
+    if (!entryPoint) {
+      return null;
+    }
+    const schemaManager = new SchemaManager(this.projectPath);
+    let schema;
+    let fields;
+    let examples;
+    if (entryPoint.outputFormat.type === "structured") {
+      const schemaName = entryPoint.outputFormat.schemaName || entryPoint.outputFormat.schema?.replace(".json", "");
+      if (schemaName) {
+        schema = schemaManager.loadSchema(schemaName);
+        if (schema) {
+          fields = schema.schema;
+          examples = schema.examples;
+        }
+      }
+    }
+    let description;
+    switch (entryPoint.outputFormat.type) {
+      case "text":
+        description = "\uC77C\uBC18 \uD14D\uC2A4\uD2B8 \uD615\uC2DD\uC758 \uC790\uC720\uB85C\uC6B4 \uC751\uB2F5";
+        break;
+      case "json":
+        description = "JSON \uD615\uC2DD\uC758 \uAD6C\uC870\uD654\uB41C \uC751\uB2F5 (\uC2A4\uD0A4\uB9C8 \uAC80\uC99D \uC5C6\uC74C)";
+        break;
+      case "structured":
+        description = schema ? `${schema.description} - JSON \uD615\uC2DD\uC758 \uC2A4\uD0A4\uB9C8 \uAC80\uC99D\uB41C \uC751\uB2F5` : "JSON \uD615\uC2DD\uC758 \uC2A4\uD0A4\uB9C8 \uAC80\uC99D\uB41C \uC751\uB2F5";
+        break;
+    }
+    return {
+      config: entryPoint,
+      schema: schema || void 0,
+      expectedOutput: {
+        type: entryPoint.outputFormat.type,
+        description,
+        fields,
+        examples
+      }
+    };
+  }
+  /**
+   * 모든 진입점 조회
+   */
+  getAllEntryPoints() {
+    const config = this.loadConfig();
+    return config.entryPoints;
+  }
+  /**
+   * 진입점 목록 조회
+   */
+  listEntryPoints() {
+    const config = this.loadConfig();
+    return Object.keys(config.entryPoints);
+  }
+  /**
+   * 진입점 삭제
+   */
+  deleteEntryPoint(name) {
+    const config = this.loadConfig();
+    if (!config.entryPoints[name]) {
+      return false;
+    }
+    delete config.entryPoints[name];
+    this.saveConfig(config);
+    console.log(`Entry point deleted: ${name}`);
+    return true;
+  }
+  /**
+   * 진입점 존재 여부 확인
+   */
+  entryPointExists(name) {
+    const config = this.loadConfig();
+    return !!config.entryPoints[name];
+  }
+  /**
+   * 진입점 검증
+   */
+  validateEntryPoint(config) {
+    const errors = [];
+    const warnings = [];
+    if (!config.name || config.name.trim() === "") {
+      errors.push("Entry point name is required");
+    }
+    if (!config.description || config.description.trim() === "") {
+      errors.push("Entry point description is required");
+    }
+    if (!config.outputFormat) {
+      errors.push("Output format is required");
+    }
+    if (config.outputFormat) {
+      if (!["text", "json", "structured"].includes(config.outputFormat.type)) {
+        errors.push("Invalid output format type");
+      }
+      if (config.outputFormat.type === "structured" && !config.outputFormat.schema && !config.outputFormat.schemaName) {
+        errors.push("Schema is required for structured output");
+      }
+      if (config.outputFormat.type === "structured") {
+        const schemaName = config.outputFormat.schemaName || config.outputFormat.schema?.replace(".json", "");
+        if (schemaName) {
+          const schemaManager = new SchemaManager(this.projectPath);
+          if (!schemaManager.schemaExists(schemaName)) {
+            errors.push(
+              `Schema '${schemaName}' does not exist in workflow/schemas/. Please create it first using SchemaManager.`
+            );
+          }
+        }
+      }
+    }
+    if (config.options) {
+      if (config.options.model && !["sonnet", "opus", "haiku"].includes(config.options.model)) {
+        errors.push("Invalid model name");
+      }
+      if (config.options.timeout && config.options.timeout < 1e3) {
+        warnings.push("Timeout should be at least 1000ms");
+      }
+    }
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+  /**
+   * 태그로 진입점 필터링
+   */
+  filterByTag(tag) {
+    const config = this.loadConfig();
+    return Object.values(config.entryPoints).filter((ep) => ep.tags?.includes(tag));
+  }
+  /**
+   * 진입점 검색
+   */
+  searchEntryPoints(query) {
+    const config = this.loadConfig();
+    const lowerQuery = query.toLowerCase();
+    return Object.values(config.entryPoints).filter(
+      (ep) => ep.name.toLowerCase().includes(lowerQuery) || ep.description.toLowerCase().includes(lowerQuery) || ep.tags?.some((tag) => tag.toLowerCase().includes(lowerQuery))
+    );
+  }
+  /**
+   * 캐시 초기화
+   */
+  clearCache() {
+    this.cachedConfig = null;
+  }
+  /**
+   * 설정 파일 경로 반환
+   */
+  getConfigPath() {
+    return this.configPath;
+  }
+};
+
+// src/entrypoint/EntryPointExecutor.ts
+var EntryPointExecutor = class {
+  constructor(projectPath) {
+    this.entryPointManager = new EntryPointManager(projectPath);
+    this.schemaManager = new SchemaManager(projectPath);
+    this.queryAPI = new ClaudeQueryAPI();
+  }
+  /**
+   * 진입점을 통해 쿼리 실행
+   */
+  async execute(params) {
+    const startTime = Date.now();
+    try {
+      const entryPoint = this.entryPointManager.getEntryPoint(params.entryPoint);
+      if (!entryPoint) {
+        return {
+          success: false,
+          error: `Entry point not found: ${params.entryPoint}`,
+          metadata: {
+            entryPoint: params.entryPoint,
+            duration: Date.now() - startTime,
+            model: "unknown"
+          }
+        };
+      }
+      console.log(`
+[EntryPoint: ${entryPoint.name}]`);
+      console.log(`Description: ${entryPoint.description}`);
+      console.log(`Output Format: ${entryPoint.outputFormat.type}`);
+      const model = params.options?.model || entryPoint.options?.model;
+      const mcpConfig = params.options?.mcpConfig || entryPoint.options?.mcpConfig;
+      const timeout = params.options?.timeout || entryPoint.options?.timeout;
+      const filterThinking = entryPoint.options?.filterThinking ?? true;
+      let result;
+      switch (entryPoint.outputFormat.type) {
+        case "structured":
+          result = await this.executeStructured(params, entryPoint, {
+            model,
+            mcpConfig,
+            timeout,
+            filterThinking
+          });
+          break;
+        case "json":
+          result = await this.executeJSON(params, entryPoint, {
+            model,
+            mcpConfig,
+            timeout,
+            filterThinking
+          });
+          break;
+        default:
+          result = await this.executeText(params, entryPoint, {
+            model,
+            mcpConfig,
+            timeout,
+            filterThinking
+          });
+          break;
+      }
+      result.metadata.duration = Date.now() - startTime;
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        metadata: {
+          entryPoint: params.entryPoint,
+          duration: Date.now() - startTime,
+          model: "unknown"
+        }
+      };
+    }
+  }
+  /**
+   * Structured 형식으로 실행 (스키마 검증)
+   */
+  async executeStructured(params, entryPoint, options) {
+    const schemaName = entryPoint.outputFormat.schemaName || entryPoint.outputFormat.schema?.replace(".json", "");
+    if (!schemaName) {
+      return {
+        success: false,
+        error: "Schema not specified",
+        metadata: {
+          entryPoint: params.entryPoint,
+          duration: 0,
+          model: options.model || "sonnet"
+        }
+      };
+    }
+    const schemaDefinition = this.schemaManager.loadSchema(schemaName);
+    if (!schemaDefinition) {
+      return {
+        success: false,
+        error: `Schema not found: ${schemaName}`,
+        metadata: {
+          entryPoint: params.entryPoint,
+          duration: 0,
+          model: options.model || "sonnet"
+        }
+      };
+    }
+    console.log(`Using schema: ${schemaDefinition.name}`);
+    const schemaPrompt = buildSchemaPrompt(schemaDefinition.schema, params.query);
+    const queryResult = await this.queryAPI.query(params.projectPath, schemaPrompt, {
+      outputStyle: entryPoint.outputStyle,
+      model: options.model,
+      mcpConfig: options.mcpConfig,
+      timeout: options.timeout,
+      filterThinking: options.filterThinking
+    });
+    const extracted = extractJSON(queryResult.result);
+    if (!extracted.success) {
+      return {
+        success: false,
+        error: extracted.error,
+        rawResult: queryResult.result,
+        metadata: {
+          entryPoint: params.entryPoint,
+          duration: queryResult.metadata.durationMs,
+          model: options.model || "sonnet"
+        }
+      };
+    }
+    const validation = validateAgainstSchema(extracted.data, schemaDefinition.schema);
+    if (!validation.valid) {
+      console.warn("Schema validation warnings:", validation.errors);
+    }
+    return {
+      success: true,
+      data: extracted.data,
+      rawResult: queryResult.result,
+      metadata: {
+        entryPoint: params.entryPoint,
+        duration: queryResult.metadata.durationMs,
+        model: options.model || "sonnet"
+      }
+    };
+  }
+  /**
+   * JSON 형식으로 실행 (스키마 없음)
+   */
+  async executeJSON(params, entryPoint, options) {
+    const enhancedQuery = `${params.query}
+
+Respond with valid JSON only.`;
+    const queryResult = await this.queryAPI.query(params.projectPath, enhancedQuery, {
+      outputStyle: entryPoint.outputStyle || "json",
+      model: options.model,
+      mcpConfig: options.mcpConfig,
+      timeout: options.timeout,
+      filterThinking: options.filterThinking
+    });
+    const extracted = extractJSON(queryResult.result);
+    if (!extracted.success) {
+      return {
+        success: false,
+        error: extracted.error,
+        rawResult: queryResult.result,
+        metadata: {
+          entryPoint: params.entryPoint,
+          duration: queryResult.metadata.durationMs,
+          model: options.model || "sonnet"
+        }
+      };
+    }
+    return {
+      success: true,
+      data: extracted.data,
+      rawResult: queryResult.result,
+      metadata: {
+        entryPoint: params.entryPoint,
+        duration: queryResult.metadata.durationMs,
+        model: options.model || "sonnet"
+      }
+    };
+  }
+  /**
+   * Text 형식으로 실행
+   */
+  async executeText(params, entryPoint, options) {
+    const queryResult = await this.queryAPI.query(params.projectPath, params.query, {
+      outputStyle: entryPoint.outputStyle,
+      model: options.model,
+      mcpConfig: options.mcpConfig,
+      timeout: options.timeout,
+      filterThinking: options.filterThinking
+    });
+    return {
+      success: true,
+      rawResult: queryResult.result,
+      metadata: {
+        entryPoint: params.entryPoint,
+        duration: queryResult.metadata.durationMs,
+        model: options.model || "sonnet"
+      }
+    };
+  }
+  /**
+   * 진입점 목록 조회
+   */
+  listEntryPoints() {
+    return this.entryPointManager.listEntryPoints();
+  }
+  /**
+   * 진입점 상세 조회
+   */
+  getEntryPointInfo(name) {
+    return this.entryPointManager.getEntryPoint(name);
+  }
+  /**
+   * 쿼리 API 인스턴스 반환 (Kill 등을 위해)
+   */
+  getQueryAPI() {
+    return this.queryAPI;
   }
 };
 
@@ -518,11 +1716,10 @@ var ProcessKillError = class extends ExecutionError {
 };
 var MaxConcurrentError = class extends ExecutionError {
   constructor(maxConcurrent, context) {
-    super(
-      `Maximum concurrent executions (${maxConcurrent}) reached`,
-      "MAX_CONCURRENT_REACHED",
-      { maxConcurrent, ...context }
-    );
+    super(`Maximum concurrent executions (${maxConcurrent}) reached`, "MAX_CONCURRENT_REACHED", {
+      maxConcurrent,
+      ...context
+    });
     this.name = "MaxConcurrentError";
   }
 };
@@ -897,10 +2094,14 @@ ${params.query}`;
    */
   setMaxConcurrent(max) {
     if (max < 1) {
-      throw new ValidationError("Maximum concurrent executions must be at least 1", "INVALID_MAX_CONCURRENT", {
-        providedValue: max,
-        minimumValue: 1
-      });
+      throw new ValidationError(
+        "Maximum concurrent executions must be at least 1",
+        "INVALID_MAX_CONCURRENT",
+        {
+          providedValue: max,
+          minimumValue: 1
+        }
+      );
     }
     this.maxConcurrent = max;
     console.log("Max concurrent set", {
@@ -917,1289 +2118,81 @@ ${params.query}`;
 };
 var processManager = new ProcessManager();
 
-// src/query/ClaudeQueryAPI.ts
-import { spawn as spawn2 } from "child_process";
-
-// src/schema/jsonExtractor.ts
-function extractJSON(text) {
-  if (!text || text.trim() === "") {
-    return {
-      success: false,
-      error: "Empty input text",
-      raw: text
-    };
-  }
-  let cleaned = removeMarkdownCodeBlocks(text);
-  const directParse = tryParse(cleaned);
-  if (directParse.success) {
-    return {
-      success: true,
-      data: directParse.data,
-      raw: text,
-      cleanedText: cleaned
-    };
-  }
-  const extracted = extractJSONFromMixedContent(cleaned);
-  if (extracted) {
-    const extractedParse = tryParse(extracted);
-    if (extractedParse.success) {
-      return {
-        success: true,
-        data: extractedParse.data,
-        raw: text,
-        cleanedText: extracted
-      };
-    }
-  }
-  const fixed = tryCommonFixes(cleaned);
-  if (fixed) {
-    const fixedParse = tryParse(fixed);
-    if (fixedParse.success) {
-      return {
-        success: true,
-        data: fixedParse.data,
-        raw: text,
-        cleanedText: fixed
-      };
-    }
-  }
-  return {
-    success: false,
-    error: directParse.error || "Could not extract valid JSON",
-    raw: text,
-    cleanedText: cleaned
-  };
-}
-function removeMarkdownCodeBlocks(text) {
-  text = text.replace(/```json\s*\n?([\s\S]*?)```/g, "$1");
-  text = text.replace(/```\s*\n?([\s\S]*?)```/g, "$1");
-  return text.trim();
-}
-function tryParse(text) {
-  try {
-    const data = JSON.parse(text);
-    return { success: true, data };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
-}
-function extractJSONFromMixedContent(text) {
-  const objectMatch = text.match(/\{[\s\S]*\}/);
-  if (objectMatch) {
-    return objectMatch[0];
-  }
-  const arrayMatch = text.match(/\[[\s\S]*\]/);
-  if (arrayMatch) {
-    return arrayMatch[0];
-  }
-  return null;
-}
-function tryCommonFixes(text) {
-  let fixed = text;
-  fixed = fixed.replace(/,(\s*[}\]])/g, "$1");
-  fixed = fixed.replace(/(\{|,)\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
-  if (fixed !== text) {
-    return fixed;
-  }
-  return null;
-}
-function validateJSONStructure(data, requiredFields) {
-  if (!data || typeof data !== "object") {
-    return false;
-  }
-  const obj = data;
-  for (const field of requiredFields) {
-    if (!(field in obj)) {
-      return false;
-    }
-  }
-  return true;
-}
-function extractAndValidate(text, requiredFields) {
-  const result = extractJSON(text);
-  if (!result.success || !result.data) {
-    return result;
-  }
-  if (!validateJSONStructure(result.data, requiredFields)) {
-    return {
-      success: false,
-      error: `JSON missing required fields: ${requiredFields.join(", ")}`,
-      raw: text,
-      cleanedText: result.cleanedText
-    };
-  }
-  return result;
-}
-
-// src/schema/schemaBuilder.ts
-function buildSchemaPrompt(schema, instruction) {
-  const sections = [];
-  if (instruction) {
-    sections.push(instruction);
-    sections.push("");
-  }
-  sections.push("Respond with JSON matching this exact schema:");
-  sections.push("");
-  sections.push("```");
-  sections.push("{");
-  const fields = Object.entries(schema);
-  fields.forEach(([key, field], index) => {
-    const isLast = index === fields.length - 1;
-    const line = buildFieldLine(key, field, isLast);
-    sections.push(`  ${line}`);
-  });
-  sections.push("}");
-  sections.push("```");
-  sections.push("");
-  sections.push("**Important:**");
-  sections.push("- Output ONLY the JSON, no explanations");
-  sections.push("- Do NOT use markdown code blocks in your response");
-  sections.push("- Ensure all required fields are present");
-  sections.push("- Match types exactly");
-  return sections.join("\n");
-}
-function buildFieldLine(key, field, isLast) {
-  const parts = [];
-  parts.push(`"${key}":`);
-  if (field.type === "array" && field.arrayItemType) {
-    parts.push(`array<${field.arrayItemType}>`);
-  } else if (field.type === "object" && field.objectSchema) {
-    parts.push("object {...}");
-  } else {
-    parts.push(field.type);
-  }
-  const constraints = [];
-  if (field.enum) {
-    constraints.push(`enum: ${field.enum.join("|")}`);
-  }
-  if (field.min !== void 0 || field.max !== void 0) {
-    if (field.min !== void 0 && field.max !== void 0) {
-      constraints.push(`range: ${field.min}-${field.max}`);
-    } else if (field.min !== void 0) {
-      constraints.push(`min: ${field.min}`);
-    } else if (field.max !== void 0) {
-      constraints.push(`max: ${field.max}`);
-    }
-  }
-  if (field.required === false) {
-    constraints.push("optional");
-  }
-  if (constraints.length > 0) {
-    parts.push(`(${constraints.join(", ")})`);
-  }
-  if (field.description) {
-    parts.push(`// ${field.description}`);
-  }
-  if (!isLast) {
-    parts[parts.length - 1] += ",";
-  }
-  return parts.join(" ");
-}
-function validateAgainstSchema(data, schema) {
-  const errors = [];
-  if (!data || typeof data !== "object") {
-    return { valid: false, errors: ["Data is not an object"] };
-  }
-  const obj = data;
-  for (const [key, field] of Object.entries(schema)) {
-    if (field.required !== false && !(key in obj)) {
-      errors.push(`Missing required field: ${key}`);
-    }
-    if (key in obj) {
-      const value = obj[key];
-      if (!checkType(value, field.type)) {
-        errors.push(`Invalid type for ${key}: expected ${field.type}, got ${typeof value}`);
-      }
-      if (field.enum && !field.enum.includes(value)) {
-        errors.push(`Invalid value for ${key}: must be one of ${field.enum.join(", ")}`);
-      }
-      if (typeof value === "number") {
-        if (field.min !== void 0 && value < field.min) {
-          errors.push(`Value for ${key} is below minimum: ${value} < ${field.min}`);
-        }
-        if (field.max !== void 0 && value > field.max) {
-          errors.push(`Value for ${key} exceeds maximum: ${value} > ${field.max}`);
-        }
-      }
-    }
-  }
-  return { valid: errors.length === 0, errors };
-}
-function checkType(value, type) {
-  switch (type) {
-    case "string":
-      return typeof value === "string";
-    case "number":
-      return typeof value === "number";
-    case "boolean":
-      return typeof value === "boolean";
-    case "array":
-      return Array.isArray(value);
-    case "object":
-      return typeof value === "object" && value !== null && !Array.isArray(value);
-    case "null":
-      return value === null;
-    default:
-      return false;
-  }
-}
-
-// src/query/ClaudeQueryAPI.ts
-var ClaudeQueryAPI = class {
+// src/session/SessionManager.ts
+var SessionManager = class {
   constructor() {
-    this.runningProcess = null;
+    this.sessions = /* @__PURE__ */ new Map();
+    this.currentSessionId = null;
   }
   /**
-   * Execute a query with output-style and get clean results
+   * Create or update a session
    */
-  async query(projectPath, query, options = {}) {
-    const {
-      outputStyle,
-      model,
-      mcpConfig,
-      filterThinking = true,
-      timeout = 12e4
-    } = options;
-    console.info("Executing query with ClaudeQueryAPI", {
-      module: "ClaudeQueryAPI",
-      projectPath,
-      outputStyle,
-      model,
-      filterThinking
-    });
-    const enhancedQuery = this.buildQuery(query, outputStyle);
-    const events = await this.executeClaudeProcess(
-      projectPath,
-      enhancedQuery,
-      { model, mcpConfig, timeout }
-    );
-    const processedEvents = filterThinking ? this.filterThinkingBlocks(events) : events;
-    const result = this.extractResult(processedEvents);
-    const messages = this.extractMessages(processedEvents);
-    const metadata = this.extractMetadata(events);
-    if (outputStyle) {
-      metadata.outputStyle = outputStyle;
-    }
-    return {
-      result,
-      messages,
-      events: processedEvents,
-      metadata
+  saveSession(sessionId, info) {
+    const session = {
+      sessionId,
+      ...info
     };
+    this.sessions.set(sessionId, session);
+    this.currentSessionId = sessionId;
+    console.log("[SessionManager] Saved session:", sessionId);
   }
   /**
-   * Build query with output-style injection
+   * Get session by ID
    */
-  buildQuery(query, outputStyle) {
-    if (!outputStyle) {
-      return query;
-    }
-    return `/output-style ${outputStyle}
-
-${query}`;
+  getSession(sessionId) {
+    return this.sessions.get(sessionId);
   }
   /**
-   * Execute Claude process and collect events
+   * Get all sessions sorted by timestamp (most recent first)
    */
-  async executeClaudeProcess(projectPath, query, options) {
-    return new Promise((resolve, reject) => {
-      const events = [];
-      const { model, mcpConfig, timeout = 12e4 } = options;
-      const args = [
-        "-p",
-        query,
-        "--output-format",
-        "stream-json",
-        "--verbose"
-      ];
-      if (model) {
-        args.push("--model", model);
-      }
-      if (mcpConfig) {
-        args.push("--mcp-config", mcpConfig);
-        args.push("--strict-mcp-config");
-      }
-      console.debug("Spawning Claude process", {
-        module: "ClaudeQueryAPI",
-        args,
-        cwd: projectPath
-      });
-      const child = spawn2("claude", args, {
-        cwd: projectPath,
-        shell: true,
-        env: {
-          ...process.env,
-          FORCE_COLOR: "0"
-        }
-      });
-      this.runningProcess = child;
-      let buffer = "";
-      let timeoutHandle = null;
-      if (timeout > 0) {
-        timeoutHandle = setTimeout(() => {
-          console.warn("Query timeout, killing process", {
-            module: "ClaudeQueryAPI",
-            timeout
-          });
-          child.kill("SIGTERM");
-          reject(new Error(`Query timeout after ${timeout}ms`));
-        }, timeout);
-      }
-      child.stdout.on("data", (data) => {
-        buffer += data.toString();
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const event = JSON.parse(line);
-            events.push(event);
-          } catch (error) {
-            console.debug("Failed to parse stream line", {
-              module: "ClaudeQueryAPI",
-              line: line.substring(0, 100)
-            });
-          }
-        }
-      });
-      child.stderr.on("data", (data) => {
-        console.debug("Claude stderr", {
-          module: "ClaudeQueryAPI",
-          data: data.toString()
-        });
-      });
-      child.on("close", (code) => {
-        this.runningProcess = null;
-        if (timeoutHandle) {
-          clearTimeout(timeoutHandle);
-        }
-        if (code === 0) {
-          console.info("Query completed successfully", {
-            module: "ClaudeQueryAPI",
-            eventsCount: events.length
-          });
-          resolve(events);
-        } else {
-          console.error("Query failed", void 0, {
-            module: "ClaudeQueryAPI",
-            code
-          });
-          reject(new Error(`Process exited with code ${code}`));
-        }
-      });
-      child.on("error", (error) => {
-        this.runningProcess = null;
-        if (timeoutHandle) {
-          clearTimeout(timeoutHandle);
-        }
-        console.error("Process error", error, {
-          module: "ClaudeQueryAPI"
-        });
-        reject(error);
-      });
-    });
+  getAllSessions() {
+    return Array.from(this.sessions.values()).sort((a, b) => b.timestamp - a.timestamp);
   }
   /**
-   * Filter thinking blocks from events
+   * Get current session ID
    */
-  filterThinkingBlocks(events) {
-    return events.map((event) => {
-      if (event.type === "message" && event.message?.content) {
-        return {
-          ...event,
-          message: {
-            ...event.message,
-            content: event.message.content.filter((block) => block.type !== "thinking")
-          }
-        };
-      }
-      return event;
-    });
+  getCurrentSessionId() {
+    return this.currentSessionId;
   }
   /**
-   * Extract final result from events
+   * Set current session ID
    */
-  extractResult(events) {
-    const resultEvent = events.find((e) => e.type === "result");
-    return resultEvent?.result || "";
+  setCurrentSessionId(sessionId) {
+    this.currentSessionId = sessionId;
   }
   /**
-   * Extract all assistant messages
+   * Update session with result
    */
-  extractMessages(events) {
-    const messages = [];
-    for (const event of events) {
-      if (event.type === "message" && event.subtype === "assistant") {
-        const content = event.message?.content || [];
-        for (const block of content) {
-          if (block.type === "text") {
-            messages.push(block.text);
-          }
-        }
-      }
-    }
-    return messages;
-  }
-  /**
-   * Extract execution metadata
-   */
-  extractMetadata(events) {
-    const resultEvent = events.find((e) => e.type === "result");
-    return {
-      totalCost: resultEvent?.total_cost_usd || 0,
-      durationMs: resultEvent?.duration_ms || 0,
-      numTurns: resultEvent?.num_turns || 0
-    };
-  }
-  /**
-   * Execute query and extract JSON result
-   *
-   * Automatically:
-   * - Uses 'structured-json' output-style
-   * - Filters thinking blocks
-   * - Extracts and validates JSON
-   */
-  async queryJSON(projectPath, query, options = {}) {
-    const { requiredFields, ...queryOptions } = options;
-    console.info("Executing JSON query", {
-      module: "ClaudeQueryAPI",
-      projectPath,
-      requiredFields: requiredFields?.length || 0
-    });
-    try {
-      const result = await this.query(projectPath, query, {
-        ...queryOptions,
-        outputStyle: "structured-json",
-        filterThinking: true
-      });
-      if (requiredFields && requiredFields.length > 0) {
-        return extractAndValidate(
-          result.result,
-          requiredFields
-        );
-      } else {
-        return extractJSON(result.result);
-      }
-    } catch (error) {
-      console.error("JSON query failed", error instanceof Error ? error : void 0, {
-        module: "ClaudeQueryAPI"
-      });
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
-      };
+  updateSessionResult(sessionId, result) {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.lastResult = result;
+      this.sessions.set(sessionId, session);
     }
   }
   /**
-   * Execute query and get typed JSON result with validation
+   * Clear all sessions
    */
-  async queryTypedJSON(projectPath, query, requiredFields, options = {}) {
-    return this.queryJSON(projectPath, query, {
-      ...options,
-      requiredFields
-    });
+  clearSessions() {
+    this.sessions.clear();
+    this.currentSessionId = null;
+    console.log("[SessionManager] Cleared all sessions");
   }
   /**
-   * Execute query with explicit JSON schema
-   *
-   * Automatically injects schema into prompt and validates response
+   * Remove a specific session
    */
-  async queryWithSchema(projectPath, instruction, schema, options = {}) {
-    console.info("Executing query with schema", {
-      module: "ClaudeQueryAPI",
-      projectPath,
-      schemaFields: Object.keys(schema).length
-    });
-    try {
-      const schemaPrompt = buildSchemaPrompt(schema, instruction);
-      console.debug("Built schema prompt", {
-        module: "ClaudeQueryAPI",
-        promptLength: schemaPrompt.length
-      });
-      const result = await this.query(projectPath, schemaPrompt, {
-        ...options,
-        outputStyle: "json",
-        filterThinking: true
-      });
-      const extracted = extractJSON(result.result);
-      if (!extracted.success) {
-        return extracted;
-      }
-      const validation = validateAgainstSchema(extracted.data, schema);
-      if (!validation.valid) {
-        console.warn("Schema validation failed", {
-          module: "ClaudeQueryAPI",
-          errors: validation.errors
-        });
-        return {
-          success: false,
-          error: `Schema validation failed: ${validation.errors.join("; ")}`,
-          raw: extracted.raw,
-          cleanedText: extracted.cleanedText
-        };
-      }
-      console.info("Schema query successful", {
-        module: "ClaudeQueryAPI",
-        dataKeys: extracted.data ? Object.keys(extracted.data).length : 0
-      });
-      return extracted;
-    } catch (error) {
-      console.error("Schema query failed", error instanceof Error ? error : void 0, {
-        module: "ClaudeQueryAPI"
-      });
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
-      };
+  removeSession(sessionId) {
+    const deleted = this.sessions.delete(sessionId);
+    if (deleted && this.currentSessionId === sessionId) {
+      this.currentSessionId = null;
     }
+    return deleted;
   }
   /**
-   * Kill running process
+   * Get session count
    */
-  kill() {
-    if (this.runningProcess) {
-      console.info("Killing running query process", {
-        module: "ClaudeQueryAPI"
-      });
-      this.runningProcess.kill("SIGTERM");
-      this.runningProcess = null;
-    }
-  }
-  /**
-   * Execute query with Zod schema validation (Standard Schema compliant)
-   *
-   * Output-style은 힌트 역할, 실제 검증은 Zod가 수행
-   *
-   * @example
-   * ```typescript
-   * import { z } from 'zod';
-   *
-   * const schema = z.object({
-   *   file: z.string(),
-   *   complexity: z.number().min(1).max(20)
-   * });
-   *
-   * const result = await api.queryWithZod(
-   *   projectPath,
-   *   'Analyze src/main.ts',
-   *   schema
-   * );
-   *
-   * if (result.success) {
-   *   console.log(result.data.file);
-   * }
-   * ```
-   */
-  async queryWithZod(projectPath, instruction, schema, options = {}) {
-    const { zodSchemaToPrompt: zodSchemaToPrompt2, validateWithZod: validateWithZod2 } = await import("./zodSchemaBuilder-O2NJUWMP.mjs");
-    console.info("Executing query with Zod schema", {
-      module: "ClaudeQueryAPI",
-      projectPath,
-      schemaType: schema.constructor.name
-    });
-    try {
-      const schemaPrompt = zodSchemaToPrompt2(schema, instruction);
-      console.debug("Built Zod schema prompt", {
-        module: "ClaudeQueryAPI",
-        promptLength: schemaPrompt.length
-      });
-      const result = await this.query(projectPath, schemaPrompt, {
-        ...options,
-        outputStyle: "json",
-        filterThinking: true
-      });
-      const extracted = extractJSON(result.result);
-      if (!extracted.success) {
-        return extracted;
-      }
-      const validation = validateWithZod2(extracted.data, schema);
-      if (!validation.success) {
-        console.warn("Zod validation failed", {
-          module: "ClaudeQueryAPI",
-          error: validation.error,
-          issuesCount: validation.issues.length
-        });
-        return {
-          success: false,
-          error: `Schema validation failed: ${validation.error}`,
-          raw: extracted.raw,
-          cleanedText: extracted.cleanedText
-        };
-      }
-      console.info("Zod validation successful", {
-        module: "ClaudeQueryAPI",
-        dataKeys: extracted.data ? Object.keys(extracted.data).length : 0
-      });
-      return {
-        success: true,
-        data: validation.data,
-        raw: extracted.raw,
-        cleanedText: extracted.cleanedText
-      };
-    } catch (error) {
-      console.error("Zod query failed", error instanceof Error ? error : void 0, {
-        module: "ClaudeQueryAPI"
-      });
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
-  /**
-   * Execute query with Standard Schema validation
-   *
-   * Zod v3.24.0+ 스키마는 자동으로 Standard Schema를 구현합니다.
-   *
-   * @example
-   * ```typescript
-   * import { z } from 'zod';
-   *
-   * const schema = z.object({
-   *   name: z.string(),
-   *   age: z.number()
-   * });
-   *
-   * const result = await api.queryWithStandardSchema(
-   *   projectPath,
-   *   'Get user info',
-   *   schema
-   * );
-   * ```
-   */
-  async queryWithStandardSchema(projectPath, instruction, schema, options = {}) {
-    const {
-      zodSchemaToPrompt: zodSchemaToPrompt2,
-      validateWithStandardSchema: validateWithStandardSchema2,
-      isStandardSchema
-    } = await import("./zodSchemaBuilder-O2NJUWMP.mjs");
-    console.info("Executing query with Standard Schema", {
-      module: "ClaudeQueryAPI",
-      projectPath
-    });
-    if (!isStandardSchema(schema)) {
-      return {
-        success: false,
-        error: "Provided schema does not implement Standard Schema V1"
-      };
-    }
-    try {
-      let schemaPrompt = instruction;
-      if ("_def" in schema) {
-        schemaPrompt = zodSchemaToPrompt2(schema, instruction);
-      } else {
-        schemaPrompt = `${instruction}
-
-Respond with valid JSON.`;
-      }
-      const result = await this.query(projectPath, schemaPrompt, {
-        ...options,
-        outputStyle: "json",
-        filterThinking: true
-      });
-      const extracted = extractJSON(result.result);
-      if (!extracted.success) {
-        return extracted;
-      }
-      const validation = await validateWithStandardSchema2(extracted.data, schema);
-      if (!validation.success) {
-        console.warn("Standard Schema validation failed", {
-          module: "ClaudeQueryAPI",
-          error: validation.error
-        });
-        return {
-          success: false,
-          error: `Schema validation failed: ${validation.error}`,
-          raw: extracted.raw,
-          cleanedText: extracted.cleanedText
-        };
-      }
-      console.info("Standard Schema validation successful", {
-        module: "ClaudeQueryAPI"
-      });
-      return {
-        success: true,
-        data: validation.data,
-        raw: extracted.raw,
-        cleanedText: extracted.cleanedText
-      };
-    } catch (error) {
-      console.error("Standard Schema query failed", error instanceof Error ? error : void 0, {
-        module: "ClaudeQueryAPI"
-      });
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
-};
-
-// src/entrypoint/EntryPointManager.ts
-import * as fs2 from "fs";
-import * as path2 from "path";
-
-// src/entrypoint/SchemaManager.ts
-import * as fs from "fs";
-import * as path from "path";
-var SchemaManager = class {
-  constructor(projectPath) {
-    this.cachedSchemas = /* @__PURE__ */ new Map();
-    this.schemasDir = path.join(projectPath, "workflow", "schemas");
-    this.ensureSchemasDir();
-  }
-  /**
-   * 스키마 디렉토리 생성
-   */
-  ensureSchemasDir() {
-    if (!fs.existsSync(this.schemasDir)) {
-      fs.mkdirSync(this.schemasDir, { recursive: true });
-    }
-  }
-  /**
-   * 스키마 로드
-   */
-  loadSchema(schemaName) {
-    if (this.cachedSchemas.has(schemaName)) {
-      return this.cachedSchemas.get(schemaName);
-    }
-    const schemaPath = path.join(this.schemasDir, `${schemaName}.json`);
-    if (!fs.existsSync(schemaPath)) {
-      return null;
-    }
-    try {
-      const content = fs.readFileSync(schemaPath, "utf-8");
-      const schema = JSON.parse(content);
-      this.cachedSchemas.set(schemaName, schema);
-      return schema;
-    } catch (error) {
-      console.error(`Failed to load schema ${schemaName}:`, error);
-      return null;
-    }
-  }
-  /**
-   * 스키마 저장
-   */
-  saveSchema(schema) {
-    const schemaPath = path.join(this.schemasDir, `${schema.name}.json`);
-    try {
-      fs.writeFileSync(schemaPath, JSON.stringify(schema, null, 2), "utf-8");
-      this.cachedSchemas.set(schema.name, schema);
-      console.log(`Schema saved: ${schema.name}`);
-    } catch (error) {
-      console.error(`Failed to save schema ${schema.name}:`, error);
-      throw error;
-    }
-  }
-  /**
-   * 모든 스키마 목록 조회
-   */
-  listSchemas() {
-    if (!fs.existsSync(this.schemasDir)) {
-      return [];
-    }
-    try {
-      const files = fs.readdirSync(this.schemasDir);
-      return files.filter((f) => f.endsWith(".json")).map((f) => f.replace(".json", ""));
-    } catch (error) {
-      console.error("Failed to list schemas:", error);
-      return [];
-    }
-  }
-  /**
-   * 스키마 삭제
-   */
-  deleteSchema(schemaName) {
-    const schemaPath = path.join(this.schemasDir, `${schemaName}.json`);
-    if (!fs.existsSync(schemaPath)) {
-      return false;
-    }
-    try {
-      fs.unlinkSync(schemaPath);
-      this.cachedSchemas.delete(schemaName);
-      console.log(`Schema deleted: ${schemaName}`);
-      return true;
-    } catch (error) {
-      console.error(`Failed to delete schema ${schemaName}:`, error);
-      return false;
-    }
-  }
-  /**
-   * 스키마 존재 여부 확인
-   */
-  schemaExists(schemaName) {
-    const schemaPath = path.join(this.schemasDir, `${schemaName}.json`);
-    return fs.existsSync(schemaPath);
-  }
-  /**
-   * 캐시 초기화
-   */
-  clearCache() {
-    this.cachedSchemas.clear();
-  }
-  /**
-   * 스키마 디렉토리 경로 반환
-   */
-  getSchemasDir() {
-    return this.schemasDir;
-  }
-};
-
-// src/entrypoint/EntryPointManager.ts
-var EntryPointManager = class {
-  constructor(projectPath) {
-    this.cachedConfig = null;
-    this.projectPath = projectPath;
-    this.configPath = path2.join(projectPath, "workflow", "entry-points.json");
-    this.ensureConfigFile();
-  }
-  /**
-   * 설정 파일 초기화
-   */
-  ensureConfigFile() {
-    const workflowDir = path2.dirname(this.configPath);
-    if (!fs2.existsSync(workflowDir)) {
-      fs2.mkdirSync(workflowDir, { recursive: true });
-    }
-    if (!fs2.existsSync(this.configPath)) {
-      const defaultConfig = {
-        version: "1.0.0",
-        entryPoints: {}
-      };
-      fs2.writeFileSync(this.configPath, JSON.stringify(defaultConfig, null, 2), "utf-8");
-    }
-  }
-  /**
-   * 설정 로드
-   */
-  loadConfig() {
-    if (this.cachedConfig) {
-      return this.cachedConfig;
-    }
-    try {
-      const content = fs2.readFileSync(this.configPath, "utf-8");
-      this.cachedConfig = JSON.parse(content);
-      return this.cachedConfig;
-    } catch (error) {
-      console.error("Failed to load entry points config:", error);
-      return { version: "1.0.0", entryPoints: {} };
-    }
-  }
-  /**
-   * 설정 저장
-   */
-  saveConfig(config) {
-    try {
-      fs2.writeFileSync(this.configPath, JSON.stringify(config, null, 2), "utf-8");
-      this.cachedConfig = config;
-    } catch (error) {
-      console.error("Failed to save entry points config:", error);
-      throw error;
-    }
-  }
-  /**
-   * 진입점 추가/업데이트
-   */
-  setEntryPoint(config) {
-    const validation = this.validateEntryPoint(config);
-    if (!validation.valid) {
-      const errorMessage = `Entry point validation failed:
-${validation.errors.join("\n")}`;
-      console.error(errorMessage);
-      throw new Error(errorMessage);
-    }
-    if (validation.warnings.length > 0) {
-      console.warn("Entry point validation warnings:");
-      validation.warnings.forEach((warning) => console.warn(`  - ${warning}`));
-    }
-    const allConfig = this.loadConfig();
-    allConfig.entryPoints[config.name] = config;
-    this.saveConfig(allConfig);
-    console.log(`Entry point saved: ${config.name}`);
-  }
-  /**
-   * 진입점 조회
-   */
-  getEntryPoint(name) {
-    const config = this.loadConfig();
-    return config.entryPoints[name] || null;
-  }
-  /**
-   * 진입점 상세 정보 조회 (스키마 포함)
-   * 실행 전에 예상 출력 형식을 명확히 파악하기 위한 메서드
-   */
-  getEntryPointDetail(name) {
-    const entryPoint = this.getEntryPoint(name);
-    if (!entryPoint) {
-      return null;
-    }
-    const schemaManager = new SchemaManager(this.projectPath);
-    let schema;
-    let fields;
-    let examples;
-    if (entryPoint.outputFormat.type === "structured") {
-      const schemaName = entryPoint.outputFormat.schemaName || entryPoint.outputFormat.schema?.replace(".json", "");
-      if (schemaName) {
-        schema = schemaManager.loadSchema(schemaName);
-        if (schema) {
-          fields = schema.schema;
-          examples = schema.examples;
-        }
-      }
-    }
-    let description;
-    switch (entryPoint.outputFormat.type) {
-      case "text":
-        description = "\uC77C\uBC18 \uD14D\uC2A4\uD2B8 \uD615\uC2DD\uC758 \uC790\uC720\uB85C\uC6B4 \uC751\uB2F5";
-        break;
-      case "json":
-        description = "JSON \uD615\uC2DD\uC758 \uAD6C\uC870\uD654\uB41C \uC751\uB2F5 (\uC2A4\uD0A4\uB9C8 \uAC80\uC99D \uC5C6\uC74C)";
-        break;
-      case "structured":
-        description = schema ? `${schema.description} - JSON \uD615\uC2DD\uC758 \uC2A4\uD0A4\uB9C8 \uAC80\uC99D\uB41C \uC751\uB2F5` : "JSON \uD615\uC2DD\uC758 \uC2A4\uD0A4\uB9C8 \uAC80\uC99D\uB41C \uC751\uB2F5";
-        break;
-    }
-    return {
-      config: entryPoint,
-      schema: schema || void 0,
-      expectedOutput: {
-        type: entryPoint.outputFormat.type,
-        description,
-        fields,
-        examples
-      }
-    };
-  }
-  /**
-   * 모든 진입점 조회
-   */
-  getAllEntryPoints() {
-    const config = this.loadConfig();
-    return config.entryPoints;
-  }
-  /**
-   * 진입점 목록 조회
-   */
-  listEntryPoints() {
-    const config = this.loadConfig();
-    return Object.keys(config.entryPoints);
-  }
-  /**
-   * 진입점 삭제
-   */
-  deleteEntryPoint(name) {
-    const config = this.loadConfig();
-    if (!config.entryPoints[name]) {
-      return false;
-    }
-    delete config.entryPoints[name];
-    this.saveConfig(config);
-    console.log(`Entry point deleted: ${name}`);
-    return true;
-  }
-  /**
-   * 진입점 존재 여부 확인
-   */
-  entryPointExists(name) {
-    const config = this.loadConfig();
-    return !!config.entryPoints[name];
-  }
-  /**
-   * 진입점 검증
-   */
-  validateEntryPoint(config) {
-    const errors = [];
-    const warnings = [];
-    if (!config.name || config.name.trim() === "") {
-      errors.push("Entry point name is required");
-    }
-    if (!config.description || config.description.trim() === "") {
-      errors.push("Entry point description is required");
-    }
-    if (!config.outputFormat) {
-      errors.push("Output format is required");
-    }
-    if (config.outputFormat) {
-      if (!["text", "json", "structured"].includes(config.outputFormat.type)) {
-        errors.push("Invalid output format type");
-      }
-      if (config.outputFormat.type === "structured" && !config.outputFormat.schema && !config.outputFormat.schemaName) {
-        errors.push("Schema is required for structured output");
-      }
-      if (config.outputFormat.type === "structured") {
-        const schemaName = config.outputFormat.schemaName || config.outputFormat.schema?.replace(".json", "");
-        if (schemaName) {
-          const schemaManager = new SchemaManager(this.projectPath);
-          if (!schemaManager.schemaExists(schemaName)) {
-            errors.push(`Schema '${schemaName}' does not exist in workflow/schemas/. Please create it first using SchemaManager.`);
-          }
-        }
-      }
-    }
-    if (config.options) {
-      if (config.options.model && !["sonnet", "opus", "haiku"].includes(config.options.model)) {
-        errors.push("Invalid model name");
-      }
-      if (config.options.timeout && config.options.timeout < 1e3) {
-        warnings.push("Timeout should be at least 1000ms");
-      }
-    }
-    return {
-      valid: errors.length === 0,
-      errors,
-      warnings
-    };
-  }
-  /**
-   * 태그로 진입점 필터링
-   */
-  filterByTag(tag) {
-    const config = this.loadConfig();
-    return Object.values(config.entryPoints).filter((ep) => ep.tags?.includes(tag));
-  }
-  /**
-   * 진입점 검색
-   */
-  searchEntryPoints(query) {
-    const config = this.loadConfig();
-    const lowerQuery = query.toLowerCase();
-    return Object.values(config.entryPoints).filter(
-      (ep) => ep.name.toLowerCase().includes(lowerQuery) || ep.description.toLowerCase().includes(lowerQuery) || ep.tags?.some((tag) => tag.toLowerCase().includes(lowerQuery))
-    );
-  }
-  /**
-   * 캐시 초기화
-   */
-  clearCache() {
-    this.cachedConfig = null;
-  }
-  /**
-   * 설정 파일 경로 반환
-   */
-  getConfigPath() {
-    return this.configPath;
-  }
-};
-
-// src/entrypoint/EntryPointExecutor.ts
-var EntryPointExecutor = class {
-  constructor(projectPath) {
-    this.entryPointManager = new EntryPointManager(projectPath);
-    this.schemaManager = new SchemaManager(projectPath);
-    this.queryAPI = new ClaudeQueryAPI();
-  }
-  /**
-   * 진입점을 통해 쿼리 실행
-   */
-  async execute(params) {
-    const startTime = Date.now();
-    try {
-      const entryPoint = this.entryPointManager.getEntryPoint(params.entryPoint);
-      if (!entryPoint) {
-        return {
-          success: false,
-          error: `Entry point not found: ${params.entryPoint}`,
-          metadata: {
-            entryPoint: params.entryPoint,
-            duration: Date.now() - startTime,
-            model: "unknown"
-          }
-        };
-      }
-      console.log(`
-[EntryPoint: ${entryPoint.name}]`);
-      console.log(`Description: ${entryPoint.description}`);
-      console.log(`Output Format: ${entryPoint.outputFormat.type}`);
-      const model = params.options?.model || entryPoint.options?.model;
-      const mcpConfig = params.options?.mcpConfig || entryPoint.options?.mcpConfig;
-      const timeout = params.options?.timeout || entryPoint.options?.timeout;
-      const filterThinking = entryPoint.options?.filterThinking ?? true;
-      let result;
-      switch (entryPoint.outputFormat.type) {
-        case "structured":
-          result = await this.executeStructured(params, entryPoint, {
-            model,
-            mcpConfig,
-            timeout,
-            filterThinking
-          });
-          break;
-        case "json":
-          result = await this.executeJSON(params, entryPoint, {
-            model,
-            mcpConfig,
-            timeout,
-            filterThinking
-          });
-          break;
-        case "text":
-        default:
-          result = await this.executeText(params, entryPoint, {
-            model,
-            mcpConfig,
-            timeout,
-            filterThinking
-          });
-          break;
-      }
-      result.metadata.duration = Date.now() - startTime;
-      return result;
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-        metadata: {
-          entryPoint: params.entryPoint,
-          duration: Date.now() - startTime,
-          model: "unknown"
-        }
-      };
-    }
-  }
-  /**
-   * Structured 형식으로 실행 (스키마 검증)
-   */
-  async executeStructured(params, entryPoint, options) {
-    const schemaName = entryPoint.outputFormat.schemaName || entryPoint.outputFormat.schema?.replace(".json", "");
-    if (!schemaName) {
-      return {
-        success: false,
-        error: "Schema not specified",
-        metadata: {
-          entryPoint: params.entryPoint,
-          duration: 0,
-          model: options.model || "sonnet"
-        }
-      };
-    }
-    const schemaDefinition = this.schemaManager.loadSchema(schemaName);
-    if (!schemaDefinition) {
-      return {
-        success: false,
-        error: `Schema not found: ${schemaName}`,
-        metadata: {
-          entryPoint: params.entryPoint,
-          duration: 0,
-          model: options.model || "sonnet"
-        }
-      };
-    }
-    console.log(`Using schema: ${schemaDefinition.name}`);
-    const schemaPrompt = buildSchemaPrompt(schemaDefinition.schema, params.query);
-    const queryResult = await this.queryAPI.query(params.projectPath, schemaPrompt, {
-      outputStyle: entryPoint.outputStyle,
-      model: options.model,
-      mcpConfig: options.mcpConfig,
-      timeout: options.timeout,
-      filterThinking: options.filterThinking
-    });
-    const extracted = extractJSON(queryResult.result);
-    if (!extracted.success) {
-      return {
-        success: false,
-        error: extracted.error,
-        rawResult: queryResult.result,
-        metadata: {
-          entryPoint: params.entryPoint,
-          duration: queryResult.metadata.durationMs,
-          model: options.model || "sonnet"
-        }
-      };
-    }
-    const validation = validateAgainstSchema(extracted.data, schemaDefinition.schema);
-    if (!validation.valid) {
-      console.warn("Schema validation warnings:", validation.errors);
-    }
-    return {
-      success: true,
-      data: extracted.data,
-      rawResult: queryResult.result,
-      metadata: {
-        entryPoint: params.entryPoint,
-        duration: queryResult.metadata.durationMs,
-        model: options.model || "sonnet"
-      }
-    };
-  }
-  /**
-   * JSON 형식으로 실행 (스키마 없음)
-   */
-  async executeJSON(params, entryPoint, options) {
-    const enhancedQuery = `${params.query}
-
-Respond with valid JSON only.`;
-    const queryResult = await this.queryAPI.query(params.projectPath, enhancedQuery, {
-      outputStyle: entryPoint.outputStyle || "json",
-      model: options.model,
-      mcpConfig: options.mcpConfig,
-      timeout: options.timeout,
-      filterThinking: options.filterThinking
-    });
-    const extracted = extractJSON(queryResult.result);
-    if (!extracted.success) {
-      return {
-        success: false,
-        error: extracted.error,
-        rawResult: queryResult.result,
-        metadata: {
-          entryPoint: params.entryPoint,
-          duration: queryResult.metadata.durationMs,
-          model: options.model || "sonnet"
-        }
-      };
-    }
-    return {
-      success: true,
-      data: extracted.data,
-      rawResult: queryResult.result,
-      metadata: {
-        entryPoint: params.entryPoint,
-        duration: queryResult.metadata.durationMs,
-        model: options.model || "sonnet"
-      }
-    };
-  }
-  /**
-   * Text 형식으로 실행
-   */
-  async executeText(params, entryPoint, options) {
-    const queryResult = await this.queryAPI.query(params.projectPath, params.query, {
-      outputStyle: entryPoint.outputStyle,
-      model: options.model,
-      mcpConfig: options.mcpConfig,
-      timeout: options.timeout,
-      filterThinking: options.filterThinking
-    });
-    return {
-      success: true,
-      rawResult: queryResult.result,
-      metadata: {
-        entryPoint: params.entryPoint,
-        duration: queryResult.metadata.durationMs,
-        model: options.model || "sonnet"
-      }
-    };
-  }
-  /**
-   * 진입점 목록 조회
-   */
-  listEntryPoints() {
-    return this.entryPointManager.listEntryPoints();
-  }
-  /**
-   * 진입점 상세 조회
-   */
-  getEntryPointInfo(name) {
-    return this.entryPointManager.getEntryPoint(name);
-  }
-  /**
-   * 쿼리 API 인스턴스 반환 (Kill 등을 위해)
-   */
-  getQueryAPI() {
-    return this.queryAPI;
+  getSessionCount() {
+    return this.sessions.size;
   }
 };
 export {

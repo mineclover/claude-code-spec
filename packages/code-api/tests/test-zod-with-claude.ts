@@ -26,7 +26,7 @@ async function main() {
     linesOfCode: z.number().min(0).describe('Total lines'),
     language: z.enum(['typescript', 'javascript', 'python']).describe('Programming language'),
     complexity: z.number().min(1).max(20).describe('Code complexity'),
-    mainPurpose: z.string().describe('Primary purpose of file')
+    mainPurpose: z.string().describe('Primary purpose of file'),
   });
 
   console.log('Executing query with Zod schema...\n');
@@ -35,7 +35,7 @@ async function main() {
     projectPath,
     'Analyze src/lib/zodSchemaBuilder.ts',
     fileAnalysisSchema,
-    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 }
+    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 },
   );
 
   if (result1.success) {
@@ -69,7 +69,7 @@ async function main() {
     projectPath,
     'Review src/lib/jsonExtractor.ts for code quality',
     codeReviewSchema,
-    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 }
+    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 },
   );
 
   if (result2.success) {
@@ -107,11 +107,11 @@ async function main() {
       .array(
         z.object({
           path: z.string(),
-          purpose: z.string()
-        })
+          purpose: z.string(),
+        }),
       )
       .describe('Important files'),
-    architecture: z.string().describe('Architecture pattern')
+    architecture: z.string().describe('Architecture pattern'),
   });
 
   console.log('Executing complex project analysis...\n');
@@ -120,7 +120,7 @@ async function main() {
     projectPath,
     'Analyze this project structure and architecture',
     projectAnalysisSchema,
-    { mcpConfig: '.claude/.mcp-empty.json', timeout: 90000 }
+    { mcpConfig: '.claude/.mcp-empty.json', timeout: 90000 },
   );
 
   if (result3.success) {
@@ -150,7 +150,7 @@ async function main() {
 
   const simpleSchema = z.object({
     message: z.string(),
-    count: z.number()
+    count: z.number(),
   });
 
   console.log('Schema has ~standard property:', '~standard' in simpleSchema);
@@ -159,7 +159,7 @@ async function main() {
     projectPath,
     'Count the number of .ts files in src/ directory and provide a message',
     simpleSchema,
-    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 }
+    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 },
   );
 
   if (result4.success) {

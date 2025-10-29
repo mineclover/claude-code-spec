@@ -4,7 +4,8 @@
  * Dropdown selector for output-styles
  */
 
-import React, { useEffect, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import styles from './OutputStyleSelector.module.css';
 
 interface OutputStyleSelectorProps {
@@ -18,17 +19,13 @@ export function OutputStyleSelector({
   projectPath,
   value,
   onChange,
-  disabled = false
+  disabled = false,
 }: OutputStyleSelectorProps) {
   const [styleNames, setStyleNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadStyleNames();
-  }, [projectPath]);
-
-  const loadStyleNames = async () => {
+  const loadStyleNames = useCallback(async () => {
     if (!projectPath) return;
 
     setLoading(true);
@@ -43,7 +40,11 @@ export function OutputStyleSelector({
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectPath]);
+
+  useEffect(() => {
+    loadStyleNames();
+  }, [loadStyleNames]);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedValue = e.target.value;
@@ -90,9 +91,7 @@ export function OutputStyleSelector({
         ))}
       </select>
       {value && (
-        <div className={styles.hint}>
-          Output will be formatted according to '{value}' style
-        </div>
+        <div className={styles.hint}>Output will be formatted according to '{value}' style</div>
       )}
     </div>
   );

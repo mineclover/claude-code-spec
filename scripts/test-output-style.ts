@@ -7,7 +7,6 @@
  */
 
 import { spawn } from 'node:child_process';
-import * as path from 'node:path';
 
 interface StreamEvent {
   type: string;
@@ -21,7 +20,7 @@ interface StreamEvent {
 async function executeWithOutputStyle(
   projectPath: string,
   query: string,
-  outputStyle?: string
+  outputStyle?: string,
 ): Promise<StreamEvent[]> {
   return new Promise((resolve, reject) => {
     const events: StreamEvent[] = [];
@@ -32,7 +31,7 @@ async function executeWithOutputStyle(
       outputStyle ? `/output-style ${outputStyle}\n\n${query}` : query,
       '--output-format',
       'stream-json',
-      '--verbose'
+      '--verbose',
     ];
 
     console.log(`\n🚀 Executing Claude with output-style: ${outputStyle || 'default'}`);
@@ -44,8 +43,8 @@ async function executeWithOutputStyle(
       shell: true,
       env: {
         ...process.env,
-        FORCE_COLOR: '0'
-      }
+        FORCE_COLOR: '0',
+      },
     });
 
     let buffer = '';
@@ -75,7 +74,7 @@ async function executeWithOutputStyle(
           } else if (event.type === 'result') {
             console.log(`✅ Result: ${event.result?.substring(0, 200)}...`);
           }
-        } catch (error) {
+        } catch (_error) {
           // Skip invalid JSON lines
         }
       }
@@ -103,14 +102,14 @@ async function executeWithOutputStyle(
  * Filter out thinking blocks from stream events
  */
 function filterThinking(events: StreamEvent[]): StreamEvent[] {
-  return events.map(event => {
+  return events.map((event) => {
     if (event.type === 'message' && event.message?.content) {
       return {
         ...event,
         message: {
           ...event.message,
-          content: event.message.content.filter((block: any) => block.type !== 'thinking')
-        }
+          content: event.message.content.filter((block: any) => block.type !== 'thinking'),
+        },
       };
     }
     return event;
@@ -121,7 +120,7 @@ function filterThinking(events: StreamEvent[]): StreamEvent[] {
  * Extract final result from events
  */
 function extractResult(events: StreamEvent[]): string | null {
-  const resultEvent = events.find(e => e.type === 'result');
+  const resultEvent = events.find((e) => e.type === 'result');
   return resultEvent?.result || null;
 }
 
@@ -159,7 +158,7 @@ async function main() {
   console.log('\n--- Test 1: Default Mode ---');
   const defaultEvents = await executeWithOutputStyle(
     projectPath,
-    'List the files in src/services directory. Be brief.'
+    'List the files in src/services directory. Be brief.',
   );
 
   console.log('\n📊 Default Mode Results:');
@@ -172,7 +171,7 @@ async function main() {
   const jsonEvents = await executeWithOutputStyle(
     projectPath,
     'Review these services and rate them: AgentLoader.ts, AgentPoolManager.ts, ProcessManager.ts, TaskRouter.ts',
-    'structured-json'
+    'structured-json',
   );
 
   console.log('\n📊 JSON Mode Results:');
@@ -185,23 +184,21 @@ async function main() {
     try {
       const parsed = JSON.parse(jsonResult);
       console.log(`  ✅ Valid JSON! Keys: ${Object.keys(parsed).join(', ')}`);
-    } catch (e) {
+    } catch (_e) {
       console.log(`  ❌ Not valid JSON`);
     }
   }
 
   // Test 3: Filter thinking
   console.log('\n\n--- Test 3: Thinking Filter ---');
-  const withThinking = defaultEvents.filter(e =>
-    e.type === 'message' &&
-    e.message?.content?.some((b: any) => b.type === 'thinking')
+  const withThinking = defaultEvents.filter(
+    (e) => e.type === 'message' && e.message?.content?.some((b: any) => b.type === 'thinking'),
   );
   console.log(`  Events with thinking: ${withThinking.length}`);
 
   const filtered = filterThinking(defaultEvents);
-  const withoutThinking = filtered.filter(e =>
-    e.type === 'message' &&
-    e.message?.content?.some((b: any) => b.type === 'thinking')
+  const withoutThinking = filtered.filter(
+    (e) => e.type === 'message' && e.message?.content?.some((b: any) => b.type === 'thinking'),
   );
   console.log(`  Events after filter: ${withoutThinking.length}`);
 
@@ -211,7 +208,7 @@ async function main() {
 }
 
 // Run tests
-main().catch(error => {
+main().catch((error) => {
   console.error('Test failed:', error);
   process.exit(1);
 });

@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/prefer-button */
 import type React from 'react';
 import type { ExecutionInfo } from '../../types/api';
 import styles from './ExecutionsList.module.css';

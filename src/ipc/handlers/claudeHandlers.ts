@@ -3,11 +3,15 @@
  * Handles Claude CLI execution and session management with ProcessManager
  */
 
-import { BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import type { SessionManager, StreamEvent } from '@context-action/code-api';
-import { extractSessionId, isResultEvent, isSystemInitEvent } from '@context-action/code-api';
+import {
+  extractSessionId,
+  isResultEvent,
+  isSystemInitEvent,
+  processManager,
+} from '@context-action/code-api';
+import { BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import type { SessionLogger } from '../../services/logger';
-import { processManager } from '@context-action/code-api';
 import type { IPCRouter } from '../IPCRouter';
 
 interface ClaudeHandlersContext {

@@ -120,10 +120,14 @@ export class AgentLoader {
             scope: 'global',
           });
         } catch (error) {
-          appLogger.error('Failed to load global agent file', error instanceof Error ? error : undefined, {
-            module: 'AgentLoader',
-            file,
-          });
+          appLogger.error(
+            'Failed to load global agent file',
+            error instanceof Error ? error : undefined,
+            {
+              module: 'AgentLoader',
+              file,
+            },
+          );
         }
       }
 

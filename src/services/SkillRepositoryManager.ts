@@ -34,7 +34,6 @@ const DEFAULT_CONFIG: SkillRepositoryConfig = {
 const CONFIG_FILE = path.join(os.homedir(), '.claude', 'skills-repo-config.json');
 const SKILL_FILE_NAME = 'SKILL.md';
 
-
 export class SkillRepositoryManager {
   private config: SkillRepositoryConfig;
 
@@ -316,10 +315,21 @@ export class SkillRepositoryManager {
     if (scope === 'project' && !projectPath) {
       throw new Error('projectPath is required for project scope');
     }
-    const baseDir =
-      scope === 'global'
-        ? path.join(os.homedir(), '.claude', 'plugins', 'marketplaces', 'anthropic-agent-skills')
-        : path.join(projectPath!, '.claude', 'skills');
+    const baseDir = (() => {
+      if (scope === 'global') {
+        return path.join(
+          os.homedir(),
+          '.claude',
+          'plugins',
+          'marketplaces',
+          'anthropic-agent-skills',
+        );
+      } else if (projectPath) {
+        return path.join(projectPath, '.claude', 'skills');
+      } else {
+        throw new Error('projectPath is required for project scope');
+      }
+    })();
 
     const targetDir = path.join(baseDir, targetName);
 
@@ -373,10 +383,21 @@ export class SkillRepositoryManager {
     if (scope === 'project' && !projectPath) {
       throw new Error('projectPath is required for project scope');
     }
-    const baseDir =
-      scope === 'global'
-        ? path.join(os.homedir(), '.claude', 'plugins', 'marketplaces', 'anthropic-agent-skills')
-        : path.join(projectPath!, '.claude', 'skills');
+    const baseDir = (() => {
+      if (scope === 'global') {
+        return path.join(
+          os.homedir(),
+          '.claude',
+          'plugins',
+          'marketplaces',
+          'anthropic-agent-skills',
+        );
+      } else if (projectPath) {
+        return path.join(projectPath, '.claude', 'skills');
+      } else {
+        throw new Error('projectPath is required for project scope');
+      }
+    })();
 
     const installedPath = path.join(baseDir, skillId, SKILL_FILE_NAME);
 

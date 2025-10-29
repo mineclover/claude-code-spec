@@ -7,8 +7,8 @@
  * - Output-style은 힌트, 실제 검증은 Zod
  */
 
-import { z } from 'zod';
 import type { ZodType, ZodTypeDef } from 'zod';
+import { z } from 'zod';
 
 /**
  * Standard Schema 타입 체크
@@ -80,7 +80,7 @@ export namespace StandardSchemaV1 {
  */
 export function zodSchemaToPrompt<T extends ZodType<any, any, any>>(
   schema: T,
-  instruction?: string
+  instruction?: string,
 ): string {
   const sections: string[] = [];
 
@@ -257,11 +257,11 @@ export const CommonSchemas = {
           z.object({
             severity: z.enum(['low', 'medium', 'high']),
             message: z.string(),
-            line: z.number().optional()
-          })
+            line: z.number().optional(),
+          }),
         )
         .describe('List of issues found'),
-      suggestions: z.array(z.string()).describe('Improvement suggestions')
+      suggestions: z.array(z.string()).describe('Improvement suggestions'),
     }),
 
   /**
@@ -277,9 +277,9 @@ export const CommonSchemas = {
       performance: z
         .object({
           avgDuration: z.number(),
-          avgCost: z.number()
+          avgCost: z.number(),
         })
-        .describe('Performance metrics')
+        .describe('Performance metrics'),
     }),
 
   /**
@@ -293,12 +293,12 @@ export const CommonSchemas = {
           z.object({
             stepNumber: z.number(),
             description: z.string(),
-            estimatedDuration: z.string()
-          })
+            estimatedDuration: z.string(),
+          }),
         )
         .describe('Execution steps'),
       total_estimated_duration: z.string().describe('Total estimated time'),
-      risks: z.array(z.string()).describe('Potential risks')
+      risks: z.array(z.string()).describe('Potential risks'),
     }),
 
   /**
@@ -308,8 +308,8 @@ export const CommonSchemas = {
     z.object({
       review: z.number().min(1).max(10).describe('Quality score'),
       name: z.string().describe('Item name'),
-      tags: z.array(z.string()).describe('Tags/categories')
-    })
+      tags: z.array(z.string()).describe('Tags/categories'),
+    }),
 };
 
 /**
@@ -317,21 +317,21 @@ export const CommonSchemas = {
  */
 export function validateWithZod<T>(
   data: unknown,
-  schema: ZodType<T, ZodTypeDef, any>
+  schema: ZodType<T, ZodTypeDef, any>,
 ): { success: true; data: T } | { success: false; error: string; issues: z.ZodIssue[] } {
   const result = schema.safeParse(data);
 
   if (result.success) {
     return {
       success: true,
-      data: result.data
+      data: result.data,
     };
   }
 
   return {
     success: false,
     error: result.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join('; '),
-    issues: result.error.errors
+    issues: result.error.errors,
   };
 }
 
@@ -342,7 +342,7 @@ export function validateWithZod<T>(
  */
 export async function validateWithStandardSchema<T extends StandardSchemaV1>(
   data: unknown,
-  schema: T
+  schema: T,
 ): Promise<
   | { success: true; data: StandardSchemaV1.InferOutput<T> }
   | { success: false; error: string; issues: readonly StandardSchemaV1.Issue[] }
@@ -351,7 +351,7 @@ export async function validateWithStandardSchema<T extends StandardSchemaV1>(
     return {
       success: false,
       error: 'Provided schema does not implement Standard Schema',
-      issues: []
+      issues: [],
     };
   }
 
@@ -361,12 +361,12 @@ export async function validateWithStandardSchema<T extends StandardSchemaV1>(
     return {
       success: false,
       error: result.issues.map((issue) => issue.message).join('; '),
-      issues: result.issues
+      issues: result.issues,
     };
   }
 
   return {
     success: true,
-    data: (result as StandardSchemaV1.SuccessResult<any>).value
+    data: (result as StandardSchemaV1.SuccessResult<any>).value,
   };
 }

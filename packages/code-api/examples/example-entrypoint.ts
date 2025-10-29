@@ -6,11 +6,11 @@
  */
 
 import {
-  EntryPointManager,
-  SchemaManager,
-  EntryPointExecutor,
   type EntryPointConfig,
+  EntryPointExecutor,
+  EntryPointManager,
   type SchemaDefinition,
+  SchemaManager,
 } from '../src/entrypoint';
 
 async function main() {
@@ -112,10 +112,7 @@ async function main() {
       timeout: 120000,
       filterThinking: true,
     },
-    examples: [
-      'Analyze src/main.ts for code quality',
-      'Review src/components/Header.tsx',
-    ],
+    examples: ['Analyze src/main.ts for code quality', 'Review src/components/Header.tsx'],
     tags: ['code-quality', 'analysis', 'structured'],
   };
 
@@ -179,10 +176,12 @@ async function main() {
 
     if (codeReviewDetail.expectedOutput.fields) {
       console.log(`\n📝 출력 필드:`);
-      Object.entries(codeReviewDetail.expectedOutput.fields).forEach(([key, value]: [string, any]) => {
-        const required = value.required ? '(필수)' : '(선택)';
-        console.log(`   - ${key}: ${value.type} ${required} - ${value.description}`);
-      });
+      Object.entries(codeReviewDetail.expectedOutput.fields).forEach(
+        ([key, value]: [string, any]) => {
+          const required = value.required ? '(필수)' : '(선택)';
+          console.log(`   - ${key}: ${value.type} ${required} - ${value.description}`);
+        },
+      );
     }
 
     if (codeReviewDetail.schema?.examples && codeReviewDetail.schema.examples.length > 0) {

@@ -5,9 +5,9 @@
  * across both StreamOutput and SessionLogViewer contexts.
  */
 
+import type { StreamEvent } from '@context-action/code-api';
 import type React from 'react';
 import type { ClaudeSessionEntry } from '../preload';
-import type { StreamEvent } from '@context-action/code-api';
 
 // ============================================================================
 // Unified Event Type

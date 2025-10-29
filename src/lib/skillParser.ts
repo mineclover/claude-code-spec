@@ -162,7 +162,14 @@ export function serializeSkill(skill: Partial<Skill>): string {
     throw new Error('Cannot serialize skill without frontmatter');
   }
 
-  const yamlFrontmatter = stringifyYaml(frontmatter);
+  // Remove undefined values from frontmatter
+  const cleanedFrontmatter = Object.fromEntries(
+    Object.entries(frontmatter).filter(([, value]) => value !== undefined),
+  );
+
+  const yamlFrontmatter = stringifyYaml(
+    cleanedFrontmatter as Record<string, string | number | boolean | string[]>,
+  );
   const markdown = content || '';
 
   return `---\n${yamlFrontmatter}\n---\n${markdown}\n`;

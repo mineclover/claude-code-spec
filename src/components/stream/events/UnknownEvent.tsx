@@ -1,5 +1,5 @@
-import type React from 'react';
 import type { StreamEvent } from '@context-action/code-api';
+import type React from 'react';
 import { CodeBlock } from '../common/CodeBlock';
 import { EventBox } from '../common/EventBox';
 

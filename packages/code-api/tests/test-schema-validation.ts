@@ -7,13 +7,13 @@
 
 import { ClaudeQueryAPI } from '../src/query/ClaudeQueryAPI';
 import {
+  array,
   buildSchemaPrompt,
   CommonSchemas,
+  enumField,
+  number,
   schema,
   string,
-  number,
-  array,
-  enumField
 } from '../src/schema/schemaBuilder';
 
 async function main() {
@@ -47,7 +47,7 @@ async function main() {
     linesOfCode: number('Total lines', { min: 0 }),
     language: enumField(['typescript', 'javascript', 'python'], 'Programming language'),
     hasTests: string('Whether tests exist'),
-    dependencies: array('string', 'External dependencies')
+    dependencies: array('string', 'External dependencies'),
   });
 
   console.log('Schema:', JSON.stringify(customSchema, null, 2));
@@ -57,7 +57,7 @@ async function main() {
     projectPath,
     'Analyze src/services/ClaudeQueryAPI.ts',
     customSchema,
-    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 }
+    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 },
   );
 
   if (result1.success) {
@@ -77,7 +77,7 @@ async function main() {
     projectPath,
     'Analyze src/lib/jsonExtractor.ts for code quality',
     CommonSchemas.codeReview(),
-    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 }
+    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 },
   );
 
   if (result2.success && result2.data) {
@@ -113,7 +113,7 @@ async function main() {
     - Uptime: 3600000 ms
     - Performance: avgDuration 5000ms, avgCost 0.02`,
     CommonSchemas.agentStats(),
-    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 }
+    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 },
   );
 
   if (result3.success && result3.data) {
@@ -129,7 +129,7 @@ async function main() {
   console.log('\n\n--- Test 5: Multiple Files (Array Response) ---\n');
 
   const multiFileSchema = schema({
-    analyses: array('object', 'Array of file analyses')
+    analyses: array('object', 'Array of file analyses'),
   });
 
   const result4 = await api.queryWithSchema(
@@ -143,7 +143,7 @@ async function main() {
     - review: number (1-10)
     - complexity: number (1-20)`,
     multiFileSchema,
-    { mcpConfig: '.claude/.mcp-empty.json', timeout: 90000 }
+    { mcpConfig: '.claude/.mcp-empty.json', timeout: 90000 },
   );
 
   if (result4.success && result4.data) {
@@ -169,7 +169,7 @@ async function main() {
   const strictSchema = schema({
     score: number('Must be 1-10', { min: 1, max: 10 }),
     status: enumField(['active', 'inactive'], 'Must be active or inactive'),
-    name: string('Required field')
+    name: string('Required field'),
   });
 
   console.log('Schema with constraints:', JSON.stringify(strictSchema, null, 2));
@@ -182,7 +182,7 @@ async function main() {
     - status: "invalid" (not in enum)
     - name: "Test"`,
     strictSchema,
-    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 }
+    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 },
   );
 
   if (!result5.success) {
@@ -199,11 +199,10 @@ async function main() {
   console.log('\n\n--- Test 7: Old vs New Method ---\n');
 
   console.log('Old Method (structured-json with fixed schema):');
-  const oldResult = await api.queryJSON(
-    projectPath,
-    'Review src/lib/schemaBuilder.ts',
-    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 }
-  );
+  const oldResult = await api.queryJSON(projectPath, 'Review src/lib/schemaBuilder.ts', {
+    mcpConfig: '.claude/.mcp-empty.json',
+    timeout: 60000,
+  });
 
   if (oldResult.success) {
     console.log('  ✅ Result:', JSON.stringify(oldResult.data, null, 2));
@@ -218,9 +217,9 @@ async function main() {
       file: string('File path'),
       qualityScore: number('Quality 1-10', { min: 1, max: 10 }),
       features: array('string', 'Key features'),
-      recommendation: string('Recommendation')
+      recommendation: string('Recommendation'),
     }),
-    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 }
+    { mcpConfig: '.claude/.mcp-empty.json', timeout: 60000 },
   );
 
   if (newResult.success) {
@@ -233,7 +232,7 @@ async function main() {
   console.log('==================================================\n');
 }
 
-main().catch(error => {
+main().catch((error) => {
   console.error('Test failed:', error);
   process.exit(1);
 });

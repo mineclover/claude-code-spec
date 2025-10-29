@@ -14,12 +14,12 @@ export interface OutputStyleAPI {
   getStyle: (projectPath: string, name: string) => Promise<OutputStyle | null>;
   createStyle: (
     projectPath: string,
-    style: Omit<OutputStyle, 'filePath'>
+    style: Omit<OutputStyle, 'filePath'>,
   ) => Promise<{ success: boolean; error?: string; style?: OutputStyle }>;
   updateStyle: (
     projectPath: string,
     name: string,
-    style: Omit<OutputStyle, 'filePath'>
+    style: Omit<OutputStyle, 'filePath'>,
   ) => Promise<{ success: boolean; error?: string }>;
   deleteStyle: (projectPath: string, name: string) => Promise<{ success: boolean; error?: string }>;
   listNames: (projectPath: string) => Promise<string[]>;

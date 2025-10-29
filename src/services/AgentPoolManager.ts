@@ -8,12 +8,7 @@
  * - Statistics and monitoring
  */
 
-import type {
-  AgentContext,
-  AgentDefinition,
-  AgentPoolStats,
-  AgentStats,
-} from '../lib/agent-types';
+import type { AgentContext, AgentDefinition, AgentPoolStats, AgentStats } from '../lib/agent-types';
 import { createAgentContext, getAgentStats } from '../lib/agent-types';
 import { appLogger } from '../main/app-context';
 import { AgentLoader } from './AgentLoader';
@@ -53,10 +48,14 @@ export class AgentPoolManager {
         projectPath,
       });
     } catch (error) {
-      appLogger.error('Failed to load agent definitions', error instanceof Error ? error : undefined, {
-        module: 'AgentPoolManager',
-        projectPath,
-      });
+      appLogger.error(
+        'Failed to load agent definitions',
+        error instanceof Error ? error : undefined,
+        {
+          module: 'AgentPoolManager',
+          projectPath,
+        },
+      );
     }
   }
 

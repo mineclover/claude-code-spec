@@ -1,5 +1,5 @@
-import type React from 'react';
 import type { ResultEvent as ResultEventType } from '@context-action/code-api';
+import type React from 'react';
 import { EventBox } from '../common/EventBox';
 import { TokenUsage } from '../common/TokenUsage';
 import styles from './ResultEvent.module.css';

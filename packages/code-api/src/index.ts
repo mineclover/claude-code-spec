@@ -3,94 +3,85 @@
  * Claude Code CLI Client Library
  */
 
+export type { ClaudeClientOptions } from './client/ClaudeClient';
 // Client
 export { ClaudeClient } from './client/ClaudeClient';
-export type { ClaudeClientOptions } from './client/ClaudeClient';
-
+export type {
+  EntryPointConfig,
+  EntryPointDetail,
+  EntryPointResult,
+  EntryPointsConfig,
+  ExecuteEntryPointParams,
+  OutputFormat,
+  SchemaDefinition,
+  SystemPromptConfig,
+  ValidationResult,
+} from './entrypoint';
+// Entry Point System
+export {
+  EntryPointExecutor,
+  EntryPointManager,
+  SchemaManager,
+} from './entrypoint';
+// Errors
+export {
+  ExecutionNotFoundError,
+  MaxConcurrentError,
+  ProcessKillError,
+  ProcessStartError,
+  ValidationError,
+} from './errors/errors';
 // Parser
 export { StreamParser } from './parser/StreamParser';
 export type {
+  AssistantEvent,
+  ErrorEvent,
+  ResultEvent,
   StreamEvent,
   SystemInitEvent,
   UserEvent,
-  AssistantEvent,
-  ResultEvent,
-  ErrorEvent
 } from './parser/types';
 export {
-  isSystemInitEvent,
-  isUserEvent,
-  isAssistantEvent,
-  isResultEvent,
-  isErrorEvent,
+  extractSessionId,
   extractTextFromMessage,
   extractToolUsesFromMessage,
-  extractSessionId
+  isAssistantEvent,
+  isErrorEvent,
+  isResultEvent,
+  isSystemInitEvent,
+  isUserEvent,
 } from './parser/types';
-
-// Session
-export { SessionManager } from './session/SessionManager';
-export type { SessionInfo } from './session/SessionManager';
-
-// Process
-export { ProcessManager, processManager } from './process/ProcessManager';
 export type {
   ExecutionInfo,
   ExecutionStatus,
-  StartExecutionParams
+  StartExecutionParams,
 } from './process/ProcessManager';
-
-// Query
-export { ClaudeQueryAPI } from './query/ClaudeQueryAPI';
+// Process
+export { ProcessManager, processManager } from './process/ProcessManager';
 export type {
   QueryOptions,
-  QueryResult
+  QueryResult,
 } from './query/ClaudeQueryAPI';
-
-// Schema
+// Query
+export { ClaudeQueryAPI } from './query/ClaudeQueryAPI';
+export type { JSONExtractionResult } from './schema/jsonExtractor';
 export {
-  zodSchemaToPrompt,
-  validateWithZod,
-  validateWithStandardSchema,
-  CommonSchemas
-} from './schema/zodSchemaBuilder';
-export type { StandardSchemaV1 } from './schema/zodSchemaBuilder';
-
+  extractAndValidate,
+  extractJSON,
+} from './schema/jsonExtractor';
+export type { JSONSchema } from './schema/schemaBuilder';
 export {
   buildSchemaPrompt,
-  validateAgainstSchema
+  validateAgainstSchema,
 } from './schema/schemaBuilder';
-export type { JSONSchema } from './schema/schemaBuilder';
-
+export type { StandardSchemaV1 } from './schema/zodSchemaBuilder';
+// Schema
 export {
-  extractJSON,
-  extractAndValidate
-} from './schema/jsonExtractor';
-export type { JSONExtractionResult } from './schema/jsonExtractor';
-
-// Errors
-export {
-  ProcessStartError,
-  ProcessKillError,
-  ExecutionNotFoundError,
-  MaxConcurrentError,
-  ValidationError
-} from './errors/errors';
-
-// Entry Point System
-export {
-  EntryPointManager,
-  SchemaManager,
-  EntryPointExecutor
-} from './entrypoint';
-export type {
-  EntryPointConfig,
-  EntryPointsConfig,
-  ExecuteEntryPointParams,
-  EntryPointResult,
-  SchemaDefinition,
-  OutputFormat,
-  ValidationResult,
-  EntryPointDetail,
-  SystemPromptConfig
-} from './entrypoint';
+  CommonSchemas,
+  validateWithStandardSchema,
+  validateWithZod,
+  zodSchemaToPrompt,
+} from './schema/zodSchemaBuilder';
+export type { SessionInfo } from './session/SessionManager';
+// Session
+export { SessionManager } from './session/SessionManager';

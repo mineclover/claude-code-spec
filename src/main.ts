@@ -1,11 +1,12 @@
 /**
  * Main process entry point
  */
+
+import { processManager } from '@context-action/code-api';
 import { app, BrowserWindow } from 'electron';
 import started from 'electron-squirrel-startup';
 import { setupIPCHandlers } from './main/ipc-setup';
 import { createWindow } from './main/window';
-import { processManager } from '@context-action/code-api';
 
 if (started) {
   app.quit();

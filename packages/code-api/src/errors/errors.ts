@@ -72,11 +72,10 @@ export class SessionIdTimeoutError extends ExecutionError {
 
 export class MaxConcurrentError extends ExecutionError {
   constructor(maxConcurrent: number, context?: Record<string, unknown>) {
-    super(
-      `Maximum concurrent executions (${maxConcurrent}) reached`,
-      'MAX_CONCURRENT_REACHED',
-      { maxConcurrent, ...context },
-    );
+    super(`Maximum concurrent executions (${maxConcurrent}) reached`, 'MAX_CONCURRENT_REACHED', {
+      maxConcurrent,
+      ...context,
+    });
     this.name = 'MaxConcurrentError';
   }
 }

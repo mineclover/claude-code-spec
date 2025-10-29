@@ -9,8 +9,6 @@
  */
 
 import { ClaudeClient, type ClaudeClientOptions } from '../client/ClaudeClient';
-import type { StreamEvent } from '../parser/types';
-import { isSystemInitEvent } from '../parser/types';
 import {
   ExecutionNotFoundError,
   MaxConcurrentError,
@@ -18,6 +16,8 @@ import {
   ProcessStartError,
   ValidationError,
 } from '../errors/errors';
+import type { StreamEvent } from '../parser/types';
+import { isSystemInitEvent } from '../parser/types';
 
 export type ExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'killed';
 
@@ -105,10 +105,9 @@ export class ProcessManager {
     let enhancedQuery = params.query;
     if (params.skillId && params.skillScope) {
       // Add skill reference to query - Claude will load the skill automatically
-      const skillReference = params.skillScope === 'global' 
-        ? `@${params.skillId}` 
-        : `@${params.skillId}:project`;
-      
+      const skillReference =
+        params.skillScope === 'global' ? `@${params.skillId}` : `@${params.skillId}:project`;
+
       enhancedQuery = `${skillReference}\n\n${params.query}`;
       console.log('Enhanced query with skill', {
         module: 'ProcessManager',
@@ -507,10 +506,14 @@ export class ProcessManager {
    */
   setMaxConcurrent(max: number): void {
     if (max < 1) {
-      throw new ValidationError('Maximum concurrent executions must be at least 1', 'INVALID_MAX_CONCURRENT', {
-        providedValue: max,
-        minimumValue: 1,
-      });
+      throw new ValidationError(
+        'Maximum concurrent executions must be at least 1',
+        'INVALID_MAX_CONCURRENT',
+        {
+          providedValue: max,
+          minimumValue: 1,
+        },
+      );
     }
     this.maxConcurrent = max;
     console.log('Max concurrent set', {
@@ -525,7 +528,6 @@ export class ProcessManager {
   getMaxConcurrent(): number {
     return this.maxConcurrent;
   }
-
 }
 
 // Singleton instance

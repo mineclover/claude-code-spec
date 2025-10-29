@@ -3,16 +3,10 @@
  */
 
 import path from 'node:path';
-import { app } from 'electron';
 import { SessionManager } from '@context-action/code-api';
-import {
-  AppLogger,
-  ConsoleTransport,
-  FileTransport,
-  LogLevel,
-  parseLogLevel,
-} from '../services/AppLogger';
+import { app } from 'electron';
 import { AgentPoolManager } from '../services/AgentPoolManager';
+import { AppLogger, ConsoleTransport, FileTransport, parseLogLevel } from '../services/AppLogger';
 import { createConfig, createSessionLogger } from '../services/logger';
 
 // Session manager

@@ -123,41 +123,41 @@ export const CommonSchemas = {
     file: {
       type: 'string',
       description: 'File path',
-      required: true
+      required: true,
     },
     review: {
       type: 'number',
       description: 'Quality score',
       min: 1,
       max: 10,
-      required: true
+      required: true,
     },
     complexity: {
       type: 'number',
       description: 'Cyclomatic complexity',
       min: 1,
       max: 20,
-      required: true
+      required: true,
     },
     maintainability: {
       type: 'number',
       description: 'Maintainability index',
       min: 0,
       max: 100,
-      required: true
+      required: true,
     },
     issues: {
       type: 'array',
       arrayItemType: 'object',
       description: 'List of issues found',
-      required: true
+      required: true,
     },
     suggestions: {
       type: 'array',
       arrayItemType: 'string',
       description: 'Improvement suggestions',
-      required: true
-    }
+      required: true,
+    },
   }),
 
   /**
@@ -167,36 +167,36 @@ export const CommonSchemas = {
     agentName: {
       type: 'string',
       description: 'Agent identifier',
-      required: true
+      required: true,
     },
     status: {
       type: 'string',
       description: 'Current status',
       enum: ['idle', 'busy'],
-      required: true
+      required: true,
     },
     tasksCompleted: {
       type: 'number',
       description: 'Number of completed tasks',
       min: 0,
-      required: true
+      required: true,
     },
     currentTask: {
       type: 'string',
       description: 'Current task ID',
-      required: false
+      required: false,
     },
     uptime: {
       type: 'number',
       description: 'Uptime in milliseconds',
       min: 0,
-      required: true
+      required: true,
     },
     performance: {
       type: 'object',
       description: 'Performance metrics',
-      required: true
-    }
+      required: true,
+    },
   }),
 
   /**
@@ -206,25 +206,25 @@ export const CommonSchemas = {
     taskId: {
       type: 'string',
       description: 'Task identifier',
-      required: true
+      required: true,
     },
     steps: {
       type: 'array',
       arrayItemType: 'object',
       description: 'Execution steps',
-      required: true
+      required: true,
     },
     total_estimated_duration: {
       type: 'string',
       description: 'Total estimated time',
-      required: true
+      required: true,
     },
     risks: {
       type: 'array',
       arrayItemType: 'string',
       description: 'Potential risks',
-      required: true
-    }
+      required: true,
+    },
   }),
 
   /**
@@ -236,20 +236,20 @@ export const CommonSchemas = {
       description: 'Quality score',
       min: 1,
       max: 10,
-      required: true
+      required: true,
     },
     name: {
       type: 'string',
       description: 'Item name',
-      required: true
+      required: true,
     },
     tags: {
       type: 'array',
       arrayItemType: 'string',
       description: 'Tags/categories',
-      required: true
-    }
-  })
+      required: true,
+    },
+  }),
 };
 
 /**
@@ -257,7 +257,7 @@ export const CommonSchemas = {
  */
 export function validateAgainstSchema(
   data: unknown,
-  schema: JSONSchema
+  schema: JSONSchema,
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
@@ -336,14 +336,14 @@ export function string(description?: string, required = true): FieldSchema {
 
 export function number(
   description?: string,
-  options?: { min?: number; max?: number; required?: boolean }
+  options?: { min?: number; max?: number; required?: boolean },
 ): FieldSchema {
   return {
     type: 'number',
     description,
     min: options?.min,
     max: options?.max,
-    required: options?.required ?? true
+    required: options?.required ?? true,
   };
 }
 
@@ -351,11 +351,7 @@ export function boolean(description?: string, required = true): FieldSchema {
   return { type: 'boolean', description, required };
 }
 
-export function array(
-  itemType: JSONType,
-  description?: string,
-  required = true
-): FieldSchema {
+export function array(itemType: JSONType, description?: string, required = true): FieldSchema {
   return { type: 'array', arrayItemType: itemType, description, required };
 }
 
@@ -363,10 +359,6 @@ export function object(description?: string, required = true): FieldSchema {
   return { type: 'object', description, required };
 }
 
-export function enumField(
-  values: any[],
-  description?: string,
-  required = true
-): FieldSchema {
+export function enumField(values: any[], description?: string, required = true): FieldSchema {
   return { type: 'string', enum: values, description, required };
 }

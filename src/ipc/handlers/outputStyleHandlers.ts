@@ -4,11 +4,11 @@
  * Manage output-styles for Claude CLI execution
  */
 
-import fs from 'fs/promises';
-import path from 'path';
-import type { IPCRouter } from '../router';
-import { appLogger } from '../../main/app-context';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import matter from 'gray-matter';
+import { appLogger } from '../../main/app-context';
+import type { IPCRouter } from '../IPCRouter';
 
 const OUTPUT_STYLES_DIR = '.claude/output-styles';
 
@@ -34,7 +34,7 @@ function parseOutputStyle(content: string, filePath: string): OutputStyle {
     name: (data.name as string) || path.basename(filePath, '.md'),
     description: (data.description as string) || '',
     content: markdownContent.trim(),
-    filePath
+    filePath,
   };
 }
 
@@ -44,7 +44,7 @@ function parseOutputStyle(content: string, filePath: string): OutputStyle {
 function serializeOutputStyle(style: Omit<OutputStyle, 'filePath'>): string {
   const frontmatter: OutputStyleMetadata = {
     name: style.name,
-    description: style.description
+    description: style.description,
   };
 
   return matter.stringify(style.content, frontmatter);
@@ -62,7 +62,7 @@ export function registerOutputStyleHandlers(router: IPCRouter): void {
     async (_event, { projectPath }) => {
       appLogger.info('Listing output-styles', {
         module: 'OutputStyleHandlers',
-        projectPath
+        projectPath,
       });
 
       const stylesDir = path.join(projectPath, OUTPUT_STYLES_DIR);
@@ -76,17 +76,17 @@ export function registerOutputStyleHandlers(router: IPCRouter): void {
             const filePath = path.join(stylesDir, file);
             const content = await fs.readFile(filePath, 'utf-8');
             return parseOutputStyle(content, filePath);
-          })
+          }),
         );
 
         return styles;
       } catch (error) {
         appLogger.error('Failed to list output-styles', error as Error, {
-          module: 'OutputStyleHandlers'
+          module: 'OutputStyleHandlers',
         });
         return [];
       }
-    }
+    },
   );
 
   /**
@@ -97,7 +97,7 @@ export function registerOutputStyleHandlers(router: IPCRouter): void {
     async (_event, { projectPath, name }) => {
       appLogger.info('Getting output-style', {
         module: 'OutputStyleHandlers',
-        name
+        name,
       });
 
       const filePath = path.join(projectPath, OUTPUT_STYLES_DIR, `${name}.md`);
@@ -108,11 +108,11 @@ export function registerOutputStyleHandlers(router: IPCRouter): void {
       } catch (error) {
         appLogger.error('Failed to get output-style', error as Error, {
           module: 'OutputStyleHandlers',
-          name
+          name,
         });
         return null;
       }
-    }
+    },
   );
 
   /**
@@ -124,7 +124,7 @@ export function registerOutputStyleHandlers(router: IPCRouter): void {
   >('output-style:create', async (_event, { projectPath, style }) => {
     appLogger.info('Creating output-style', {
       module: 'OutputStyleHandlers',
-      name: style.name
+      name: style.name,
     });
 
     const fileName = `${style.name}.md`;
@@ -136,7 +136,7 @@ export function registerOutputStyleHandlers(router: IPCRouter): void {
         await fs.access(filePath);
         return {
           success: false,
-          error: `Output-style '${style.name}' already exists`
+          error: `Output-style '${style.name}' already exists`,
         };
       } catch {
         // File doesn't exist, good to create
@@ -152,22 +152,22 @@ export function registerOutputStyleHandlers(router: IPCRouter): void {
 
       appLogger.info('Output-style created', {
         module: 'OutputStyleHandlers',
-        name: style.name
+        name: style.name,
       });
 
       return {
         success: true,
-        style: { ...style, filePath }
+        style: { ...style, filePath },
       };
     } catch (error) {
       appLogger.error('Failed to create output-style', error as Error, {
         module: 'OutputStyleHandlers',
-        name: style.name
+        name: style.name,
       });
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   });
@@ -181,7 +181,7 @@ export function registerOutputStyleHandlers(router: IPCRouter): void {
   >('output-style:update', async (_event, { projectPath, name, style }) => {
     appLogger.info('Updating output-style', {
       module: 'OutputStyleHandlers',
-      name
+      name,
     });
 
     const filePath = path.join(projectPath, OUTPUT_STYLES_DIR, `${name}.md`);
@@ -202,25 +202,25 @@ export function registerOutputStyleHandlers(router: IPCRouter): void {
         appLogger.info('Output-style renamed', {
           module: 'OutputStyleHandlers',
           from: name,
-          to: style.name
+          to: style.name,
         });
       }
 
       appLogger.info('Output-style updated', {
         module: 'OutputStyleHandlers',
-        name: style.name
+        name: style.name,
       });
 
       return { success: true };
     } catch (error) {
       appLogger.error('Failed to update output-style', error as Error, {
         module: 'OutputStyleHandlers',
-        name
+        name,
       });
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   });
@@ -233,7 +233,7 @@ export function registerOutputStyleHandlers(router: IPCRouter): void {
     async (_event, { projectPath, name }) => {
       appLogger.info('Deleting output-style', {
         module: 'OutputStyleHandlers',
-        name
+        name,
       });
 
       const filePath = path.join(projectPath, OUTPUT_STYLES_DIR, `${name}.md`);
@@ -243,22 +243,22 @@ export function registerOutputStyleHandlers(router: IPCRouter): void {
 
         appLogger.info('Output-style deleted', {
           module: 'OutputStyleHandlers',
-          name
+          name,
         });
 
         return { success: true };
       } catch (error) {
         appLogger.error('Failed to delete output-style', error as Error, {
           module: 'OutputStyleHandlers',
-          name
+          name,
         });
 
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         };
       }
-    }
+    },
   );
 
   /**
@@ -266,13 +266,42 @@ export function registerOutputStyleHandlers(router: IPCRouter): void {
    */
   router.handle<[{ projectPath: string }], string[]>(
     'output-style:list-names',
-    async (_event, { projectPath }) => {
-      const styles = await router.invoke<[{ projectPath: string }], OutputStyle[]>(
-        'output-style:list',
-        { projectPath }
-      );
+    async (_event, { projectPath }: { projectPath: string }) => {
+      const outputStylesDir = path.join(projectPath, OUTPUT_STYLES_DIR);
 
-      return styles.map((s) => s.name);
-    }
+      try {
+        if (!(await fileExists(outputStylesDir))) {
+          return [];
+        }
+
+        const files = await fs.readdir(outputStylesDir);
+        const names: string[] = [];
+
+        for (const file of files) {
+          if (file.endsWith('.md')) {
+            const filePath = path.join(outputStylesDir, file);
+            const content = await fs.readFile(filePath, 'utf-8');
+            const { data } = matter(content);
+            if (data?.name) {
+              names.push(data.name);
+            }
+          }
+        }
+
+        return names;
+      } catch (error) {
+        console.warn('[OutputStyleHandlers] Error listing style names:', error);
+        return [];
+      }
+    },
   );
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }

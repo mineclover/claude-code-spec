@@ -22,8 +22,8 @@ async function main() {
     'What files are in the src/services directory? List them briefly.',
     {
       filterThinking: true,
-      mcpConfig: '.claude/.mcp-empty.json'
-    }
+      mcpConfig: '.claude/.mcp-empty.json',
+    },
   );
 
   console.log('Result:', result1.result);
@@ -45,8 +45,8 @@ async function main() {
     {
       outputStyle: 'structured-json',
       filterThinking: true,
-      mcpConfig: '.claude/.mcp-empty.json'
-    }
+      mcpConfig: '.claude/.mcp-empty.json',
+    },
   );
 
   console.log('Raw Result:');
@@ -57,7 +57,7 @@ async function main() {
     const parsed = JSON.parse(result2.result);
     console.log('\n✅ Parsed JSON:');
     console.log(JSON.stringify(parsed, null, 2));
-  } catch (e) {
+  } catch {
     console.log('\n❌ Failed to parse as JSON');
   }
 
@@ -69,22 +69,17 @@ async function main() {
 
   // Example 3: With thinking blocks (unfiltered)
   console.log('\n\n--- Example 3: Query with Thinking Blocks ---');
-  const result3 = await api.query(
-    projectPath,
-    'Explain the TaskRouter class briefly.',
-    {
-      filterThinking: false, // Keep thinking blocks
-      mcpConfig: '.claude/.mcp-empty.json'
-    }
-  );
+  const result3 = await api.query(projectPath, 'Explain the TaskRouter class briefly.', {
+    filterThinking: false, // Keep thinking blocks
+    mcpConfig: '.claude/.mcp-empty.json',
+  });
 
   console.log('Messages count:', result3.messages.length);
-  console.log('Result:', result3.result.substring(0, 200) + '...');
+  console.log(`Result: ${result3.result.substring(0, 200)}...`);
 
   // Check for thinking in events
-  const hasThinking = result3.events.some(e =>
-    e.type === 'message' &&
-    e.message?.content?.some((b: any) => b.type === 'thinking')
+  const hasThinking = result3.events.some(
+    (e) => e.type === 'message' && e.message?.content?.some((b: any) => b.type === 'thinking'),
   );
   console.log('Contains thinking blocks:', hasThinking);
 
@@ -93,7 +88,7 @@ async function main() {
   console.log('==================================================\n');
 }
 
-main().catch(error => {
+main().catch((error) => {
   console.error('Error:', error);
   process.exit(1);
 });

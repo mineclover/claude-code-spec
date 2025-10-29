@@ -9,14 +9,10 @@
  * - JSON extraction and validation
  */
 
-import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { extractAndValidate, extractJSON, type JSONExtractionResult } from '../lib/jsonExtractor';
-import {
-  buildSchemaPrompt,
-  validateAgainstSchema,
-  type JSONSchema
-} from '../lib/schemaBuilder';
+import { buildSchemaPrompt, type JSONSchema, validateAgainstSchema } from '../lib/schemaBuilder';
 import { appLogger } from '../main/app-context';
 
 export interface QueryOptions {
@@ -88,33 +84,27 @@ export class ClaudeQueryAPI {
   async query(
     projectPath: string,
     query: string,
-    options: QueryOptions = {}
+    options: QueryOptions = {},
   ): Promise<QueryResult> {
-    const {
-      outputStyle,
-      model,
-      mcpConfig,
-      filterThinking = true,
-      timeout = 120000
-    } = options;
+    const { outputStyle, model, mcpConfig, filterThinking = true, timeout = 120000 } = options;
 
     appLogger.info('Executing query with ClaudeQueryAPI', {
       module: 'ClaudeQueryAPI',
       projectPath,
       outputStyle,
       model,
-      filterThinking
+      filterThinking,
     });
 
     // Build enhanced query with output-style
     const enhancedQuery = this.buildQuery(query, outputStyle);
 
     // Execute
-    const events = await this.executeClaudeProcess(
-      projectPath,
-      enhancedQuery,
-      { model, mcpConfig, timeout }
-    );
+    const events = await this.executeClaudeProcess(projectPath, enhancedQuery, {
+      model,
+      mcpConfig,
+      timeout,
+    });
 
     // Filter thinking if requested
     const processedEvents = filterThinking ? this.filterThinkingBlocks(events) : events;
@@ -132,7 +122,7 @@ export class ClaudeQueryAPI {
       result,
       messages,
       events: processedEvents,
-      metadata
+      metadata,
     };
   }
 
@@ -158,20 +148,14 @@ export class ClaudeQueryAPI {
       model?: string;
       mcpConfig?: string;
       timeout?: number;
-    }
+    },
   ): Promise<StreamEvent[]> {
     return new Promise((resolve, reject) => {
       const events: StreamEvent[] = [];
       const { model, mcpConfig, timeout = 120000 } = options;
 
       // Build arguments
-      const args = [
-        '-p',
-        query,
-        '--output-format',
-        'stream-json',
-        '--verbose'
-      ];
+      const args = ['-p', query, '--output-format', 'stream-json', '--verbose'];
 
       if (model) {
         args.push('--model', model);
@@ -185,7 +169,7 @@ export class ClaudeQueryAPI {
       appLogger.debug('Spawning Claude process', {
         module: 'ClaudeQueryAPI',
         args,
-        cwd: projectPath
+        cwd: projectPath,
       });
 
       const child = spawn('claude', args, {
@@ -193,8 +177,8 @@ export class ClaudeQueryAPI {
         shell: true,
         env: {
           ...process.env,
-          FORCE_COLOR: '0'
-        }
+          FORCE_COLOR: '0',
+        },
       });
 
       this.runningProcess = child;
@@ -207,7 +191,7 @@ export class ClaudeQueryAPI {
         timeoutHandle = setTimeout(() => {
           appLogger.warn('Query timeout, killing process', {
             module: 'ClaudeQueryAPI',
-            timeout
+            timeout,
           });
 
           child.kill('SIGTERM');
@@ -226,10 +210,10 @@ export class ClaudeQueryAPI {
           try {
             const event = JSON.parse(line);
             events.push(event);
-          } catch (error) {
+          } catch (_error) {
             appLogger.debug('Failed to parse stream line', {
               module: 'ClaudeQueryAPI',
-              line: line.substring(0, 100)
+              line: line.substring(0, 100),
             });
           }
         }
@@ -238,7 +222,7 @@ export class ClaudeQueryAPI {
       child.stderr.on('data', (data: Buffer) => {
         appLogger.debug('Claude stderr', {
           module: 'ClaudeQueryAPI',
-          data: data.toString()
+          data: data.toString(),
         });
       });
 
@@ -252,13 +236,13 @@ export class ClaudeQueryAPI {
         if (code === 0) {
           appLogger.info('Query completed successfully', {
             module: 'ClaudeQueryAPI',
-            eventsCount: events.length
+            eventsCount: events.length,
           });
           resolve(events);
         } else {
           appLogger.error('Query failed', undefined, {
             module: 'ClaudeQueryAPI',
-            code
+            code,
           });
           reject(new Error(`Process exited with code ${code}`));
         }
@@ -272,7 +256,7 @@ export class ClaudeQueryAPI {
         }
 
         appLogger.error('Process error', error, {
-          module: 'ClaudeQueryAPI'
+          module: 'ClaudeQueryAPI',
         });
         reject(error);
       });
@@ -283,14 +267,14 @@ export class ClaudeQueryAPI {
    * Filter thinking blocks from events
    */
   private filterThinkingBlocks(events: StreamEvent[]): StreamEvent[] {
-    return events.map(event => {
+    return events.map((event) => {
       if (event.type === 'message' && event.message?.content) {
         return {
           ...event,
           message: {
             ...event.message,
-            content: event.message.content.filter((block: any) => block.type !== 'thinking')
-          }
+            content: event.message.content.filter((block: any) => block.type !== 'thinking'),
+          },
         };
       }
       return event;
@@ -301,7 +285,7 @@ export class ClaudeQueryAPI {
    * Extract final result from events
    */
   private extractResult(events: StreamEvent[]): string {
-    const resultEvent = events.find(e => e.type === 'result');
+    const resultEvent = events.find((e) => e.type === 'result');
     return resultEvent?.result || '';
   }
 
@@ -329,12 +313,12 @@ export class ClaudeQueryAPI {
    * Extract execution metadata
    */
   private extractMetadata(events: StreamEvent[]): QueryResult['metadata'] {
-    const resultEvent = events.find(e => e.type === 'result');
+    const resultEvent = events.find((e) => e.type === 'result');
 
     return {
       totalCost: resultEvent?.total_cost_usd || 0,
       durationMs: resultEvent?.duration_ms || 0,
-      numTurns: resultEvent?.num_turns || 0
+      numTurns: resultEvent?.num_turns || 0,
     };
   }
 
@@ -351,14 +335,14 @@ export class ClaudeQueryAPI {
     query: string,
     options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> & {
       requiredFields?: (keyof T)[];
-    } = {}
+    } = {},
   ): Promise<JSONExtractionResult<T>> {
     const { requiredFields, ...queryOptions } = options;
 
     appLogger.info('Executing JSON query', {
       module: 'ClaudeQueryAPI',
       projectPath,
-      requiredFields: requiredFields?.length || 0
+      requiredFields: requiredFields?.length || 0,
     });
 
     try {
@@ -366,26 +350,26 @@ export class ClaudeQueryAPI {
       const result = await this.query(projectPath, query, {
         ...queryOptions,
         outputStyle: 'structured-json',
-        filterThinking: true
+        filterThinking: true,
       });
 
       // Extract and validate JSON
       if (requiredFields && requiredFields.length > 0) {
         return extractAndValidate<T extends Record<string, any> ? T : any>(
           result.result,
-          requiredFields as string[]
+          requiredFields as string[],
         );
       } else {
         return extractJSON<T>(result.result);
       }
     } catch (error) {
       appLogger.error('JSON query failed', error instanceof Error ? error : undefined, {
-        module: 'ClaudeQueryAPI'
+        module: 'ClaudeQueryAPI',
       });
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -397,11 +381,11 @@ export class ClaudeQueryAPI {
     projectPath: string,
     query: string,
     requiredFields: (keyof T)[],
-    options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> = {}
+    options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> = {},
   ): Promise<JSONExtractionResult<T>> {
     return this.queryJSON<T>(projectPath, query, {
       ...options,
-      requiredFields
+      requiredFields,
     });
   }
 
@@ -414,12 +398,12 @@ export class ClaudeQueryAPI {
     projectPath: string,
     instruction: string,
     schema: JSONSchema,
-    options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> = {}
+    options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> = {},
   ): Promise<JSONExtractionResult<T>> {
     appLogger.info('Executing query with schema', {
       module: 'ClaudeQueryAPI',
       projectPath,
-      schemaFields: Object.keys(schema).length
+      schemaFields: Object.keys(schema).length,
     });
 
     try {
@@ -428,14 +412,14 @@ export class ClaudeQueryAPI {
 
       appLogger.debug('Built schema prompt', {
         module: 'ClaudeQueryAPI',
-        promptLength: schemaPrompt.length
+        promptLength: schemaPrompt.length,
       });
 
       // Execute with 'json' output-style (generic)
       const result = await this.query(projectPath, schemaPrompt, {
         ...options,
         outputStyle: 'json',
-        filterThinking: true
+        filterThinking: true,
       });
 
       // Extract JSON
@@ -451,31 +435,31 @@ export class ClaudeQueryAPI {
       if (!validation.valid) {
         appLogger.warn('Schema validation failed', {
           module: 'ClaudeQueryAPI',
-          errors: validation.errors
+          errors: validation.errors,
         });
 
         return {
           success: false,
           error: `Schema validation failed: ${validation.errors.join('; ')}`,
           raw: extracted.raw,
-          cleanedText: extracted.cleanedText
+          cleanedText: extracted.cleanedText,
         };
       }
 
       appLogger.info('Schema query successful', {
         module: 'ClaudeQueryAPI',
-        dataKeys: extracted.data ? Object.keys(extracted.data).length : 0
+        dataKeys: extracted.data ? Object.keys(extracted.data).length : 0,
       });
 
       return extracted;
     } catch (error) {
       appLogger.error('Schema query failed', error instanceof Error ? error : undefined, {
-        module: 'ClaudeQueryAPI'
+        module: 'ClaudeQueryAPI',
       });
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -486,7 +470,7 @@ export class ClaudeQueryAPI {
   kill(): void {
     if (this.runningProcess) {
       appLogger.info('Killing running query process', {
-        module: 'ClaudeQueryAPI'
+        module: 'ClaudeQueryAPI',
       });
 
       this.runningProcess.kill('SIGTERM');
@@ -523,14 +507,14 @@ export class ClaudeQueryAPI {
     projectPath: string,
     instruction: string,
     schema: import('zod').ZodType<T>,
-    options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> = {}
+    options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> = {},
   ): Promise<JSONExtractionResult<T>> {
     const { zodSchemaToPrompt, validateWithZod } = await import('../lib/zodSchemaBuilder');
 
     appLogger.info('Executing query with Zod schema', {
       module: 'ClaudeQueryAPI',
       projectPath,
-      schemaType: schema.constructor.name
+      schemaType: schema.constructor.name,
     });
 
     try {
@@ -539,14 +523,14 @@ export class ClaudeQueryAPI {
 
       appLogger.debug('Built Zod schema prompt', {
         module: 'ClaudeQueryAPI',
-        promptLength: schemaPrompt.length
+        promptLength: schemaPrompt.length,
       });
 
       // Execute with 'json' output-style (힌트만 제공)
       const result = await this.query(projectPath, schemaPrompt, {
         ...options,
         outputStyle: 'json',
-        filterThinking: true
+        filterThinking: true,
       });
 
       // Extract JSON
@@ -563,36 +547,36 @@ export class ClaudeQueryAPI {
         appLogger.warn('Zod validation failed', {
           module: 'ClaudeQueryAPI',
           error: validation.error,
-          issuesCount: validation.issues.length
+          issuesCount: validation.issues.length,
         });
 
         return {
           success: false,
           error: `Schema validation failed: ${validation.error}`,
           raw: extracted.raw,
-          cleanedText: extracted.cleanedText
+          cleanedText: extracted.cleanedText,
         };
       }
 
       appLogger.info('Zod validation successful', {
         module: 'ClaudeQueryAPI',
-        dataKeys: extracted.data ? Object.keys(extracted.data).length : 0
+        dataKeys: extracted.data ? Object.keys(extracted.data).length : 0,
       });
 
       return {
         success: true,
         data: validation.data,
         raw: extracted.raw,
-        cleanedText: extracted.cleanedText
+        cleanedText: extracted.cleanedText,
       };
     } catch (error) {
       appLogger.error('Zod query failed', error instanceof Error ? error : undefined, {
-        module: 'ClaudeQueryAPI'
+        module: 'ClaudeQueryAPI',
       });
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -622,24 +606,24 @@ export class ClaudeQueryAPI {
     projectPath: string,
     instruction: string,
     schema: T,
-    options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> = {}
-  ): Promise<JSONExtractionResult<import('../lib/zodSchemaBuilder').StandardSchemaV1.InferOutput<T>>> {
-    const {
-      zodSchemaToPrompt,
-      validateWithStandardSchema,
-      isStandardSchema
-    } = await import('../lib/zodSchemaBuilder');
+    options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> = {},
+  ): Promise<
+    JSONExtractionResult<import('../lib/zodSchemaBuilder').StandardSchemaV1.InferOutput<T>>
+  > {
+    const { zodSchemaToPrompt, validateWithStandardSchema, isStandardSchema } = await import(
+      '../lib/zodSchemaBuilder'
+    );
 
     appLogger.info('Executing query with Standard Schema', {
       module: 'ClaudeQueryAPI',
-      projectPath
+      projectPath,
     });
 
     // Standard Schema 체크
     if (!isStandardSchema(schema)) {
       return {
         success: false,
-        error: 'Provided schema does not implement Standard Schema V1'
+        error: 'Provided schema does not implement Standard Schema V1',
       };
     }
 
@@ -658,7 +642,7 @@ export class ClaudeQueryAPI {
       const result = await this.query(projectPath, schemaPrompt, {
         ...options,
         outputStyle: 'json',
-        filterThinking: true
+        filterThinking: true,
       });
 
       // Extract JSON
@@ -674,35 +658,35 @@ export class ClaudeQueryAPI {
       if (!validation.success) {
         appLogger.warn('Standard Schema validation failed', {
           module: 'ClaudeQueryAPI',
-          error: validation.error
+          error: validation.error,
         });
 
         return {
           success: false,
           error: `Schema validation failed: ${validation.error}`,
           raw: extracted.raw,
-          cleanedText: extracted.cleanedText
+          cleanedText: extracted.cleanedText,
         };
       }
 
       appLogger.info('Standard Schema validation successful', {
-        module: 'ClaudeQueryAPI'
+        module: 'ClaudeQueryAPI',
       });
 
       return {
         success: true,
         data: validation.data,
         raw: extracted.raw,
-        cleanedText: extracted.cleanedText
+        cleanedText: extracted.cleanedText,
       };
     } catch (error) {
       appLogger.error('Standard Schema query failed', error instanceof Error ? error : undefined, {
-        module: 'ClaudeQueryAPI'
+        module: 'ClaudeQueryAPI',
       });
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }

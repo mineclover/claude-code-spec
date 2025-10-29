@@ -1,6 +1,6 @@
-import type React from 'react';
 import type { AssistantEvent as AssistantEventType } from '@context-action/code-api';
-import { extractTextFromMessage, extractToolUsesFromMessage } from '@context-action/code-api';
+import type React from 'react';
+import { extractTextFromMessage, extractToolUsesFromMessage } from '../../../lib/messageUtils';
 import { EventBox } from '../common/EventBox';
 import { TokenUsage } from '../common/TokenUsage';
 import { ToolUse } from '../common/ToolUse';

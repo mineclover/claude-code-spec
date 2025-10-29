@@ -1,17 +1,18 @@
 #!/usr/bin/env node
+
 /**
  * Full Pipeline Test: Schema → Claude → Extract → Validate
  */
 
+import { extractJSON } from '../src/schema/jsonExtractor';
 import {
   buildSchemaPrompt,
+  enumField,
+  number,
   schema,
   string,
-  number,
-  enumField,
-  validateAgainstSchema
+  validateAgainstSchema,
 } from '../src/schema/schemaBuilder';
-import { extractJSON } from '../src/schema/jsonExtractor';
 
 console.log('==================================================');
 console.log('Full Pipeline Test: Schema → Claude → Extract → Validate');
@@ -27,7 +28,7 @@ const fileAnalysisSchema = schema({
   linesOfCode: number('Total lines', { min: 0 }),
   language: enumField(['typescript', 'javascript', 'python'], 'Programming language'),
   complexity: number('Code complexity', { min: 1, max: 20 }),
-  mainPurpose: string('Primary purpose of file')
+  mainPurpose: string('Primary purpose of file'),
 });
 
 console.log('Schema defined:');
@@ -39,10 +40,7 @@ console.log('');
 // ========================================
 console.log('--- Step 2: Build Prompt ---\n');
 
-const prompt = buildSchemaPrompt(
-  fileAnalysisSchema,
-  'Analyze src/lib/schemaBuilder.ts'
-);
+const prompt = buildSchemaPrompt(fileAnalysisSchema, 'Analyze src/lib/schemaBuilder.ts');
 
 console.log('Generated Prompt:');
 console.log('---');

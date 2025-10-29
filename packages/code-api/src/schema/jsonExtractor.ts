@@ -24,12 +24,12 @@ export function extractJSON<T = any>(text: string): JSONExtractionResult<T> {
     return {
       success: false,
       error: 'Empty input text',
-      raw: text
+      raw: text,
     };
   }
 
   // Step 1: Remove markdown code blocks
-  let cleaned = removeMarkdownCodeBlocks(text);
+  const cleaned = removeMarkdownCodeBlocks(text);
 
   // Step 2: Try to parse directly
   const directParse = tryParse<T>(cleaned);
@@ -38,7 +38,7 @@ export function extractJSON<T = any>(text: string): JSONExtractionResult<T> {
       success: true,
       data: directParse.data,
       raw: text,
-      cleanedText: cleaned
+      cleanedText: cleaned,
     };
   }
 
@@ -51,7 +51,7 @@ export function extractJSON<T = any>(text: string): JSONExtractionResult<T> {
         success: true,
         data: extractedParse.data,
         raw: text,
-        cleanedText: extracted
+        cleanedText: extracted,
       };
     }
   }
@@ -65,7 +65,7 @@ export function extractJSON<T = any>(text: string): JSONExtractionResult<T> {
         success: true,
         data: fixedParse.data,
         raw: text,
-        cleanedText: fixed
+        cleanedText: fixed,
       };
     }
   }
@@ -75,7 +75,7 @@ export function extractJSON<T = any>(text: string): JSONExtractionResult<T> {
     success: false,
     error: directParse.error || 'Could not extract valid JSON',
     raw: text,
-    cleanedText: cleaned
+    cleanedText: cleaned,
   };
 }
 
@@ -102,7 +102,7 @@ function tryParse<T>(text: string): { success: boolean; data?: T; error?: string
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }
@@ -162,20 +162,21 @@ export function extractMultipleJSON<T = any>(text: string): JSONExtractionResult
       success: true,
       data: arrayParse.data,
       raw: text,
-      cleanedText: cleaned
+      cleanedText: cleaned,
     };
   }
 
   // Try to extract individual objects
   const objects: T[] = [];
   const objectRegex = /\{[\s\S]*?\}/g;
-  let match;
 
-  while ((match = objectRegex.exec(cleaned)) !== null) {
+  let match = objectRegex.exec(cleaned);
+  while (match !== null) {
     const parsed = tryParse<T>(match[0]);
     if (parsed.success && parsed.data) {
       objects.push(parsed.data);
     }
+    match = objectRegex.exec(cleaned);
   }
 
   if (objects.length > 0) {
@@ -183,7 +184,7 @@ export function extractMultipleJSON<T = any>(text: string): JSONExtractionResult
       success: true,
       data: objects,
       raw: text,
-      cleanedText: cleaned
+      cleanedText: cleaned,
     };
   }
 
@@ -191,7 +192,7 @@ export function extractMultipleJSON<T = any>(text: string): JSONExtractionResult
     success: false,
     error: 'Could not extract any valid JSON objects',
     raw: text,
-    cleanedText: cleaned
+    cleanedText: cleaned,
   };
 }
 
@@ -200,7 +201,7 @@ export function extractMultipleJSON<T = any>(text: string): JSONExtractionResult
  */
 export function validateJSONStructure<T extends Record<string, any>>(
   data: unknown,
-  requiredFields: (keyof T)[]
+  requiredFields: (keyof T)[],
 ): data is T {
   if (!data || typeof data !== 'object') {
     return false;
@@ -222,7 +223,7 @@ export function validateJSONStructure<T extends Record<string, any>>(
  */
 export function extractAndValidate<T extends Record<string, any>>(
   text: string,
-  requiredFields: (keyof T)[]
+  requiredFields: (keyof T)[],
 ): JSONExtractionResult<T> {
   const result = extractJSON<T>(text);
 
@@ -235,7 +236,7 @@ export function extractAndValidate<T extends Record<string, any>>(
       success: false,
       error: `JSON missing required fields: ${requiredFields.join(', ')}`,
       raw: text,
-      cleanedText: result.cleanedText
+      cleanedText: result.cleanedText,
     };
   }
 

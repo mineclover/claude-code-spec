@@ -8,8 +8,8 @@
  * - Observable queue state changes
  */
 
-import { appLogger } from '../main/app-context';
 import type { StartExecutionParams } from '@context-action/code-api';
+import { appLogger } from '../main/app-context';
 
 export interface QueuedExecution {
   id: string;
@@ -61,11 +61,7 @@ export class ExecutionQueue {
    * Add an execution to the queue
    * Returns a Promise that resolves with sessionId when execution completes
    */
-  async enqueue(
-    params: StartExecutionParams,
-    priority = 0,
-    timeoutMs?: number,
-  ): Promise<string> {
+  async enqueue(params: StartExecutionParams, priority = 0, timeoutMs?: number): Promise<string> {
     const executionId = `queue-${this.nextExecutionId++}`;
 
     return new Promise<string>((resolve, reject) => {
@@ -206,9 +202,7 @@ export class ExecutionQueue {
   /**
    * Set processor function (called by ProcessManager)
    */
-  setProcessor(
-    processor: (params: StartExecutionParams) => Promise<string>,
-  ): void {
+  setProcessor(_processor: (params: StartExecutionParams) => Promise<string>): void {
     // This will be implemented when integrating with ProcessManager
     appLogger.info('Processor set', {
       module: 'ExecutionQueue',

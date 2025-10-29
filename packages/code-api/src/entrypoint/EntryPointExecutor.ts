@@ -5,11 +5,11 @@
  */
 
 import { ClaudeQueryAPI } from '../query/ClaudeQueryAPI';
-import { buildSchemaPrompt, validateAgainstSchema, type JSONSchema } from '../schema/schemaBuilder';
 import { extractJSON } from '../schema/jsonExtractor';
-import type { ExecuteEntryPointParams, EntryPointResult } from './types';
+import { buildSchemaPrompt, type JSONSchema, validateAgainstSchema } from '../schema/schemaBuilder';
 import { EntryPointManager } from './EntryPointManager';
 import { SchemaManager } from './SchemaManager';
+import type { EntryPointResult, ExecuteEntryPointParams } from './types';
 
 export class EntryPointExecutor {
   private entryPointManager: EntryPointManager;
@@ -75,8 +75,6 @@ export class EntryPointExecutor {
             filterThinking,
           });
           break;
-
-        case 'text':
         default:
           result = await this.executeText(params, entryPoint, {
             model,
@@ -113,7 +111,8 @@ export class EntryPointExecutor {
     options: any,
   ): Promise<EntryPointResult<T>> {
     // 스키마 로드
-    const schemaName = entryPoint.outputFormat.schemaName || entryPoint.outputFormat.schema?.replace('.json', '');
+    const schemaName =
+      entryPoint.outputFormat.schemaName || entryPoint.outputFormat.schema?.replace('.json', '');
 
     if (!schemaName) {
       return {

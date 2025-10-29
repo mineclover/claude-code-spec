@@ -7,8 +7,13 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { EntryPointConfig, EntryPointsConfig, ValidationResult, EntryPointDetail } from './types';
 import { SchemaManager } from './SchemaManager';
+import type {
+  EntryPointConfig,
+  EntryPointDetail,
+  EntryPointsConfig,
+  ValidationResult,
+} from './types';
 
 export class EntryPointManager {
   private configPath: string;
@@ -87,7 +92,9 @@ export class EntryPointManager {
 
     if (validation.warnings.length > 0) {
       console.warn('Entry point validation warnings:');
-      validation.warnings.forEach((warning) => console.warn(`  - ${warning}`));
+      for (const warning of validation.warnings) {
+        console.warn(`  - ${warning}`);
+      }
     }
 
     const allConfig = this.loadConfig();
@@ -118,9 +125,9 @@ export class EntryPointManager {
     }
 
     const schemaManager = new SchemaManager(this.projectPath);
-    let schema;
-    let fields;
-    let examples;
+    let schema: any | undefined;
+    let fields: Record<string, any> | undefined;
+    let examples: any[] | undefined;
 
     // structured 타입인 경우 스키마 로드
     if (entryPoint.outputFormat.type === 'structured') {
@@ -231,17 +238,24 @@ export class EntryPointManager {
         errors.push('Invalid output format type');
       }
 
-      if (config.outputFormat.type === 'structured' && !config.outputFormat.schema && !config.outputFormat.schemaName) {
+      if (
+        config.outputFormat.type === 'structured' &&
+        !config.outputFormat.schema &&
+        !config.outputFormat.schemaName
+      ) {
         errors.push('Schema is required for structured output');
       }
 
       // structured 타입일 때 스키마 존재 여부 확인
       if (config.outputFormat.type === 'structured') {
-        const schemaName = config.outputFormat.schemaName || config.outputFormat.schema?.replace('.json', '');
+        const schemaName =
+          config.outputFormat.schemaName || config.outputFormat.schema?.replace('.json', '');
         if (schemaName) {
           const schemaManager = new SchemaManager(this.projectPath);
           if (!schemaManager.schemaExists(schemaName)) {
-            errors.push(`Schema '${schemaName}' does not exist in workflow/schemas/. Please create it first using SchemaManager.`);
+            errors.push(
+              `Schema '${schemaName}' does not exist in workflow/schemas/. Please create it first using SchemaManager.`,
+            );
           }
         }
       }

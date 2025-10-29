@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { OutputStyleEditor } from '../components/outputStyles/OutputStyleEditor';
 import { useProject } from '../contexts/ProjectContext';
 import styles from './OutputStylesPage.module.css';
@@ -19,11 +19,7 @@ export function OutputStylesPage() {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingStyle, setEditingStyle] = useState<OutputStyle | undefined>(undefined);
 
-  useEffect(() => {
-    loadStyles();
-  }, [projectPath]);
-
-  const loadStyles = async () => {
+  const loadStyles = useCallback(async () => {
     if (!projectPath) return;
 
     setLoading(true);
@@ -43,7 +39,11 @@ export function OutputStylesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectPath, selectedStyle]);
+
+  useEffect(() => {
+    loadStyles();
+  }, [loadStyles]);
 
   const handleCreate = () => {
     setEditingStyle(undefined);
@@ -145,10 +145,7 @@ export function OutputStylesPage() {
                   <p className={styles.detailDescription}>{selectedStyle.description}</p>
                 </div>
                 <div className={styles.detailActions}>
-                  <button
-                    className={styles.editButton}
-                    onClick={() => handleEdit(selectedStyle)}
-                  >
+                  <button className={styles.editButton} onClick={() => handleEdit(selectedStyle)}>
                     Edit
                   </button>
                   <button
@@ -178,13 +175,15 @@ export function OutputStylesPage() {
         </div>
       </div>
 
-      <OutputStyleEditor
-        isOpen={isEditorOpen}
-        onClose={() => setIsEditorOpen(false)}
-        projectPath={projectPath}
-        editingStyle={editingStyle}
-        onSave={handleEditorSave}
-      />
+      {projectPath && (
+        <OutputStyleEditor
+          isOpen={isEditorOpen}
+          onClose={() => setIsEditorOpen(false)}
+          projectPath={projectPath}
+          editingStyle={editingStyle}
+          onSave={handleEditorSave}
+        />
+      )}
     </div>
   );
 }

@@ -57,8 +57,7 @@ export function exposeAgentAPI(): void {
     deleteAgent: (source: 'project' | 'user', agentName: string, projectPath?: string) =>
       ipcRenderer.invoke('agent:deleteAgent', { source, agentName, projectPath }),
 
-    getAgentStats: (agentName: string) =>
-      ipcRenderer.invoke('agent:getAgentStats', { agentName }),
+    getAgentStats: (agentName: string) => ipcRenderer.invoke('agent:getAgentStats', { agentName }),
 
     getPoolStats: () => ipcRenderer.invoke('agent:getPoolStats'),
   };

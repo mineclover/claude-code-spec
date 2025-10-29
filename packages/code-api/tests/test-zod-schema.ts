@@ -7,10 +7,10 @@
 
 import { z } from 'zod';
 import {
-  zodSchemaToPrompt,
   CommonSchemas,
+  isStandardSchema,
   validateWithZod,
-  isStandardSchema
+  zodSchemaToPrompt,
 } from '../src/schema/zodSchemaBuilder';
 
 console.log('==================================================');
@@ -27,7 +27,7 @@ const fileSchema = z.object({
   linesOfCode: z.number().min(0).describe('Total lines'),
   language: z.enum(['typescript', 'javascript', 'python']).describe('Programming language'),
   complexity: z.number().min(1).max(20).describe('Code complexity'),
-  mainPurpose: z.string().describe('Primary purpose')
+  mainPurpose: z.string().describe('Primary purpose'),
 });
 
 const prompt = zodSchemaToPrompt(fileSchema, 'Analyze src/lib/zodSchemaBuilder.ts');
@@ -67,7 +67,7 @@ const validData = {
   linesOfCode: 373,
   language: 'typescript',
   complexity: 7,
-  mainPurpose: 'Schema builder'
+  mainPurpose: 'Schema builder',
 };
 
 console.log('Data:', JSON.stringify(validData, null, 2));
@@ -93,7 +93,7 @@ const invalidData = {
   linesOfCode: -100, // min: 0 위반
   language: 'rust', // enum 위반
   complexity: 25, // max: 20 위반
-  mainPurpose: 'Test'
+  mainPurpose: 'Test',
 };
 
 console.log('Data:', JSON.stringify(invalidData, null, 2));
@@ -118,10 +118,7 @@ console.log('');
 console.log('--- Test 5: CommonSchemas - Code Review ---\n');
 
 const codeReviewSchema = CommonSchemas.codeReview();
-const codeReviewPrompt = zodSchemaToPrompt(
-  codeReviewSchema,
-  'Review src/lib/zodSchemaBuilder.ts'
-);
+const codeReviewPrompt = zodSchemaToPrompt(codeReviewSchema, 'Review src/lib/zodSchemaBuilder.ts');
 
 console.log('Code Review Schema Prompt:');
 console.log('---');
@@ -143,8 +140,8 @@ const agentData = {
   uptime: 3600000,
   performance: {
     avgDuration: 5000,
-    avgCost: 0.02
-  }
+    avgCost: 0.02,
+  },
 };
 
 console.log('Agent Data:', JSON.stringify(agentData, null, 2));
@@ -172,16 +169,16 @@ const projectSchema = z.object({
     z.object({
       path: z.string(),
       lines: z.number(),
-      issues: z.number().optional()
-    })
+      issues: z.number().optional(),
+    }),
   ),
   dependencies: z.record(z.string()),
   config: z
     .object({
       strict: z.boolean(),
-      target: z.string()
+      target: z.string(),
     })
-    .optional()
+    .optional(),
 });
 
 const projectPrompt = zodSchemaToPrompt(projectSchema, 'Analyze this project');
@@ -216,7 +213,7 @@ const optionalSchema = z.object({
   required: z.string(),
   optional: z.string().optional(),
   nullable: z.string().nullable(),
-  optionalNullable: z.string().optional().nullable()
+  optionalNullable: z.string().optional().nullable(),
 });
 
 const optionalPrompt = zodSchemaToPrompt(optionalSchema, 'Test optional fields');
@@ -231,14 +228,14 @@ const optionalData1 = {
   required: 'test',
   optional: 'value',
   nullable: null,
-  optionalNullable: undefined
+  optionalNullable: undefined,
 };
 
 const optionalResult1 = validateWithZod(optionalData1, optionalSchema);
 console.log('Validation with all fields:', optionalResult1.success ? '✅' : '❌');
 
 const optionalData2 = {
-  required: 'test'
+  required: 'test',
 };
 
 const optionalResult2 = validateWithZod(optionalData2, optionalSchema);
