@@ -2107,6 +2107,52 @@ ${validation.errors.join("\n")}`;
     return config.entryPoints[name] || null;
   }
   /**
+   * 진입점 상세 정보 조회 (스키마 포함)
+   * 실행 전에 예상 출력 형식을 명확히 파악하기 위한 메서드
+   */
+  getEntryPointDetail(name) {
+    const entryPoint = this.getEntryPoint(name);
+    if (!entryPoint) {
+      return null;
+    }
+    const schemaManager = new SchemaManager(this.projectPath);
+    let schema;
+    let fields;
+    let examples;
+    if (entryPoint.outputFormat.type === "structured") {
+      const schemaName = entryPoint.outputFormat.schemaName || entryPoint.outputFormat.schema?.replace(".json", "");
+      if (schemaName) {
+        schema = schemaManager.loadSchema(schemaName);
+        if (schema) {
+          fields = schema.schema;
+          examples = schema.examples;
+        }
+      }
+    }
+    let description;
+    switch (entryPoint.outputFormat.type) {
+      case "text":
+        description = "\uC77C\uBC18 \uD14D\uC2A4\uD2B8 \uD615\uC2DD\uC758 \uC790\uC720\uB85C\uC6B4 \uC751\uB2F5";
+        break;
+      case "json":
+        description = "JSON \uD615\uC2DD\uC758 \uAD6C\uC870\uD654\uB41C \uC751\uB2F5 (\uC2A4\uD0A4\uB9C8 \uAC80\uC99D \uC5C6\uC74C)";
+        break;
+      case "structured":
+        description = schema ? `${schema.description} - JSON \uD615\uC2DD\uC758 \uC2A4\uD0A4\uB9C8 \uAC80\uC99D\uB41C \uC751\uB2F5` : "JSON \uD615\uC2DD\uC758 \uC2A4\uD0A4\uB9C8 \uAC80\uC99D\uB41C \uC751\uB2F5";
+        break;
+    }
+    return {
+      config: entryPoint,
+      schema: schema || void 0,
+      expectedOutput: {
+        type: entryPoint.outputFormat.type,
+        description,
+        fields,
+        examples
+      }
+    };
+  }
+  /**
    * 모든 진입점 조회
    */
   getAllEntryPoints() {

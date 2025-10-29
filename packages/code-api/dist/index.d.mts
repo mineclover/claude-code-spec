@@ -986,6 +986,26 @@ interface ValidationResult {
     /** 경고 메시지 */
     warnings: string[];
 }
+/**
+ * 진입점 상세 정보 (스키마 포함)
+ */
+interface EntryPointDetail {
+    /** 진입점 설정 */
+    config: EntryPointConfig;
+    /** 스키마 정의 (structured 타입인 경우) */
+    schema?: SchemaDefinition;
+    /** 예상 출력 형식 설명 */
+    expectedOutput: {
+        /** 출력 타입 */
+        type: 'text' | 'json' | 'structured';
+        /** 출력 구조 설명 */
+        description: string;
+        /** 스키마 필드 정보 (structured인 경우) */
+        fields?: Record<string, any>;
+        /** 출력 예시 */
+        examples?: any[];
+    };
+}
 
 /**
  * Entry Point Manager
@@ -1019,6 +1039,11 @@ declare class EntryPointManager {
      * 진입점 조회
      */
     getEntryPoint(name: string): EntryPointConfig | null;
+    /**
+     * 진입점 상세 정보 조회 (스키마 포함)
+     * 실행 전에 예상 출력 형식을 명확히 파악하기 위한 메서드
+     */
+    getEntryPointDetail(name: string): EntryPointDetail | null;
     /**
      * 모든 진입점 조회
      */
@@ -1137,4 +1162,4 @@ declare class EntryPointExecutor {
     getQueryAPI(): ClaudeQueryAPI;
 }
 
-export { type AssistantEvent, ClaudeClient, type ClaudeClientOptions, ClaudeQueryAPI, CommonSchemas, type EntryPointConfig, EntryPointExecutor, EntryPointManager, type EntryPointResult, type EntryPointsConfig, type ErrorEvent, type ExecuteEntryPointParams, type ExecutionInfo, ExecutionNotFoundError, type ExecutionStatus, type JSONExtractionResult, type JSONSchema, MaxConcurrentError, type OutputFormat, ProcessKillError, ProcessManager, ProcessStartError, type QueryOptions, type QueryResult, type ResultEvent, type SchemaDefinition, SchemaManager, type SessionInfo, SessionManager, StandardSchemaV1, type StartExecutionParams, type StreamEvent$1 as StreamEvent, StreamParser, type SystemInitEvent, type UserEvent, ValidationError, type ValidationResult, buildSchemaPrompt, extractAndValidate, extractJSON, extractSessionId, extractTextFromMessage, extractToolUsesFromMessage, isAssistantEvent, isErrorEvent, isResultEvent, isSystemInitEvent, isUserEvent, processManager, validateAgainstSchema, validateWithStandardSchema, validateWithZod, zodSchemaToPrompt };
+export { type AssistantEvent, ClaudeClient, type ClaudeClientOptions, ClaudeQueryAPI, CommonSchemas, type EntryPointConfig, type EntryPointDetail, EntryPointExecutor, EntryPointManager, type EntryPointResult, type EntryPointsConfig, type ErrorEvent, type ExecuteEntryPointParams, type ExecutionInfo, ExecutionNotFoundError, type ExecutionStatus, type JSONExtractionResult, type JSONSchema, MaxConcurrentError, type OutputFormat, ProcessKillError, ProcessManager, ProcessStartError, type QueryOptions, type QueryResult, type ResultEvent, type SchemaDefinition, SchemaManager, type SessionInfo, SessionManager, StandardSchemaV1, type StartExecutionParams, type StreamEvent$1 as StreamEvent, StreamParser, type SystemInitEvent, type UserEvent, ValidationError, type ValidationResult, buildSchemaPrompt, extractAndValidate, extractJSON, extractSessionId, extractTextFromMessage, extractToolUsesFromMessage, isAssistantEvent, isErrorEvent, isResultEvent, isSystemInitEvent, isUserEvent, processManager, validateAgainstSchema, validateWithStandardSchema, validateWithZod, zodSchemaToPrompt };
