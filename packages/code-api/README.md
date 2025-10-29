@@ -213,6 +213,102 @@ if (result.success) {
 - **`json`**: JSON output without schema validation
 - **`structured`**: JSON output with schema validation
 
+### System Prompt Configuration
+
+**System Prompt vs Output Style**:
+- **Output Style**: Controls response **format** (JSON, tone, structure)
+- **System Prompt**: Controls AI **role** and **behavior** (domain expertise, guidelines, persona)
+
+These are **independent and complementary** - use both for powerful execution contexts!
+
+#### Configure AI Role and Behavior
+
+```typescript
+const entryPoint: EntryPointConfig = {
+  name: 'security-review',
+  outputFormat: {
+    type: 'structured',
+    schemaName: 'security-review'
+  },
+
+  // Define AI's role and expertise
+  systemPrompt: {
+    useClaudeCodePreset: true,  // Keep Claude Code's base behavior
+    append: `You are a security auditor.
+
+    Focus on:
+    - Input validation
+    - SQL injection risks
+    - XSS vulnerabilities
+    - Authentication/Authorization
+
+    Always assume adversarial input.`
+  }
+};
+```
+
+#### System Prompt Options
+
+1. **Custom** (Complete replacement):
+```typescript
+systemPrompt: {
+  custom: 'You are a Python specialist. Always use type hints.'
+}
+```
+
+2. **Append** (Add to default):
+```typescript
+systemPrompt: {
+  append: 'Always include comprehensive error handling.'
+}
+```
+
+3. **Preset + Append** (Recommended):
+```typescript
+systemPrompt: {
+  useClaudeCodePreset: true,
+  append: 'Prioritize OAuth 2.0 compliance'
+}
+```
+
+#### Real-World Example: SRE Incident Response
+
+```typescript
+const sreIncident: EntryPointConfig = {
+  name: 'sre-incident',
+  description: 'SRE expert incident investigation',
+
+  // Output: Structured incident report
+  outputFormat: {
+    type: 'structured',
+    schemaName: 'incident-report'
+  },
+
+  // AI: SRE expert with specific methodology
+  systemPrompt: {
+    custom: `You are an expert SRE with 10+ years experience.
+
+    Investigation process:
+    1. Identify symptoms
+    2. Check recent changes
+    3. Review logs systematically
+    4. Propose fixes
+    5. Document learnings
+
+    Always prioritize service restoration over root cause.`
+  },
+
+  options: {
+    model: 'opus',
+    timeout: 180000
+  }
+};
+```
+
+**Result**: You get both structured data AND expert-level analysis!
+
+See [System Prompt vs Output Style](./docs/system-prompt-vs-output-style.md) for detailed comparison and patterns.
+
 ## API Reference
 
 ### ClaudeClient
