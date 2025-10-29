@@ -76,3 +76,19 @@ export {
   MaxConcurrentError,
   ValidationError
 } from './errors/errors';
+
+// Entry Point System
+export {
+  EntryPointManager,
+  SchemaManager,
+  EntryPointExecutor
+} from './entrypoint';
+export type {
+  EntryPointConfig,
+  EntryPointsConfig,
+  ExecuteEntryPointParams,
+  EntryPointResult,
+  SchemaDefinition,
+  OutputFormat,
+  ValidationResult
+} from './entrypoint';
