@@ -65,6 +65,21 @@ async function main() {
         required: true,
       },
     },
+    examples: [
+      {
+        file: 'src/utils/helper.ts',
+        score: 7,
+        complexity: 12,
+        issues: [
+          {
+            line: 45,
+            severity: 'warning',
+            message: '함수가 너무 깁니다',
+          },
+        ],
+        suggestions: ['함수 분리를 고려하세요', '타입 정의를 추가하세요'],
+      },
+    ],
   };
 
   schemaManager.saveSchema(codeReviewSchema);
@@ -146,6 +161,37 @@ async function main() {
   // 진입점 목록 조회
   const entryPoints = entryPointManager.listEntryPoints();
   console.log(`\nAvailable entry points: ${entryPoints.join(', ')}\n`);
+
+  // ========================================
+  // Step 2-1: 진입점 상세 정보 조회 (핵심 기능!)
+  // ========================================
+  console.log('--- Step 2-1: 실행 전 기댓값 확인 ---\n');
+  console.log('💡 실행자는 실행 전에 어떤 출력을 받을지 명확히 알 수 있어야 합니다!\n');
+
+  const codeReviewDetail = entryPointManager.getEntryPointDetail('code-review');
+
+  if (codeReviewDetail) {
+    console.log('📋 진입점: code-review');
+    console.log(`   설명: ${codeReviewDetail.config.description}`);
+    console.log(`\n📤 예상 출력:`);
+    console.log(`   타입: ${codeReviewDetail.expectedOutput.type}`);
+    console.log(`   설명: ${codeReviewDetail.expectedOutput.description}`);
+
+    if (codeReviewDetail.expectedOutput.fields) {
+      console.log(`\n📝 출력 필드:`);
+      Object.entries(codeReviewDetail.expectedOutput.fields).forEach(([key, value]: [string, any]) => {
+        const required = value.required ? '(필수)' : '(선택)';
+        console.log(`   - ${key}: ${value.type} ${required} - ${value.description}`);
+      });
+    }
+
+    if (codeReviewDetail.schema?.examples && codeReviewDetail.schema.examples.length > 0) {
+      console.log(`\n💡 출력 예시:`);
+      console.log(JSON.stringify(codeReviewDetail.schema.examples[0], null, 2));
+    }
+  }
+
+  console.log('\n✅ 이제 실행자는 정확히 어떤 형식의 데이터를 받을지 알 수 있습니다!\n');
 
   // ========================================
   // Step 3: 진입점을 통한 쿼리 실행

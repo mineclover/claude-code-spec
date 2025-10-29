@@ -159,7 +159,33 @@ entryPointManager.setEntryPoint(codeReviewEntry);
 3. If schema not found, throws validation error with helpful message
 4. Prevents runtime errors by catching issues at configuration time
 
-#### 3. Execute via Entry Points
+#### 3. Preview Expected Output (Key Feature!)
+
+**Before execution**, check what output format to expect:
+
+```typescript
+const detail = entryPointManager.getEntryPointDetail('code-review');
+
+console.log('Expected Output Type:', detail.expectedOutput.type);
+console.log('Description:', detail.expectedOutput.description);
+
+// For structured types, see exact fields
+if (detail.expectedOutput.fields) {
+  Object.entries(detail.expectedOutput.fields).forEach(([key, field]) => {
+    console.log(`- ${key}: ${field.type} ${field.required ? '(required)' : ''}`);
+    console.log(`  ${field.description}`);
+  });
+}
+
+// See example output
+if (detail.expectedOutput.examples) {
+  console.log('Example:', JSON.stringify(detail.expectedOutput.examples[0], null, 2));
+}
+```
+
+**This is the core value**: Executors know exactly what data structure they'll receive before running the query!
+
+#### 4. Execute via Entry Points
 
 Execute queries through pre-configured entry points:
 
