@@ -23,14 +23,27 @@ function createAnsiEscapeRegex(): RegExp {
   return new RegExp(`${esc}\\[[0-9;?]*[a-zA-Z]|${esc}\\)[a-zA-Z]`, 'g');
 }
 
+export interface StreamParserOptions {
+  maxBufferSize?: number; // Maximum buffer size in bytes (default: 10MB)
+  onBufferOverflow?: (bufferSize: number) => void; // Called when buffer exceeds max size
+}
+
 export class StreamParser {
   private buffer = '';
   private onEvent: StreamCallback;
   private onError?: ErrorCallback;
+  private maxBufferSize: number;
+  private onBufferOverflow?: (bufferSize: number) => void;
 
-  constructor(onEvent: StreamCallback, onError?: ErrorCallback) {
+  constructor(
+    onEvent: StreamCallback,
+    onError?: ErrorCallback,
+    options: StreamParserOptions = {},
+  ) {
     this.onEvent = onEvent;
     this.onError = onError;
+    this.maxBufferSize = options.maxBufferSize ?? 10 * 1024 * 1024; // 10MB default
+    this.onBufferOverflow = options.onBufferOverflow;
   }
 
   /**
@@ -39,6 +52,26 @@ export class StreamParser {
   processChunk(chunk: Buffer | string): void {
     const data = typeof chunk === 'string' ? chunk : chunk.toString('utf8');
     this.buffer += data;
+
+    // Check buffer size limit
+    const bufferSize = Buffer.byteLength(this.buffer, 'utf8');
+    if (bufferSize > this.maxBufferSize) {
+      // Buffer overflow - clear buffer and notify
+      const errorMsg = `Buffer overflow: ${bufferSize} bytes exceeds limit of ${this.maxBufferSize} bytes`;
+      console.error('[StreamParser]', errorMsg);
+
+      if (this.onBufferOverflow) {
+        this.onBufferOverflow(bufferSize);
+      }
+
+      if (this.onError) {
+        this.onError(errorMsg);
+      }
+
+      // Clear buffer to prevent unbounded growth
+      this.buffer = '';
+      return;
+    }
 
     // Split by newlines
     const lines = this.buffer.split('\n');

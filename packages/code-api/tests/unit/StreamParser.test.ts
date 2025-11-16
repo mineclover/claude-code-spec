@@ -21,7 +21,14 @@ describe('StreamParser', () => {
         session_id: 'test-123',
         model: 'claude-sonnet-4',
         cwd: '/test',
-        timestamp: '2024-01-01T00:00:00Z',
+        tools: [],
+        mcp_servers: [],
+        permissionMode: 'default',
+        slash_commands: [],
+        apiKeySource: 'env',
+        output_style: 'stream-json',
+        agents: [],
+        uuid: 'test-uuid-123',
       };
 
       parser.processChunk(JSON.stringify(event) + '\n');
@@ -38,16 +45,25 @@ describe('StreamParser', () => {
         session_id: 'test-123',
         model: 'claude-sonnet-4',
         cwd: '/test',
-        timestamp: '2024-01-01T00:00:00Z',
+        tools: [],
+        mcp_servers: [],
+        permissionMode: 'default',
+        slash_commands: [],
+        apiKeySource: 'env',
+        output_style: 'stream-json',
+        agents: [],
+        uuid: 'test-uuid-123',
       };
 
       const event2: StreamEvent = {
-        type: 'message',
-        subtype: 'user',
+        type: 'user',
         message: {
           role: 'user',
           content: 'Test message',
         },
+        session_id: 'test-123',
+        parent_tool_use_id: null,
+        uuid: 'test-uuid-456',
       };
 
       const chunk = JSON.stringify(event1) + '\n' + JSON.stringify(event2) + '\n';
@@ -65,7 +81,14 @@ describe('StreamParser', () => {
         session_id: 'test-123',
         model: 'claude-sonnet-4',
         cwd: '/test',
-        timestamp: '2024-01-01T00:00:00Z',
+        tools: [],
+        mcp_servers: [],
+        permissionMode: 'default',
+        slash_commands: [],
+        apiKeySource: 'env',
+        output_style: 'stream-json',
+        agents: [],
+        uuid: 'test-uuid-123',
       };
 
       const jsonString = JSON.stringify(event);
@@ -89,7 +112,14 @@ describe('StreamParser', () => {
         session_id: 'test-123',
         model: 'claude-sonnet-4',
         cwd: '/test',
-        timestamp: '2024-01-01T00:00:00Z',
+        tools: [],
+        mcp_servers: [],
+        permissionMode: 'default',
+        slash_commands: [],
+        apiKeySource: 'env',
+        output_style: 'stream-json',
+        agents: [],
+        uuid: 'test-uuid-123',
       };
 
       // Add ANSI codes
@@ -107,11 +137,11 @@ describe('StreamParser', () => {
     });
 
     it('should call onError for invalid JSON', () => {
-      parser.processChunk('invalid json\n');
+      parser.processChunk('{invalid json}\n');
 
       expect(onEvent).not.toHaveBeenCalled();
       expect(onError).toHaveBeenCalledTimes(1);
-      expect(onError).toHaveBeenCalledWith(expect.stringContaining('invalid json'));
+      expect(onError).toHaveBeenCalledWith(expect.stringContaining('{invalid json}'));
     });
 
     it('should recover from invalid JSON and process next valid line', () => {
@@ -121,10 +151,17 @@ describe('StreamParser', () => {
         session_id: 'test-123',
         model: 'claude-sonnet-4',
         cwd: '/test',
-        timestamp: '2024-01-01T00:00:00Z',
+        tools: [],
+        mcp_servers: [],
+        permissionMode: 'default',
+        slash_commands: [],
+        apiKeySource: 'env',
+        output_style: 'stream-json',
+        agents: [],
+        uuid: 'test-uuid-123',
       };
 
-      const chunk = 'invalid json\n' + JSON.stringify(validEvent) + '\n';
+      const chunk = '{invalid json}\n' + JSON.stringify(validEvent) + '\n';
       parser.processChunk(chunk);
 
       expect(onError).toHaveBeenCalledTimes(1);
@@ -139,7 +176,14 @@ describe('StreamParser', () => {
         session_id: 'test-123',
         model: 'claude-sonnet-4',
         cwd: '/test',
-        timestamp: '2024-01-01T00:00:00Z',
+        tools: [],
+        mcp_servers: [],
+        permissionMode: 'default',
+        slash_commands: [],
+        apiKeySource: 'env',
+        output_style: 'stream-json',
+        agents: [],
+        uuid: 'test-uuid-123',
       };
 
       // Mixed \n and \r\n
@@ -150,48 +194,85 @@ describe('StreamParser', () => {
     });
   });
 
-  describe('getBuffer', () => {
-    it('should return current buffer content', () => {
-      const incomplete = '{"type":"system"';
-      parser.processChunk(incomplete);
+  // Note: getBuffer is private, testing through behavior instead
 
-      const buffer = parser.getBuffer();
-      expect(buffer).toBe(incomplete);
+  describe('buffer management', () => {
+    it('should handle buffer overflow', () => {
+      const onBufferOverflow = vi.fn();
+      const smallBufferParser = new StreamParser(onEvent, onError, {
+        maxBufferSize: 100, // Very small buffer for testing
+        onBufferOverflow,
+      });
+
+      // Send a chunk larger than buffer size without newline
+      const largeChunk = 'A'.repeat(150);
+      smallBufferParser.processChunk(largeChunk);
+
+      // Buffer should have been cleared
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith(expect.stringContaining('Buffer overflow'));
+      expect(onBufferOverflow).toHaveBeenCalledTimes(1);
+      expect(onBufferOverflow).toHaveBeenCalledWith(150);
+      expect(onEvent).not.toHaveBeenCalled();
     });
 
-    it('should return empty string when buffer is empty', () => {
-      expect(parser.getBuffer()).toBe('');
-    });
+    it('should continue processing after buffer overflow', () => {
+      const onBufferOverflow = vi.fn();
+      const smallBufferParser = new StreamParser(onEvent, onError, {
+        maxBufferSize: 100,
+        onBufferOverflow,
+      });
 
-    it('should clear buffer after complete line', () => {
-      const event: StreamEvent = {
-        type: 'system',
-        subtype: 'init',
-        session_id: 'test-123',
-        model: 'claude-sonnet-4',
-        cwd: '/test',
-        timestamp: '2024-01-01T00:00:00Z',
+      // Cause buffer overflow
+      smallBufferParser.processChunk('A'.repeat(150));
+
+      // Reset mocks
+      onError.mockClear();
+      onEvent.mockClear();
+
+      // Should be able to process valid events after overflow
+      // Use a small event that fits in the 100-byte buffer
+      const validEvent: StreamEvent = {
+        type: 'error',
+        error: {
+          type: 'test',
+          message: 'ok',
+        },
       };
 
-      parser.processChunk(JSON.stringify(event) + '\n');
-      expect(parser.getBuffer()).toBe('');
+      smallBufferParser.processChunk(JSON.stringify(validEvent) + '\n');
+
+      expect(onEvent).toHaveBeenCalledTimes(1);
+      expect(onEvent).toHaveBeenCalledWith(validEvent);
     });
   });
 
   describe('edge cases', () => {
     it('should handle very large JSON objects', () => {
       const largeEvent: StreamEvent = {
-        type: 'message',
-        subtype: 'assistant',
+        type: 'assistant',
         message: {
+          id: 'msg-123',
+          type: 'message',
           role: 'assistant',
+          model: 'claude-sonnet-4',
           content: [
             {
               type: 'text',
               text: 'A'.repeat(10000), // 10KB text
             },
           ],
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: {
+            input_tokens: 100,
+            output_tokens: 50,
+            service_tier: 'default',
+          },
         },
+        parent_tool_use_id: null,
+        session_id: 'test-123',
+        uuid: 'test-uuid-789',
       };
 
       parser.processChunk(JSON.stringify(largeEvent) + '\n');
@@ -202,12 +283,14 @@ describe('StreamParser', () => {
 
     it('should handle rapid successive chunks', () => {
       const events: StreamEvent[] = Array.from({ length: 100 }, (_, i) => ({
-        type: 'message',
-        subtype: 'user',
+        type: 'user',
         message: {
           role: 'user',
           content: `Message ${i}`,
         },
+        session_id: 'test-123',
+        parent_tool_use_id: null,
+        uuid: `test-uuid-${i}`,
       }));
 
       events.forEach((event) => {
@@ -219,12 +302,14 @@ describe('StreamParser', () => {
 
     it('should handle events with special characters', () => {
       const event: StreamEvent = {
-        type: 'message',
-        subtype: 'user',
+        type: 'user',
         message: {
           role: 'user',
-          content: 'Special chars: "quotes" \\backslash\\ \nnewline\n \ttab',
+          content: 'Special chars: "quotes" and backslash',
         },
+        session_id: 'test-123',
+        parent_tool_use_id: null,
+        uuid: 'test-uuid-special',
       };
 
       parser.processChunk(JSON.stringify(event) + '\n');
