@@ -157,6 +157,10 @@ function safeValidateStreamEvent(data) {
 }
 
 // src/parser/StreamParser.ts
+function createAnsiEscapeRegex() {
+  const esc = String.fromCharCode(27);
+  return new RegExp(`${esc}\\[[0-9;?]*[a-zA-Z]|${esc}\\)[a-zA-Z]`, "g");
+}
 var StreamParser = class {
   constructor(onEvent, onError) {
     this.buffer = "";
@@ -174,11 +178,7 @@ var StreamParser = class {
     for (const line of lines) {
       const trimmedLine = line.trim();
       if (!trimmedLine) continue;
-      const cleanedLine = trimmedLine.replace(
-        // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences
-        /\x1b\[[0-9;?]*[a-zA-Z]|\x1b\)[a-zA-Z]/g,
-        ""
-      );
+      const cleanedLine = trimmedLine.replace(createAnsiEscapeRegex(), "");
       if (cleanedLine.startsWith("{") || cleanedLine.startsWith("[")) {
         this.parseLine(cleanedLine);
       } else if (cleanedLine) {
@@ -1741,9 +1741,78 @@ var ValidationError = class extends AppError {
 
 // src/process/ProcessManager.ts
 var ProcessManager = class {
-  constructor() {
+  constructor(options = {}) {
     this.executions = /* @__PURE__ */ new Map();
-    this.maxConcurrent = 10;
+    this.maxConcurrent = options.maxConcurrent ?? 10;
+    this.maxHistorySize = options.maxHistorySize ?? 100;
+    this.autoCleanupInterval = options.autoCleanupInterval ?? 0;
+    if (this.autoCleanupInterval > 0) {
+      this.startAutoCleanup();
+    }
+  }
+  /**
+   * Start automatic cleanup timer
+   */
+  startAutoCleanup() {
+    if (this.autoCleanupTimer) {
+      clearInterval(this.autoCleanupTimer);
+    }
+    this.autoCleanupTimer = setInterval(() => {
+      this.enforceHistoryLimit();
+    }, this.autoCleanupInterval);
+  }
+  /**
+   * Stop automatic cleanup timer
+   */
+  stopAutoCleanup() {
+    if (this.autoCleanupTimer) {
+      clearInterval(this.autoCleanupTimer);
+      this.autoCleanupTimer = void 0;
+    }
+  }
+  /**
+   * Enforce history size limit by removing oldest completed executions
+   */
+  enforceHistoryLimit() {
+    const completed = this.getCompletedExecutions();
+    if (completed.length <= this.maxHistorySize) {
+      return;
+    }
+    const sorted = completed.sort((a, b) => {
+      const aTime = a.endTime ?? a.startTime;
+      const bTime = b.endTime ?? b.startTime;
+      return aTime - bTime;
+    });
+    const toRemove = sorted.slice(0, completed.length - this.maxHistorySize);
+    let removed = 0;
+    for (const execution of toRemove) {
+      try {
+        this.executions.delete(execution.sessionId);
+        removed++;
+      } catch (error) {
+        console.error("Error removing execution", error instanceof Error ? error : void 0, {
+          module: "ProcessManager",
+          sessionId: execution.sessionId
+        });
+      }
+    }
+    if (removed > 0) {
+      console.log("Enforced history limit", {
+        module: "ProcessManager",
+        removed,
+        remaining: this.executions.size,
+        limit: this.maxHistorySize
+      });
+      this.notifyExecutionsChanged();
+    }
+  }
+  /**
+   * Destroy the process manager and cleanup resources
+   */
+  destroy() {
+    this.stopAutoCleanup();
+    this.killAll();
+    this.executions.clear();
   }
   /**
    * Set listener for executions state changes
@@ -1805,6 +1874,23 @@ ${params.query}`;
       rejectSessionId = reject;
     });
     let tempExecution = null;
+    const getCurrentExecution = () => {
+      if (params.sessionId) {
+        return this.executions.get(params.sessionId) ?? null;
+      }
+      if (tempExecution) {
+        return tempExecution;
+      }
+      const found = Array.from(this.executions.values()).find(
+        (exec) => exec === tempExecution
+      );
+      return found ?? null;
+    };
+    const getCurrentSessionId = () => {
+      if (params.sessionId) return params.sessionId;
+      if (tempExecution?.sessionId) return tempExecution.sessionId;
+      return null;
+    };
     const clientOptions = {
       cwd: params.projectPath,
       model: params.model,
@@ -1821,59 +1907,43 @@ ${params.query}`;
           if (tempExecution) {
             tempExecution.sessionId = newSessionId;
             this.executions.set(newSessionId, tempExecution);
-            tempExecution = null;
             this.notifyExecutionsChanged();
           }
         }
-        const currentSessionId = params.sessionId || this.executions.get(
-          Array.from(this.executions.keys()).find(
-            (key) => this.executions.get(key) === tempExecution
-          ) || ""
-        )?.sessionId;
-        if (tempExecution) {
-          tempExecution.events.push(event);
-        } else if (currentSessionId) {
-          const execution = this.executions.get(currentSessionId);
-          if (execution) {
-            execution.events.push(event);
-          }
+        const execution = getCurrentExecution();
+        const currentSessionId = getCurrentSessionId();
+        if (execution) {
+          execution.events.push(event);
         }
         if (params.onStream && currentSessionId) {
           params.onStream(currentSessionId, event);
         }
       },
       onError: (error) => {
-        const currentSessionId = params.sessionId || tempExecution?.sessionId;
-        if (tempExecution) {
-          tempExecution.errors.push(error);
-        } else if (currentSessionId) {
-          const execution = this.executions.get(currentSessionId);
-          if (execution) {
-            execution.errors.push(error);
-          }
+        const execution = getCurrentExecution();
+        const currentSessionId = getCurrentSessionId();
+        if (execution) {
+          execution.errors.push(error);
         }
         if (params.onError && currentSessionId) {
           params.onError(currentSessionId, error);
         }
       },
       onClose: (code) => {
-        const currentSessionId = params.sessionId || tempExecution?.sessionId;
-        if (tempExecution) {
-          tempExecution.status = code === 0 ? "completed" : "failed";
-          tempExecution.endTime = Date.now();
-        } else if (currentSessionId) {
-          const execution = this.executions.get(currentSessionId);
-          if (execution) {
-            execution.status = code === 0 ? "completed" : "failed";
-            execution.endTime = Date.now();
+        const execution = getCurrentExecution();
+        const currentSessionId = getCurrentSessionId();
+        if (execution) {
+          execution.status = code === 0 ? "completed" : "failed";
+          execution.endTime = Date.now();
+          if (currentSessionId) {
             console.log("Execution completed", {
               module: "ProcessManager",
               sessionId: currentSessionId,
               status: execution.status,
               duration: execution.endTime - execution.startTime
             });
-            this.notifyExecutionsChanged();
           }
+          this.notifyExecutionsChanged();
         }
         if (params.onComplete && currentSessionId) {
           params.onComplete(currentSessionId, code);
@@ -2017,10 +2087,21 @@ ${params.query}`;
       execution.endTime = Date.now();
       this.notifyExecutionsChanged();
     } catch (error) {
+      const killError = new ProcessKillError(
+        `Failed to kill execution: ${error instanceof Error ? error.message : String(error)}`,
+        {
+          sessionId,
+          originalError: error
+        }
+      );
       console.error("Failed to kill execution", error instanceof Error ? error : void 0, {
         module: "ProcessManager",
         sessionId
       });
+      execution.status = "failed";
+      execution.endTime = Date.now();
+      this.notifyExecutionsChanged();
+      throw killError;
     }
   }
   /**

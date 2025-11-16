@@ -57,10 +57,106 @@ export interface StartExecutionParams {
   onComplete?: (sessionId: string, code: number) => void;
 }
 
+export interface ProcessManagerOptions {
+  maxConcurrent?: number;
+  maxHistorySize?: number; // Maximum number of completed executions to keep
+  autoCleanupInterval?: number; // Auto cleanup interval in ms (0 = disabled)
+}
+
 export class ProcessManager {
   private executions: Map<string, ExecutionInfo> = new Map();
-  private maxConcurrent: number = 10; // Maximum concurrent executions
+  private maxConcurrent: number;
+  private maxHistorySize: number;
+  private autoCleanupInterval: number;
+  private autoCleanupTimer?: NodeJS.Timeout;
   private executionsChangeListener?: () => void;
+
+  constructor(options: ProcessManagerOptions = {}) {
+    this.maxConcurrent = options.maxConcurrent ?? 10;
+    this.maxHistorySize = options.maxHistorySize ?? 100;
+    this.autoCleanupInterval = options.autoCleanupInterval ?? 0;
+
+    // Start auto cleanup if enabled
+    if (this.autoCleanupInterval > 0) {
+      this.startAutoCleanup();
+    }
+  }
+
+  /**
+   * Start automatic cleanup timer
+   */
+  private startAutoCleanup(): void {
+    if (this.autoCleanupTimer) {
+      clearInterval(this.autoCleanupTimer);
+    }
+
+    this.autoCleanupTimer = setInterval(() => {
+      this.enforceHistoryLimit();
+    }, this.autoCleanupInterval);
+  }
+
+  /**
+   * Stop automatic cleanup timer
+   */
+  private stopAutoCleanup(): void {
+    if (this.autoCleanupTimer) {
+      clearInterval(this.autoCleanupTimer);
+      this.autoCleanupTimer = undefined;
+    }
+  }
+
+  /**
+   * Enforce history size limit by removing oldest completed executions
+   */
+  private enforceHistoryLimit(): void {
+    const completed = this.getCompletedExecutions();
+
+    if (completed.length <= this.maxHistorySize) {
+      return;
+    }
+
+    // Sort by end time (oldest first)
+    const sorted = completed.sort((a, b) => {
+      const aTime = a.endTime ?? a.startTime;
+      const bTime = b.endTime ?? b.startTime;
+      return aTime - bTime;
+    });
+
+    // Remove oldest executions beyond limit
+    const toRemove = sorted.slice(0, completed.length - this.maxHistorySize);
+    let removed = 0;
+
+    for (const execution of toRemove) {
+      try {
+        this.executions.delete(execution.sessionId);
+        removed++;
+      } catch (error) {
+        console.error('Error removing execution', error instanceof Error ? error : undefined, {
+          module: 'ProcessManager',
+          sessionId: execution.sessionId,
+        });
+      }
+    }
+
+    if (removed > 0) {
+      console.log('Enforced history limit', {
+        module: 'ProcessManager',
+        removed,
+        remaining: this.executions.size,
+        limit: this.maxHistorySize,
+      });
+      this.notifyExecutionsChanged();
+    }
+  }
+
+  /**
+   * Destroy the process manager and cleanup resources
+   */
+  destroy(): void {
+    this.stopAutoCleanup();
+    this.killAll();
+    this.executions.clear();
+  }
 
   /**
    * Set listener for executions state changes
@@ -136,6 +232,27 @@ export class ProcessManager {
     // Temporary execution info (will be updated with sessionId)
     let tempExecution: ExecutionInfo | null = null;
 
+    // Helper to get current execution safely
+    const getCurrentExecution = (): ExecutionInfo | null => {
+      if (params.sessionId) {
+        return this.executions.get(params.sessionId) ?? null;
+      }
+      if (tempExecution) {
+        return tempExecution;
+      }
+      // Find by tempExecution reference
+      const found = Array.from(this.executions.values()).find(
+        (exec) => exec === tempExecution
+      );
+      return found ?? null;
+    };
+
+    const getCurrentSessionId = (): string | null => {
+      if (params.sessionId) return params.sessionId;
+      if (tempExecution?.sessionId) return tempExecution.sessionId;
+      return null;
+    };
+
     // Create client with execution-specific callbacks
     const clientOptions: ClaudeClientOptions = {
       cwd: params.projectPath,
@@ -158,30 +275,22 @@ export class ProcessManager {
           if (tempExecution) {
             tempExecution.sessionId = newSessionId;
             this.executions.set(newSessionId, tempExecution);
-            tempExecution = null; // Clear temp reference
+
+            // Don't null out tempExecution yet - callbacks still need it
+            // It will be GC'd naturally after this function completes
 
             // Notify listeners of new execution
             this.notifyExecutionsChanged();
           }
         }
 
-        // Get current sessionId
-        const currentSessionId =
-          params.sessionId ||
-          this.executions.get(
-            Array.from(this.executions.keys()).find(
-              (key) => this.executions.get(key) === tempExecution,
-            ) || '',
-          )?.sessionId;
+        // Get current execution safely
+        const execution = getCurrentExecution();
+        const currentSessionId = getCurrentSessionId();
 
         // Store event
-        if (tempExecution) {
-          tempExecution.events.push(event);
-        } else if (currentSessionId) {
-          const execution = this.executions.get(currentSessionId);
-          if (execution) {
-            execution.events.push(event);
-          }
+        if (execution) {
+          execution.events.push(event);
         }
 
         // Forward to callback with sessionId
@@ -190,16 +299,12 @@ export class ProcessManager {
         }
       },
       onError: (error: string) => {
-        const currentSessionId = params.sessionId || tempExecution?.sessionId;
+        const execution = getCurrentExecution();
+        const currentSessionId = getCurrentSessionId();
 
         // Store error
-        if (tempExecution) {
-          tempExecution.errors.push(error);
-        } else if (currentSessionId) {
-          const execution = this.executions.get(currentSessionId);
-          if (execution) {
-            execution.errors.push(error);
-          }
+        if (execution) {
+          execution.errors.push(error);
         }
 
         // Forward to callback
@@ -208,27 +313,24 @@ export class ProcessManager {
         }
       },
       onClose: (code: number) => {
-        const currentSessionId = params.sessionId || tempExecution?.sessionId;
+        const execution = getCurrentExecution();
+        const currentSessionId = getCurrentSessionId();
 
-        if (tempExecution) {
-          tempExecution.status = code === 0 ? 'completed' : 'failed';
-          tempExecution.endTime = Date.now();
-        } else if (currentSessionId) {
-          const execution = this.executions.get(currentSessionId);
-          if (execution) {
-            execution.status = code === 0 ? 'completed' : 'failed';
-            execution.endTime = Date.now();
+        if (execution) {
+          execution.status = code === 0 ? 'completed' : 'failed';
+          execution.endTime = Date.now();
 
+          if (currentSessionId) {
             console.log('Execution completed', {
               module: 'ProcessManager',
               sessionId: currentSessionId,
               status: execution.status,
               duration: execution.endTime - execution.startTime,
             });
-
-            // Notify listeners of status change
-            this.notifyExecutionsChanged();
           }
+
+          // Notify listeners of status change
+          this.notifyExecutionsChanged();
         }
 
         // Forward to callback
@@ -406,10 +508,25 @@ export class ProcessManager {
       // Notify listeners of status change
       this.notifyExecutionsChanged();
     } catch (error) {
+      const killError = new ProcessKillError(
+        `Failed to kill execution: ${error instanceof Error ? error.message : String(error)}`,
+        {
+          sessionId,
+          originalError: error,
+        }
+      );
+
       console.error('Failed to kill execution', error instanceof Error ? error : undefined, {
         module: 'ProcessManager',
         sessionId,
       });
+
+      // Mark as failed instead of killed if kill fails
+      execution.status = 'failed';
+      execution.endTime = Date.now();
+      this.notifyExecutionsChanged();
+
+      throw killError;
     }
   }
 

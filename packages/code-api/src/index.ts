@@ -54,6 +54,7 @@ export {
 export type {
   ExecutionInfo,
   ExecutionStatus,
+  ProcessManagerOptions,
   StartExecutionParams,
 } from './process/ProcessManager';
 // Process

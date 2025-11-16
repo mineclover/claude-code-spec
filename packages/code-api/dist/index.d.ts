@@ -1058,10 +1058,35 @@ interface StartExecutionParams {
     onError?: (sessionId: string, error: string) => void;
     onComplete?: (sessionId: string, code: number) => void;
 }
+interface ProcessManagerOptions {
+    maxConcurrent?: number;
+    maxHistorySize?: number;
+    autoCleanupInterval?: number;
+}
 declare class ProcessManager {
     private executions;
     private maxConcurrent;
+    private maxHistorySize;
+    private autoCleanupInterval;
+    private autoCleanupTimer?;
     private executionsChangeListener?;
+    constructor(options?: ProcessManagerOptions);
+    /**
+     * Start automatic cleanup timer
+     */
+    private startAutoCleanup;
+    /**
+     * Stop automatic cleanup timer
+     */
+    private stopAutoCleanup;
+    /**
+     * Enforce history size limit by removing oldest completed executions
+     */
+    private enforceHistoryLimit;
+    /**
+     * Destroy the process manager and cleanup resources
+     */
+    destroy(): void;
     /**
      * Set listener for executions state changes
      */
@@ -1180,4 +1205,4 @@ declare class SessionManager {
     getSessionCount(): number;
 }
 
-export { type AssistantEvent, ClaudeClient, type ClaudeClientOptions, ClaudeQueryAPI, CommonSchemas, type EntryPointConfig, type EntryPointDetail, EntryPointExecutor, EntryPointManager, type EntryPointResult, type EntryPointsConfig, type ErrorEvent, type ExecuteEntryPointParams, type ExecutionInfo, ExecutionNotFoundError, type ExecutionStatus, type JSONExtractionResult, type JSONSchema, MaxConcurrentError, type OutputFormat, ProcessKillError, ProcessManager, ProcessStartError, type QueryOptions, type QueryResult, type ResultEvent, type SchemaDefinition, SchemaManager, type SessionInfo, SessionManager, StandardSchemaV1, type StartExecutionParams, type StreamEvent$1 as StreamEvent, StreamParser, type SystemInitEvent, type SystemPromptConfig, type UserEvent, ValidationError, type ValidationResult, buildSchemaPrompt, extractAndValidate, extractJSON, extractSessionId, extractTextFromMessage, extractToolUsesFromMessage, isAssistantEvent, isErrorEvent, isResultEvent, isSystemInitEvent, isUserEvent, processManager, validateAgainstSchema, validateWithStandardSchema, validateWithZod, zodSchemaToPrompt };
+export { type AssistantEvent, ClaudeClient, type ClaudeClientOptions, ClaudeQueryAPI, CommonSchemas, type EntryPointConfig, type EntryPointDetail, EntryPointExecutor, EntryPointManager, type EntryPointResult, type EntryPointsConfig, type ErrorEvent, type ExecuteEntryPointParams, type ExecutionInfo, ExecutionNotFoundError, type ExecutionStatus, type JSONExtractionResult, type JSONSchema, MaxConcurrentError, type OutputFormat, ProcessKillError, ProcessManager, type ProcessManagerOptions, ProcessStartError, type QueryOptions, type QueryResult, type ResultEvent, type SchemaDefinition, SchemaManager, type SessionInfo, SessionManager, StandardSchemaV1, type StartExecutionParams, type StreamEvent$1 as StreamEvent, StreamParser, type SystemInitEvent, type SystemPromptConfig, type UserEvent, ValidationError, type ValidationResult, buildSchemaPrompt, extractAndValidate, extractJSON, extractSessionId, extractTextFromMessage, extractToolUsesFromMessage, isAssistantEvent, isErrorEvent, isResultEvent, isSystemInitEvent, isUserEvent, processManager, validateAgainstSchema, validateWithStandardSchema, validateWithZod, zodSchemaToPrompt };
