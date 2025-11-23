@@ -18,7 +18,7 @@ let centralDatabase: CentralDatabase | null = null;
 /**
  * Get or create CentralDatabase instance
  */
-function getCentralDatabase(): CentralDatabase {
+export function getCentralDatabase(): CentralDatabase {
   if (!centralDatabase) {
     centralDatabase = new CentralDatabase();
     // Initialize on first use

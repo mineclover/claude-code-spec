@@ -12,7 +12,7 @@ let agentTracker: AgentTracker | null = null;
 /**
  * Get or create AgentTracker instance
  */
-function getAgentTracker(): AgentTracker {
+export function getAgentTracker(): AgentTracker {
   if (!agentTracker) {
     const database = new CentralDatabase();
     database.initialize().catch((error) => {

@@ -11,6 +11,8 @@ import type {
   WorkflowStats,
 } from '../../services/WorkflowEngine';
 import type { IPCRouter } from '../IPCRouter';
+import { getAgentTracker } from './agentTrackerHandlers';
+import { getCentralDatabase } from './centralDatabaseHandlers';
 
 // Store workflow instances per project
 const workflowInstances = new Map<string, WorkflowEngine>();
@@ -25,6 +27,8 @@ async function getWorkflowInstance(projectPath: string): Promise<WorkflowEngine>
     // Create new instance
     const { WorkflowEngine } = await import('../../services/WorkflowEngine');
     const taskRouter = new TaskRouter(agentPoolManager, processManager);
+    const agentTracker = getAgentTracker();
+    const centralDatabase = getCentralDatabase();
 
     const config: WorkflowConfig = {
       projectPath,
@@ -34,7 +38,7 @@ async function getWorkflowInstance(projectPath: string): Promise<WorkflowEngine>
       autoStart: false,
     };
 
-    instance = new WorkflowEngine(config, taskRouter, agentPoolManager, processManager);
+    instance = new WorkflowEngine(config, taskRouter, agentPoolManager, processManager, agentTracker, centralDatabase);
     workflowInstances.set(projectPath, instance);
 
     appLogger.info('Created workflow instance', {

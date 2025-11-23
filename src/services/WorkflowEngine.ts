@@ -18,6 +18,8 @@ import type { ProcessManager } from '@context-action/code-api';
 import { appLogger } from '../main/app-context';
 import type { Task } from '../types/task';
 import type { AgentPoolManager } from './AgentPoolManager';
+import type { AgentTracker } from './AgentTracker';
+import type { CentralDatabase } from './CentralDatabase';
 import { SessionAnalyzer } from './SessionAnalyzer';
 import { TaskLifecycleManager } from './TaskLifecycleManager';
 import type { TaskExecutionOptions, TaskRouter } from './TaskRouter';
@@ -76,17 +78,22 @@ export class WorkflowEngine {
   private taskRouter: TaskRouter;
   private agentPool: AgentPoolManager;
   private sessionAnalyzer: SessionAnalyzer;
+  private agentTracker: AgentTracker;
+  private centralDatabase: CentralDatabase;
 
   private state: WorkflowState;
   private eventListeners: WorkflowEventListener[] = [];
   private executionLoop: Promise<void> | null = null;
   private shouldStop = false;
+  private statsUpdateInterval: NodeJS.Timeout | null = null;
 
   constructor(
     config: WorkflowConfig,
     taskRouter: TaskRouter,
     agentPool: AgentPoolManager,
     processManager: ProcessManager,
+    agentTracker: AgentTracker,
+    centralDatabase: CentralDatabase,
   ) {
     this.config = {
       maxConcurrent: 3,
@@ -100,6 +107,8 @@ export class WorkflowEngine {
     this.taskRouter = taskRouter;
     this.agentPool = agentPool;
     this.sessionAnalyzer = new SessionAnalyzer(processManager);
+    this.agentTracker = agentTracker;
+    this.centralDatabase = centralDatabase;
 
     this.state = {
       status: 'idle',
@@ -114,6 +123,12 @@ export class WorkflowEngine {
       projectPath: config.projectPath,
       maxConcurrent: this.config.maxConcurrent,
     });
+
+    // Register project with CentralDatabase
+    void this.registerProject();
+
+    // Start periodic stats updates (every 30 seconds)
+    this.startPeriodicStatsUpdate(30000);
 
     if (this.config.autoStart) {
       void this.startWorkflow();
@@ -229,6 +244,9 @@ export class WorkflowEngine {
       await this.executionLoop;
       this.executionLoop = null;
     }
+
+    // Stop periodic stats updates
+    this.stopPeriodicStatsUpdate();
 
     this.state.status = 'idle';
     this.state.currentTasks.clear();
@@ -367,6 +385,7 @@ export class WorkflowEngine {
    */
   private async executeTask(task: Task): Promise<void> {
     const taskId = task.id;
+    let sessionId: string | null = null;
 
     // Mark as currently executing
     this.state.currentTasks.add(taskId);
@@ -401,7 +420,22 @@ export class WorkflowEngine {
         projectPath: this.config.projectPath,
       };
 
-      const sessionId = await this.taskRouter.routeTask(taskWithPath as any);
+      sessionId = await this.taskRouter.routeTask(taskWithPath as any);
+
+      // Register execution with AgentTracker for monitoring
+      try {
+        this.agentTracker.registerExecution(sessionId, {
+          projectPath: this.config.projectPath,
+          agentName: task.assigned_agent,
+          taskId: task.id,
+        });
+      } catch (error) {
+        appLogger.warn('Failed to register execution with AgentTracker', {
+          module: 'WorkflowEngine',
+          sessionId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
 
       appLogger.info('Task execution initiated', {
         module: 'WorkflowEngine',
@@ -458,6 +492,16 @@ export class WorkflowEngine {
       }
 
       this.state.completedCount++;
+
+      // Update AgentTracker status
+      try {
+        this.agentTracker.updateStatus(sessionId, 'completed');
+      } catch (error) {
+        appLogger.warn('Failed to update AgentTracker status', {
+          module: 'WorkflowEngine',
+          sessionId,
+        });
+      }
 
       appLogger.info('Task completed successfully', {
         module: 'WorkflowEngine',
@@ -518,6 +562,19 @@ export class WorkflowEngine {
       } else {
         // Max retries exceeded, mark as failed
         await this.lifecycleManager.updateTaskStatus(taskId, 'cancelled');
+
+        // Update AgentTracker status to failed (only if task was routed)
+        if (sessionId) {
+          try {
+            this.agentTracker.updateStatus(sessionId, 'failed');
+          } catch (trackingError) {
+            appLogger.warn('Failed to update AgentTracker failure status', {
+              module: 'WorkflowEngine',
+              taskId,
+              sessionId,
+            });
+          }
+        }
 
         this.emitEvent({
           type: 'task:failed',
@@ -638,6 +695,146 @@ export class WorkflowEngine {
         );
       }
     }
+  }
+
+  /**
+   * Register project with CentralDatabase
+   */
+  private async registerProject(): Promise<void> {
+    try {
+      const projectName = this.config.projectPath.split('/').filter(Boolean).pop() || 'Unknown';
+      const taskStats = await this.lifecycleManager.getTaskStats();
+
+      await this.centralDatabase.saveProjectState({
+        projectPath: this.config.projectPath,
+        name: projectName,
+        registeredAt: new Date().toISOString(),
+        lastSeen: new Date().toISOString(),
+        healthStatus: 'healthy',
+        stats: {
+          totalTasks: taskStats.total,
+          pendingTasks: taskStats.pending,
+          inProgressTasks: taskStats.inProgress,
+          completedTasks: taskStats.completed,
+          cancelledTasks: taskStats.cancelled,
+          totalAgents: 0, // Will be updated by AgentTracker
+          activeAgents: 0,
+        },
+      });
+
+      appLogger.info('Project registered with CentralDatabase', {
+        module: 'WorkflowEngine',
+        projectPath: this.config.projectPath,
+      });
+    } catch (error) {
+      appLogger.error(
+        'Failed to register project with CentralDatabase',
+        error instanceof Error ? error : undefined,
+        {
+          module: 'WorkflowEngine',
+          projectPath: this.config.projectPath,
+        },
+      );
+    }
+  }
+
+  /**
+   * Start periodic stats updates
+   */
+  private startPeriodicStatsUpdate(intervalMs: number): void {
+    if (this.statsUpdateInterval) {
+      clearInterval(this.statsUpdateInterval);
+    }
+
+    this.statsUpdateInterval = setInterval(() => {
+      void this.updateProjectStats();
+    }, intervalMs);
+
+    appLogger.info('Started periodic stats updates', {
+      module: 'WorkflowEngine',
+      intervalMs,
+    });
+  }
+
+  /**
+   * Stop periodic stats updates
+   */
+  private stopPeriodicStatsUpdate(): void {
+    if (this.statsUpdateInterval) {
+      clearInterval(this.statsUpdateInterval);
+      this.statsUpdateInterval = null;
+
+      appLogger.info('Stopped periodic stats updates', {
+        module: 'WorkflowEngine',
+      });
+    }
+  }
+
+  /**
+   * Update project stats in CentralDatabase
+   */
+  private async updateProjectStats(): Promise<void> {
+    try {
+      const taskStats = await this.lifecycleManager.getTaskStats();
+      const projectName = this.config.projectPath.split('/').filter(Boolean).pop() || 'Unknown';
+
+      // Get current project state to preserve registration time
+      const currentState = await this.centralDatabase.getProjectState(this.config.projectPath);
+
+      await this.centralDatabase.saveProjectState({
+        projectPath: this.config.projectPath,
+        name: projectName,
+        registeredAt: currentState?.registeredAt || new Date().toISOString(),
+        lastSeen: new Date().toISOString(),
+        healthStatus: this.calculateHealthStatus(taskStats),
+        stats: {
+          totalTasks: taskStats.total,
+          pendingTasks: taskStats.pending,
+          inProgressTasks: taskStats.inProgress,
+          completedTasks: taskStats.completed,
+          cancelledTasks: taskStats.cancelled,
+          totalAgents: 0, // Will be updated by AgentTracker
+          activeAgents: 0,
+        },
+      });
+    } catch (error) {
+      appLogger.error(
+        'Failed to update project stats',
+        error instanceof Error ? error : undefined,
+        {
+          module: 'WorkflowEngine',
+        },
+      );
+    }
+  }
+
+  /**
+   * Calculate project health status based on task stats
+   */
+  private calculateHealthStatus(taskStats: {
+    total: number;
+    pending: number;
+    inProgress: number;
+    completed: number;
+    cancelled: number;
+  }): 'healthy' | 'warning' | 'error' | 'unknown' {
+    if (taskStats.total === 0) {
+      return 'unknown';
+    }
+
+    const failureRate = taskStats.cancelled / taskStats.total;
+
+    // Error: >30% failure rate
+    if (failureRate > 0.3) {
+      return 'error';
+    }
+
+    // Warning: >10% failure rate or many stuck tasks
+    if (failureRate > 0.1 || (taskStats.inProgress > 0 && this.state.status !== 'running')) {
+      return 'warning';
+    }
+
+    return 'healthy';
   }
 
   /**

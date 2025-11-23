@@ -30,6 +30,8 @@ export interface CriterionMatch {
 }
 
 export class SessionAnalyzer {
+  private readonly ANALYSIS_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+
   constructor(private processManager: ProcessManager) {
     appLogger.info('SessionAnalyzer initialized', {
       module: 'SessionAnalyzer',
@@ -46,6 +48,31 @@ export class SessionAnalyzer {
       taskId: task.id,
     });
 
+    try {
+      // Wrap analysis in timeout protection
+      return await this.withTimeout(
+        this.performAnalysis(sessionId, task),
+        this.ANALYSIS_TIMEOUT_MS,
+        () => this.createTimeoutFallback(sessionId, task),
+      );
+    } catch (error) {
+      appLogger.error(
+        'Failed to analyze completion',
+        error instanceof Error ? error : undefined,
+        {
+          module: 'SessionAnalyzer',
+          sessionId,
+          taskId: task.id,
+        },
+      );
+      return this.createFailedAnalysis('Analysis failed: ' + String(error));
+    }
+  }
+
+  /**
+   * Perform the actual analysis (extracted for timeout wrapping)
+   */
+  private async performAnalysis(sessionId: string, task: Task): Promise<CompletionAnalysis> {
     try {
       // Get execution info
       const execution = this.processManager.getExecution(sessionId);
@@ -124,7 +151,7 @@ export class SessionAnalyzer {
       };
     } catch (error) {
       appLogger.error(
-        'Failed to analyze completion',
+        'Failed to perform analysis',
         error instanceof Error ? error : undefined,
         {
           module: 'SessionAnalyzer',
@@ -134,6 +161,75 @@ export class SessionAnalyzer {
       );
       return this.createFailedAnalysis('Analysis failed: ' + String(error));
     }
+  }
+
+  /**
+   * Wrap a promise with timeout protection
+   */
+  private async withTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    fallback: () => T,
+  ): Promise<T> {
+    const timeoutPromise = new Promise<T>((resolve) => {
+      setTimeout(() => {
+        appLogger.warn('Analysis timeout, using fallback', {
+          module: 'SessionAnalyzer',
+          timeoutMs,
+        });
+        resolve(fallback());
+      }, timeoutMs);
+    });
+
+    return Promise.race([promise, timeoutPromise]);
+  }
+
+  /**
+   * Create a fallback completion analysis for timeout cases
+   */
+  private createTimeoutFallback(sessionId: string, task: Task): CompletionAnalysis {
+    appLogger.warn('Creating timeout fallback analysis', {
+      module: 'SessionAnalyzer',
+      sessionId,
+      taskId: task.id,
+    });
+
+    // Get execution info if available
+    const execution = this.processManager.getExecution(sessionId);
+    const executionTime = execution
+      ? execution.endTime
+        ? execution.endTime - execution.startTime
+        : Date.now() - execution.startTime
+      : 0;
+
+    // Parse criteria
+    const criteria = this.parseSuccessCriteria(task.successCriteria || []);
+
+    return {
+      completed: false,
+      matchedCriteria: [],
+      failedCriteria: criteria,
+      confidence: 0,
+      executionTime,
+      reviewNotes: `## ⚠️ Analysis Timeout
+
+Analysis exceeded the timeout limit of ${this.ANALYSIS_TIMEOUT_MS / 1000 / 60} minutes and was unable to complete.
+
+**Task ID**: ${task.id}
+**Session ID**: ${sessionId}
+**Execution Time**: ${(executionTime / 1000).toFixed(2)}s
+
+### Success Criteria (Not Analyzed)
+${criteria.map((criterion) => `- [ ] ${criterion}`).join('\n')}
+
+### Next Steps
+1. Review the execution logs manually
+2. Verify if the task objectives were met
+3. Consider breaking down complex tasks into smaller ones
+4. If the task completed successfully, manually mark it as completed
+
+**Status**: Requires manual review due to analysis timeout`,
+    };
   }
 
   /**
