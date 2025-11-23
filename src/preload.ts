@@ -20,6 +20,7 @@ import { exposeSkillAPI } from './preload/apis/skill';
 import { exposeSkillRepositoryAPI } from './preload/apis/skillRepository';
 import { exposeTaskAPI } from './preload/apis/task';
 import { exposeWorkAreaAPI } from './preload/apis/workArea';
+import { exposeWorkflowAPI } from './preload/apis/workflow';
 
 // Expose all APIs to the renderer
 exposeClaudeAPI();
@@ -38,6 +39,7 @@ exposeSkillRepositoryAPI();
 exposeWorkAreaAPI();
 exposeOutputStyleAPI();
 exposeQueryAPI();
+exposeWorkflowAPI();
 
 // Re-export types for convenience
 export * from './types/api';

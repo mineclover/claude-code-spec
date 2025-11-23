@@ -19,6 +19,7 @@ import { registerSkillHandlers } from '../ipc/handlers/skillHandlers';
 import { registerSkillRepositoryHandlers } from '../ipc/handlers/skillRepositoryHandlers';
 import { registerTaskHandlers } from '../ipc/handlers/taskHandlers';
 import { registerWorkAreaHandlers } from '../ipc/handlers/workAreaHandlers';
+import { registerWorkflowHandlers } from '../ipc/handlers/workflowHandlers';
 import { ipcRegistry } from '../ipc/IPCRouter';
 import { settingsService } from '../services/appSettings';
 import { logger, loggerConfig, sessionManager } from './app-context';
@@ -97,6 +98,10 @@ export function setupIPCHandlers(): void {
   // Query API handlers
   const queryRouter = ipcRegistry.router('query');
   registerQueryHandlers(queryRouter);
+
+  // Workflow handlers
+  const workflowRouter = ipcRegistry.router('workflow');
+  registerWorkflowHandlers(workflowRouter);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }

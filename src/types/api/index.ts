@@ -12,3 +12,4 @@ export * from './sessions';
 export * from './settings';
 export * from './skill';
 export * from './skillRepository';
+export * from './workflow';
