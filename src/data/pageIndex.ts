@@ -109,6 +109,17 @@ export const PAGE_INDEX: PageIndex[] = [
     keywords: ['tasks', 'todo', 'agent', 'review', 'assignment', '작업', '할당', '리뷰'],
   },
   {
+    id: 'workflow',
+    name: 'Workflow',
+    displayName: '워크플로우 자동화',
+    description:
+      'Task 실행을 자동화하고 모니터링합니다. 의존성 기반 스케줄링으로 여러 작업을 순차적으로 실행합니다.',
+    route: '/workflow',
+    icon: '⚙️',
+    category: 'management',
+    keywords: ['workflow', 'automation', 'monitor', 'execution', 'progress', '워크플로우', '자동화', '모니터링', '진행'],
+  },
+  {
     id: 'agents',
     name: 'Agents',
     displayName: 'Agent 관리',

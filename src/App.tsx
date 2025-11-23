@@ -18,6 +18,7 @@ import { OutputStylesPage } from './pages/OutputStylesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SkillsPage } from './pages/SkillsPage';
 import { TasksPage } from './pages/TasksPage';
+import { WorkflowPage } from './pages/WorkflowPage';
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
             <Route path="/controller-docs" element={<ControllerDocsPage />} />
             <Route path="/memory" element={<MemoryPage />} />
             <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/workflow" element={<WorkflowPage />} />
             <Route path="/agents" element={<AgentsPage />} />
             <Route path="/skills" element={<SkillsPage />} />
             <Route path="/output-styles" element={<OutputStylesPage />} />

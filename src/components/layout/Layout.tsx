@@ -136,6 +136,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Link>
 
           <Link
+            to="/workflow"
+            className={`${styles.navItem} ${isActive('/workflow') ? styles.active : ''}`}
+          >
+            <span className={styles.icon}>⚙️</span>
+            <span>Workflow</span>
+          </Link>
+
+          <Link
             to="/agents"
             className={`${styles.navItem} ${isActive('/agents') ? styles.active : ''}`}
           >
