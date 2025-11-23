@@ -399,3 +399,108 @@
 .placeholder p {
   margin: 0;
 }
+
+/* Task Statistics */
+.taskStats {
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statLabel {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.statValue {
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.statValue.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.statValue.inProgress {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.statValue.completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.statValue.executable {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+/* Header Buttons */
+.headerButtons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.generateButton {
+  padding: 6px 12px;
+  border: 1px solid #17a2b8;
+  border-radius: 4px;
+  background: #17a2b8;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.generateButton:hover:not(:disabled) {
+  background: #138496;
+  border-color: #138496;
+}
+
+.generateButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.generateTasksEmptyButton {
+  margin-top: 12px;
+  padding: 10px 20px;
+  border: 1px solid #17a2b8;
+  border-radius: 6px;
+  background: #17a2b8;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.generateTasksEmptyButton:hover:not(:disabled) {
+  background: #138496;
+  border-color: #138496;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.generateTasksEmptyButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

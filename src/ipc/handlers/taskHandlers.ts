@@ -5,7 +5,9 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { processManager } from '@context-action/code-api';
 import matter from 'gray-matter';
+import { TaskValidator } from '../../lib/TaskValidator';
 import { agentPoolManager } from '../../main/app-context';
+import { TaskLifecycleManager } from '../../services/TaskLifecycleManager';
 import type { Task } from '../../services/TaskRouter';
 import { TaskRouter } from '../../services/TaskRouter';
 import type { IPCRouter } from '../IPCRouter';
@@ -221,6 +223,115 @@ export function registerTaskHandlers(router: IPCRouter): void {
       return { success: true, sessionId };
     } catch (error) {
       console.error(`[TaskHandlers] Failed to execute task ${taskId}:`, error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Validate task content
+  router.handle<[string, string], { valid: boolean; errors: any[]; warnings: any[] }>(
+    'validateTask',
+    async (_event, projectPath, content) => {
+      try {
+        const validator = new TaskValidator(projectPath);
+        const result = await validator.validateTaskContent(content);
+        return result;
+      } catch (error) {
+        console.error('[TaskHandlers] Failed to validate task:', error);
+        return {
+          valid: false,
+          errors: [{ field: 'general', message: String(error), severity: 'error' }],
+          warnings: [],
+        };
+      }
+    },
+  );
+
+  // Update task status
+  router.handle<[string, string, string, string | undefined], { success: boolean; error?: string }>(
+    'updateTaskStatus',
+    async (_event, projectPath, taskId, newStatus, updatedBy) => {
+      try {
+        const lifecycleManager = new TaskLifecycleManager(projectPath);
+        return await lifecycleManager.updateTaskStatus(
+          taskId,
+          newStatus as 'pending' | 'in_progress' | 'completed' | 'cancelled',
+          updatedBy,
+        );
+      } catch (error) {
+        console.error(`[TaskHandlers] Failed to update task status:`, error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  // Check if task can be executed
+  router.handle<
+    [string, string],
+    { canExecute: boolean; reason?: string; blockingTasks?: string[] }
+  >('canExecuteTask', async (_event, projectPath, taskId) => {
+    try {
+      const lifecycleManager = new TaskLifecycleManager(projectPath);
+      return await lifecycleManager.canExecuteTask(taskId);
+    } catch (error) {
+      console.error(`[TaskHandlers] Failed to check task execution:`, error);
+      return { canExecute: false, reason: String(error) };
+    }
+  });
+
+  // Get next task to execute
+  router.handle<[string], any>('getNextTask', async (_event, projectPath) => {
+    try {
+      const lifecycleManager = new TaskLifecycleManager(projectPath);
+      const task = await lifecycleManager.getNextTask();
+      return task;
+    } catch (error) {
+      console.error('[TaskHandlers] Failed to get next task:', error);
+      return null;
+    }
+  });
+
+  // Get task statistics
+  router.handle<[string], any>('getTaskStats', async (_event, projectPath) => {
+    try {
+      const lifecycleManager = new TaskLifecycleManager(projectPath);
+      return await lifecycleManager.getTaskStats();
+    } catch (error) {
+      console.error('[TaskHandlers] Failed to get task stats:', error);
+      return {
+        total: 0,
+        pending: 0,
+        inProgress: 0,
+        completed: 0,
+        cancelled: 0,
+        executable: 0,
+      };
+    }
+  });
+
+  // Start task (mark as in_progress)
+  router.handle<[string, string, string | undefined], { success: boolean; error?: string }>(
+    'startTask',
+    async (_event, projectPath, taskId, agentName) => {
+      try {
+        const lifecycleManager = new TaskLifecycleManager(projectPath);
+        return await lifecycleManager.startTask(taskId, agentName);
+      } catch (error) {
+        console.error(`[TaskHandlers] Failed to start task:`, error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  // Complete task (mark as completed)
+  router.handle<
+    [string, string, string | undefined, string | undefined],
+    { success: boolean; error?: string }
+  >('completeTask', async (_event, projectPath, taskId, agentName, reviewNotes) => {
+    try {
+      const lifecycleManager = new TaskLifecycleManager(projectPath);
+      return await lifecycleManager.completeTask(taskId, agentName, reviewNotes);
+    } catch (error) {
+      console.error(`[TaskHandlers] Failed to complete task:`, error);
       return { success: false, error: String(error) };
     }
   });

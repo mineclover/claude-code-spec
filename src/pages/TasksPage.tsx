@@ -37,6 +37,15 @@ export const TasksPage: React.FC = () => {
   const [successCriteria, setSuccessCriteria] = useState<string[]>([]);
   const [newReference, setNewReference] = useState('');
   const [newCriterion, setNewCriterion] = useState('');
+  const [taskStats, setTaskStats] = useState({
+    total: 0,
+    pending: 0,
+    inProgress: 0,
+    completed: 0,
+    cancelled: 0,
+    executable: 0,
+  });
+  const [generatingTasks, setGeneratingTasks] = useState(false);
 
   // Load tasks list
   const loadTasks = useCallback(async () => {
@@ -46,6 +55,10 @@ export const TasksPage: React.FC = () => {
     try {
       const tasksList = await window.taskAPI.listTasks(projectPath);
       setTasks(tasksList);
+
+      // Also load task statistics
+      const stats = await window.taskAPI.getTaskStats(projectPath);
+      setTaskStats(stats);
     } catch (error) {
       console.error('Failed to load tasks:', error);
       toast.error('Failed to load tasks');
@@ -235,6 +248,54 @@ export const TasksPage: React.FC = () => {
     }
   };
 
+  const handleGenerateTasks = async () => {
+    if (!projectPath) return;
+
+    setGeneratingTasks(true);
+    try {
+      // Execute Task Generator Agent with project analysis query
+      const query = `Analyze this project and generate structured task definitions.
+
+Instructions:
+1. Read CLAUDE.md to understand current features and roadmap
+2. Analyze the codebase structure
+3. Identify work that needs to be done
+4. Create task files in workflow/tasks/ directory
+5. Ensure each task has:
+   - Clear title and description
+   - Appropriate work area
+   - Relevant references
+   - Measurable success criteria
+   - Assigned agent
+
+Focus on:
+- Tasks that can be executed independently
+- Clear, actionable items
+- Proper task sizing (small to medium)
+- Logical task ordering
+
+Generate tasks for the highest priority items first.`;
+
+      const result = await window.claudeAPI.execute({
+        projectPath,
+        query,
+        agentName: 'task-generator',
+      });
+
+      if (result.sessionId) {
+        toast.success('Task generation started');
+        navigate(`/execution/${result.sessionId}`);
+      } else {
+        toast.error('Failed to start task generation');
+      }
+    } catch (error) {
+      console.error('Failed to generate tasks:', error);
+      toast.error('Failed to generate tasks');
+    } finally {
+      setGeneratingTasks(false);
+    }
+  };
+
   if (!projectPath) {
     return (
       <div className={styles.container}>
@@ -248,15 +309,69 @@ export const TasksPage: React.FC = () => {
       <div className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <h3>Tasks</h3>
-          <button type="button" className={styles.newButton} onClick={handleNewTask}>
-            + New
-          </button>
+          <div className={styles.headerButtons}>
+            <button
+              type="button"
+              className={styles.generateButton}
+              onClick={handleGenerateTasks}
+              disabled={generatingTasks}
+            >
+              {generatingTasks ? '⏳ Generating...' : '🤖 Generate Tasks'}
+            </button>
+            <button type="button" className={styles.newButton} onClick={handleNewTask}>
+              + New
+            </button>
+          </div>
         </div>
+
+        {/* Task Statistics */}
+        {taskStats.total > 0 && (
+          <div className={styles.taskStats}>
+            <div className={styles.statItem}>
+              <span className={styles.statLabel}>Total:</span>
+              <span className={styles.statValue}>{taskStats.total}</span>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statLabel}>Pending:</span>
+              <span className={`${styles.statValue} ${styles.pending}`}>{taskStats.pending}</span>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statLabel}>In Progress:</span>
+              <span className={`${styles.statValue} ${styles.inProgress}`}>
+                {taskStats.inProgress}
+              </span>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statLabel}>Completed:</span>
+              <span className={`${styles.statValue} ${styles.completed}`}>
+                {taskStats.completed}
+              </span>
+            </div>
+            {taskStats.executable > 0 && (
+              <div className={styles.statItem}>
+                <span className={styles.statLabel}>Executable:</span>
+                <span className={`${styles.statValue} ${styles.executable}`}>
+                  {taskStats.executable}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <div className={styles.loading}>Loading tasks...</div>
         ) : tasks.length === 0 ? (
-          <div className={styles.empty}>No tasks yet</div>
+          <div className={styles.empty}>
+            <p>No tasks yet</p>
+            <button
+              type="button"
+              className={styles.generateTasksEmptyButton}
+              onClick={handleGenerateTasks}
+              disabled={generatingTasks}
+            >
+              {generatingTasks ? 'Generating Tasks...' : 'Generate Tasks with AI'}
+            </button>
+          </div>
         ) : (
           <div className={styles.tasksList}>
             {tasks.map((task) => (
