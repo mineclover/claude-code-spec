@@ -2,6 +2,7 @@ import { Toaster } from 'react-hot-toast';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { ProjectProvider } from './contexts/ProjectContext';
+import { AdminPage } from './pages/AdminPage';
 import { AgentsPage } from './pages/AgentsPage';
 import { CentralDashboardPage } from './pages/CentralDashboardPage';
 import { ClaudeDocsPage } from './pages/ClaudeDocsPage';
@@ -51,6 +52,7 @@ function App() {
             <Route path="/agents" element={<AgentsPage />} />
             <Route path="/skills" element={<SkillsPage />} />
             <Route path="/output-styles" element={<OutputStylesPage />} />
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </Layout>

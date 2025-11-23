@@ -182,6 +182,17 @@ export const PAGE_INDEX: PageIndex[] = [
     keywords: ['output', 'style', 'format', 'json', 'custom', 'behavior', '출력', '스타일', '형식'],
   },
   {
+    id: 'admin',
+    name: 'Admin',
+    displayName: '관리자 패널',
+    description:
+      '작업 상태 수동 변경, 실행 중인 프로세스 종료, 웹훅 설정 등 시스템 관리 기능을 제공합니다.',
+    route: '/admin',
+    icon: '👤',
+    category: 'management',
+    keywords: ['admin', 'override', 'manual', 'terminate', 'webhook', '관리자', '수동', '종료'],
+  },
+  {
     id: 'settings',
     name: 'Settings',
     displayName: '설정',

@@ -40,20 +40,48 @@ export interface ExecutionMetadata {
   taskId?: string;
 }
 
+export interface WebhookConfig {
+  enabled: boolean;
+  url: string;
+  maxRetries?: number;
+  retryDelay?: number;
+}
+
+export interface ZombieNotification {
+  type: 'zombie_detected';
+  timestamp: string;
+  execution: {
+    sessionId: string;
+    projectPath: string;
+    agentName: string;
+    taskId?: string;
+    pid: number;
+    startTime: number;
+    lastHeartbeat: number;
+    timeSinceHeartbeat: number;
+  };
+}
+
 export class AgentTracker {
   private trackedExecutions: Map<string, TrackedExecution> = new Map();
   private healthCheckInterval?: NodeJS.Timeout;
   private zombieThresholdMs: number = 10 * 60 * 1000; // 10 minutes
   private healthCheckIntervalMs: number = 5 * 60 * 1000; // 5 minutes
+  private webhookConfig: WebhookConfig | null = null;
+  private notifiedZombies: Set<string> = new Set(); // Track notified sessions
 
   constructor(
     private processManager: ProcessManager,
     private database: CentralDatabase,
+    webhookConfig?: WebhookConfig,
   ) {
+    this.webhookConfig = webhookConfig || null;
+
     appLogger.info('AgentTracker initialized', {
       module: 'AgentTracker',
       zombieThreshold: this.zombieThresholdMs,
       healthCheckInterval: this.healthCheckIntervalMs,
+      webhookEnabled: this.webhookConfig?.enabled || false,
     });
   }
 
@@ -290,6 +318,9 @@ export class AgentTracker {
       if (health.isZombie) {
         zombieCount++;
 
+        // Send webhook notification
+        void this.sendZombieNotification(tracked);
+
         // Auto-cleanup zombies if configured
         if (health.recommendation === 'cleanup') {
           this.cleanupZombie(tracked.sessionId);
@@ -413,6 +444,112 @@ export class AgentTracker {
     await this.database.saveExecution(record);
   }
 
+  // ========== Webhook Notifications ==========
+
+  /**
+   * Set or update webhook configuration
+   */
+  setWebhookConfig(config: WebhookConfig): void {
+    this.webhookConfig = config;
+    appLogger.info('Webhook configuration updated', {
+      module: 'AgentTracker',
+      enabled: config.enabled,
+      url: config.url,
+    });
+  }
+
+  /**
+   * Send zombie notification via webhook
+   */
+  private async sendZombieNotification(tracked: TrackedExecution): Promise<void> {
+    if (!this.webhookConfig?.enabled || !this.webhookConfig.url) {
+      return;
+    }
+
+    // Check if already notified
+    if (this.notifiedZombies.has(tracked.sessionId)) {
+      return;
+    }
+
+    const now = Date.now();
+    const notification: ZombieNotification = {
+      type: 'zombie_detected',
+      timestamp: new Date().toISOString(),
+      execution: {
+        sessionId: tracked.sessionId,
+        projectPath: tracked.projectPath,
+        agentName: tracked.agentName,
+        taskId: tracked.taskId,
+        pid: tracked.pid,
+        startTime: tracked.startTime,
+        lastHeartbeat: tracked.lastHeartbeat,
+        timeSinceHeartbeat: now - tracked.lastHeartbeat,
+      },
+    };
+
+    const maxRetries = this.webhookConfig.maxRetries || 3;
+    const retryDelay = this.webhookConfig.retryDelay || 1000;
+
+    let attempt = 0;
+    let success = false;
+
+    while (attempt < maxRetries && !success) {
+      try {
+        appLogger.info('Sending zombie notification to webhook', {
+          module: 'AgentTracker',
+          sessionId: tracked.sessionId,
+          attempt: attempt + 1,
+          url: this.webhookConfig.url,
+        });
+
+        const response = await fetch(this.webhookConfig.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(notification),
+        });
+
+        if (response.ok) {
+          success = true;
+          this.notifiedZombies.add(tracked.sessionId);
+
+          appLogger.info('Zombie notification sent successfully', {
+            module: 'AgentTracker',
+            sessionId: tracked.sessionId,
+            status: response.status,
+          });
+        } else {
+          throw new Error(`Webhook returned ${response.status}: ${response.statusText}`);
+        }
+      } catch (error) {
+        attempt++;
+
+        appLogger.error(
+          `Failed to send zombie notification (attempt ${attempt}/${maxRetries})`,
+          error as Error,
+          {
+            module: 'AgentTracker',
+            sessionId: tracked.sessionId,
+          },
+        );
+
+        if (attempt < maxRetries) {
+          // Wait before retry
+          await new Promise((resolve) => setTimeout(resolve, retryDelay * attempt));
+        }
+      }
+    }
+
+    if (!success) {
+      appLogger.error('Failed to send zombie notification after all retries', undefined, {
+        module: 'AgentTracker',
+        sessionId: tracked.sessionId,
+        maxRetries,
+      });
+    }
+  }
+
   // ========== Cleanup ==========
 
   /**
@@ -425,5 +562,6 @@ export class AgentTracker {
 
     this.stopHealthCheck();
     this.trackedExecutions.clear();
+    this.notifiedZombies.clear();
   }
 }
