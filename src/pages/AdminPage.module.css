@@ -47,8 +47,8 @@
 }
 
 .activeTab {
-  color: #2563eb !important;
-  border-bottom-color: #2563eb !important;
+  color: #2563eb;
+  border-bottom-color: #2563eb;
   font-weight: 600;
 }
 
@@ -328,7 +328,7 @@
   cursor: pointer;
 }
 
-.checkboxLabel input[type='checkbox'] {
+.checkboxLabel input[type="checkbox"] {
   margin-right: 8px;
   width: 18px;
   height: 18px;
@@ -390,7 +390,7 @@
   border: 1px solid #d1d5db;
   border-radius: 6px;
   padding: 12px;
-  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-family: "Monaco", "Menlo", "Courier New", monospace;
   font-size: 12px;
   color: #1f2937;
   overflow-x: auto;

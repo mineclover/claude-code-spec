@@ -3,7 +3,13 @@
  */
 
 import { processManager } from '@context-action/code-api';
-import { AgentTracker, type ExecutionMetadata, type HealthStatus, type TrackedExecution } from '../../services/AgentTracker';
+import {
+  AgentTracker,
+  type ExecutionMetadata,
+  type HealthStatus,
+  type TrackedExecution,
+  type WebhookConfig,
+} from '../../services/AgentTracker';
 import { CentralDatabase } from '../../services/CentralDatabase';
 import type { IpcRouter } from '../IpcRouter';
 
@@ -99,5 +105,12 @@ export function registerAgentTrackerHandlers(router: IpcRouter): void {
   router.handle('checkExecution', async (sessionId: string): Promise<HealthStatus> => {
     const tracker = getAgentTracker();
     return tracker.checkExecution(sessionId);
+  });
+
+  // Webhook configuration
+  router.handle('setWebhookConfig', async (config: WebhookConfig) => {
+    const tracker = getAgentTracker();
+    tracker.setWebhookConfig(config);
+    return { success: true };
   });
 }

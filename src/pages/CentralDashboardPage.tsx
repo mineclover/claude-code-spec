@@ -11,8 +11,8 @@
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { ProjectRegistration, SystemMetrics } from '../types/report';
 import type { TrackedExecution } from '../services/AgentTracker';
+import type { ProjectRegistration, SystemMetrics } from '../types/report';
 import styles from './CentralDashboardPage.module.css';
 
 interface ProjectHealth {
@@ -39,7 +39,7 @@ export const CentralDashboardPage: React.FC = () => {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [loadData]);
 
   const loadData = async () => {
     try {
@@ -73,9 +73,7 @@ export const CentralDashboardPage: React.FC = () => {
     const recommendations: string[] = [];
 
     // Check for zombie processes
-    const projectExecutions = activeExecutions.filter(
-      (e) => e.projectPath === project.projectPath
-    );
+    const projectExecutions = activeExecutions.filter((e) => e.projectPath === project.projectPath);
     const zombies = projectExecutions.filter((e) => e.status === 'zombie');
     if (zombies.length > 0) {
       issues.push(`${zombies.length} zombie process(es) detected`);
@@ -227,9 +225,7 @@ export const CentralDashboardPage: React.FC = () => {
           <h2>Projects</h2>
           {filteredProjects.length === 0 ? (
             <div className={styles.emptyState}>
-              {filter === 'all'
-                ? 'No projects registered yet'
-                : `No ${filter} projects found`}
+              {filter === 'all' ? 'No projects registered yet' : `No ${filter} projects found`}
             </div>
           ) : (
             <div className={styles.projectsGrid}>

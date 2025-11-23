@@ -22,7 +22,7 @@ import type { AgentTracker } from './AgentTracker';
 import type { CentralDatabase } from './CentralDatabase';
 import { SessionAnalyzer } from './SessionAnalyzer';
 import { TaskLifecycleManager } from './TaskLifecycleManager';
-import type { TaskExecutionOptions, TaskRouter } from './TaskRouter';
+import type { TaskRouter } from './TaskRouter';
 
 export type WorkflowStatus = 'idle' | 'running' | 'paused' | 'completed' | 'failed';
 
@@ -76,7 +76,6 @@ export class WorkflowEngine {
   private config: Required<WorkflowConfig>;
   private lifecycleManager: TaskLifecycleManager;
   private taskRouter: TaskRouter;
-  private agentPool: AgentPoolManager;
   private sessionAnalyzer: SessionAnalyzer;
   private agentTracker: AgentTracker;
   private centralDatabase: CentralDatabase;
@@ -363,13 +362,9 @@ export class WorkflowEngine {
         // Small delay to prevent tight loop
         await this.sleep(100);
       } catch (error) {
-        appLogger.error(
-          'Error in execution loop',
-          error instanceof Error ? error : undefined,
-          {
-            module: 'WorkflowEngine',
-          },
-        );
+        appLogger.error('Error in execution loop', error instanceof Error ? error : undefined, {
+          module: 'WorkflowEngine',
+        });
 
         await this.sleep(5000); // Wait before retrying
       }
@@ -461,11 +456,7 @@ export class WorkflowEngine {
       // Auto-complete if confidence > 80%
       if (analysis.completed) {
         // Mark task as completed with review notes
-        await this.lifecycleManager.completeTask(
-          taskId,
-          task.assigned_agent,
-          analysis.reviewNotes,
-        );
+        await this.lifecycleManager.completeTask(taskId, task.assigned_agent, analysis.reviewNotes);
       } else {
         // Keep as in_progress for manual review
         appLogger.warn('Task requires manual review', {
@@ -482,13 +473,11 @@ export class WorkflowEngine {
         appLogger.info('Review notes generated', {
           module: 'WorkflowEngine',
           taskId,
-          reviewNotes: reviewNotes.substring(0, 200) + '...',
+          reviewNotes: `${reviewNotes.substring(0, 200)}...`,
         });
 
         // Don't mark as completed, let it remain in_progress for manual review
-        throw new Error(
-          `Task requires manual review (confidence: ${analysis.confidence}%)`,
-        );
+        throw new Error(`Task requires manual review (confidence: ${analysis.confidence}%)`);
       }
 
       this.state.completedCount++;
@@ -496,7 +485,7 @@ export class WorkflowEngine {
       // Update AgentTracker status
       try {
         this.agentTracker.updateStatus(sessionId, 'completed');
-      } catch (error) {
+      } catch (_error) {
         appLogger.warn('Failed to update AgentTracker status', {
           module: 'WorkflowEngine',
           sessionId,
@@ -521,14 +510,10 @@ export class WorkflowEngine {
       // Reset retry count on success
       this.state.failedTasks.delete(taskId);
     } catch (error) {
-      appLogger.error(
-        'Task execution failed',
-        error instanceof Error ? error : undefined,
-        {
-          module: 'WorkflowEngine',
-          taskId,
-        },
-      );
+      appLogger.error('Task execution failed', error instanceof Error ? error : undefined, {
+        module: 'WorkflowEngine',
+        taskId,
+      });
 
       // Handle retry logic
       const retryCount = this.state.failedTasks.get(taskId) || 0;
@@ -567,7 +552,7 @@ export class WorkflowEngine {
         if (sessionId) {
           try {
             this.agentTracker.updateStatus(sessionId, 'failed');
-          } catch (trackingError) {
+          } catch (_trackingError) {
             appLogger.warn('Failed to update AgentTracker failure status', {
               module: 'WorkflowEngine',
               taskId,
@@ -627,9 +612,7 @@ export class WorkflowEngine {
   /**
    * Get execution status from ProcessManager
    */
-  private async getExecutionStatus(
-    sessionId: string,
-  ): Promise<{ status: string } | null> {
+  private async getExecutionStatus(sessionId: string): Promise<{ status: string } | null> {
     try {
       // Access ProcessManager through taskRouter (it has processManager reference)
       // For now, we'll just wait a reasonable amount of time
@@ -685,14 +668,10 @@ export class WorkflowEngine {
       try {
         listener(event);
       } catch (error) {
-        appLogger.error(
-          'Error in event listener',
-          error instanceof Error ? error : undefined,
-          {
-            module: 'WorkflowEngine',
-            eventType: event.type,
-          },
-        );
+        appLogger.error('Error in event listener', error instanceof Error ? error : undefined, {
+          module: 'WorkflowEngine',
+          eventType: event.type,
+        });
       }
     }
   }

@@ -7,12 +7,19 @@ import type {
   ExecutionMetadata,
   HealthStatus,
   TrackedExecution,
+  WebhookConfig,
 } from '../../services/AgentTracker';
 
 export interface AgentTrackerAPI {
   // Execution registration
-  registerExecution: (sessionId: string, metadata: ExecutionMetadata) => Promise<{ success: boolean }>;
-  updateStatus: (sessionId: string, status: 'running' | 'completed' | 'failed') => Promise<{ success: boolean }>;
+  registerExecution: (
+    sessionId: string,
+    metadata: ExecutionMetadata,
+  ) => Promise<{ success: boolean }>;
+  updateStatus: (
+    sessionId: string,
+    status: 'running' | 'completed' | 'failed',
+  ) => Promise<{ success: boolean }>;
   updateHeartbeat: (sessionId: string) => Promise<{ success: boolean }>;
   unregisterExecution: (sessionId: string) => Promise<{ success: boolean }>;
 
@@ -25,6 +32,9 @@ export interface AgentTrackerAPI {
   startHealthCheck: (interval?: number) => Promise<{ success: boolean }>;
   stopHealthCheck: () => Promise<{ success: boolean }>;
   checkExecution: (sessionId: string) => Promise<HealthStatus>;
+
+  // Webhook configuration
+  setWebhookConfig: (config: WebhookConfig) => Promise<{ success: boolean }>;
 }
 
 export function exposeAgentTrackerAPI(): void {
@@ -57,6 +67,10 @@ export function exposeAgentTrackerAPI(): void {
 
     checkExecution: (sessionId: string) =>
       ipcRenderer.invoke('agent-tracker:checkExecution', sessionId),
+
+    // Webhook configuration
+    setWebhookConfig: (config: WebhookConfig) =>
+      ipcRenderer.invoke('agent-tracker:setWebhookConfig', config),
   };
 
   contextBridge.exposeInMainWorld('agentTrackerAPI', api);

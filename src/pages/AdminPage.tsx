@@ -10,8 +10,8 @@
  */
 
 import { useEffect, useState } from 'react';
-import type { Task, TaskStatus } from '../types/task';
 import type { TrackedExecution, WebhookConfig } from '../services/AgentTracker';
+import type { Task, TaskStatus } from '../types/task';
 import styles from './AdminPage.module.css';
 
 export const AdminPage: React.FC = () => {
@@ -30,7 +30,7 @@ export const AdminPage: React.FC = () => {
     loadData();
     const interval = setInterval(loadData, 5000); // Refresh every 5 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [loadData]);
 
   const loadData = async () => {
     try {
@@ -62,7 +62,11 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  const handleTaskStatusChange = async (projectPath: string, taskId: string, newStatus: TaskStatus) => {
+  const handleTaskStatusChange = async (
+    projectPath: string,
+    taskId: string,
+    newStatus: TaskStatus,
+  ) => {
     if (!confirm(`Change task ${taskId} status to ${newStatus}?`)) {
       return;
     }
@@ -84,7 +88,7 @@ export const AdminPage: React.FC = () => {
       await loadData();
     } catch (error) {
       console.error('Failed to update task status:', error);
-      alert('Failed to update task status: ' + (error as Error).message);
+      alert(`Failed to update task status: ${(error as Error).message}`);
     } finally {
       setLoading(false);
     }
@@ -104,15 +108,23 @@ export const AdminPage: React.FC = () => {
       await loadData();
     } catch (error) {
       console.error('Failed to terminate execution:', error);
-      alert('Failed to terminate execution: ' + (error as Error).message);
+      alert(`Failed to terminate execution: ${(error as Error).message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleWebhookConfigSave = () => {
-    // TODO: Implement webhook config save
-    alert('Webhook configuration saved (not yet implemented in backend)');
+  const handleWebhookConfigSave = async () => {
+    setLoading(true);
+    try {
+      await window.agentTrackerAPI.setWebhookConfig(webhookConfig);
+      alert('Webhook configuration saved successfully');
+    } catch (error) {
+      console.error('Failed to save webhook configuration:', error);
+      alert(`Failed to save webhook configuration: ${(error as Error).message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStatusColor = (status: TaskStatus): string => {
@@ -265,9 +277,7 @@ export const AdminPage: React.FC = () => {
           </div>
         ))}
 
-        {executions.length === 0 && (
-          <div className={styles.emptyState}>No active executions</div>
-        )}
+        {executions.length === 0 && <div className={styles.emptyState}>No active executions</div>}
       </div>
     </div>
   );
@@ -308,7 +318,7 @@ export const AdminPage: React.FC = () => {
             type="number"
             value={webhookConfig.maxRetries}
             onChange={(e) =>
-              setWebhookConfig({ ...webhookConfig, maxRetries: parseInt(e.target.value) })
+              setWebhookConfig({ ...webhookConfig, maxRetries: parseInt(e.target.value, 10) })
             }
             min="1"
             max="10"
@@ -323,7 +333,7 @@ export const AdminPage: React.FC = () => {
             type="number"
             value={webhookConfig.retryDelay}
             onChange={(e) =>
-              setWebhookConfig({ ...webhookConfig, retryDelay: parseInt(e.target.value) })
+              setWebhookConfig({ ...webhookConfig, retryDelay: parseInt(e.target.value, 10) })
             }
             min="100"
             max="10000"
@@ -333,7 +343,7 @@ export const AdminPage: React.FC = () => {
           />
         </div>
 
-        <button onClick={handleWebhookConfigSave} className={styles.saveButton}>
+        <button onClick={handleWebhookConfigSave} className={styles.saveButton} disabled={loading}>
           💾 Save Configuration
         </button>
 

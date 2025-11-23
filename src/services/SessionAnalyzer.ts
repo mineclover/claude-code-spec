@@ -56,16 +56,12 @@ export class SessionAnalyzer {
         () => this.createTimeoutFallback(sessionId, task),
       );
     } catch (error) {
-      appLogger.error(
-        'Failed to analyze completion',
-        error instanceof Error ? error : undefined,
-        {
-          module: 'SessionAnalyzer',
-          sessionId,
-          taskId: task.id,
-        },
-      );
-      return this.createFailedAnalysis('Analysis failed: ' + String(error));
+      appLogger.error('Failed to analyze completion', error instanceof Error ? error : undefined, {
+        module: 'SessionAnalyzer',
+        sessionId,
+        taskId: task.id,
+      });
+      return this.createFailedAnalysis(`Analysis failed: ${String(error)}`);
     }
   }
 
@@ -150,16 +146,12 @@ export class SessionAnalyzer {
         reviewNotes,
       };
     } catch (error) {
-      appLogger.error(
-        'Failed to perform analysis',
-        error instanceof Error ? error : undefined,
-        {
-          module: 'SessionAnalyzer',
-          sessionId,
-          taskId: task.id,
-        },
-      );
-      return this.createFailedAnalysis('Analysis failed: ' + String(error));
+      appLogger.error('Failed to perform analysis', error instanceof Error ? error : undefined, {
+        module: 'SessionAnalyzer',
+        sessionId,
+        taskId: task.id,
+      });
+      return this.createFailedAnalysis(`Analysis failed: ${String(error)}`);
     }
   }
 
@@ -247,10 +239,7 @@ ${criteria.map((criterion) => `- [ ] ${criterion}`).join('\n')}
   /**
    * Analyze a single criterion against execution events
    */
-  private async analyzeCriterion(
-    criterion: string,
-    events: any[],
-  ): Promise<CriterionMatch> {
+  private async analyzeCriterion(criterion: string, events: any[]): Promise<CriterionMatch> {
     const evidence: string[] = [];
     let confidence = 0;
 
@@ -452,7 +441,9 @@ ${criteria.map((criterion) => `- [ ] ${criterion}`).join('\n')}
         '⚠️ **Partial completion detected** - Manual review recommended before marking as completed.',
       );
     } else {
-      lines.push('❌ **Insufficient evidence** - Task may require additional work or manual review.');
+      lines.push(
+        '❌ **Insufficient evidence** - Task may require additional work or manual review.',
+      );
     }
 
     return lines.join('\n');

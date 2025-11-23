@@ -8,7 +8,6 @@ import type {
   ProjectRegistration,
   Report,
   ReportFilter,
-  SystemMetrics,
   TimeRange,
 } from '../../types/report';
 import type { IpcRouter } from '../IpcRouter';

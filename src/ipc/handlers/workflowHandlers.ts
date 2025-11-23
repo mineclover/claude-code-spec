@@ -38,7 +38,14 @@ async function getWorkflowInstance(projectPath: string): Promise<WorkflowEngine>
       autoStart: false,
     };
 
-    instance = new WorkflowEngine(config, taskRouter, agentPoolManager, processManager, agentTracker, centralDatabase);
+    instance = new WorkflowEngine(
+      config,
+      taskRouter,
+      agentPoolManager,
+      processManager,
+      agentTracker,
+      centralDatabase,
+    );
     workflowInstances.set(projectPath, instance);
 
     appLogger.info('Created workflow instance', {
@@ -68,14 +75,10 @@ export function registerWorkflowHandlers(router: IPCRouter): void {
 
       await workflow.startWorkflow();
     } catch (error) {
-      appLogger.error(
-        'Failed to start workflow',
-        error instanceof Error ? error : undefined,
-        {
-          module: 'workflowHandlers',
-          projectPath,
-        },
-      );
+      appLogger.error('Failed to start workflow', error instanceof Error ? error : undefined, {
+        module: 'workflowHandlers',
+        projectPath,
+      });
       throw error;
     }
   });
@@ -91,14 +94,10 @@ export function registerWorkflowHandlers(router: IPCRouter): void {
       const workflow = await getWorkflowInstance(projectPath);
       await workflow.pauseWorkflow();
     } catch (error) {
-      appLogger.error(
-        'Failed to pause workflow',
-        error instanceof Error ? error : undefined,
-        {
-          module: 'workflowHandlers',
-          projectPath,
-        },
-      );
+      appLogger.error('Failed to pause workflow', error instanceof Error ? error : undefined, {
+        module: 'workflowHandlers',
+        projectPath,
+      });
       throw error;
     }
   });
@@ -114,14 +113,10 @@ export function registerWorkflowHandlers(router: IPCRouter): void {
       const workflow = await getWorkflowInstance(projectPath);
       await workflow.resumeWorkflow();
     } catch (error) {
-      appLogger.error(
-        'Failed to resume workflow',
-        error instanceof Error ? error : undefined,
-        {
-          module: 'workflowHandlers',
-          projectPath,
-        },
-      );
+      appLogger.error('Failed to resume workflow', error instanceof Error ? error : undefined, {
+        module: 'workflowHandlers',
+        projectPath,
+      });
       throw error;
     }
   });
@@ -140,14 +135,10 @@ export function registerWorkflowHandlers(router: IPCRouter): void {
       // Remove instance after stopping
       workflowInstances.delete(projectPath);
     } catch (error) {
-      appLogger.error(
-        'Failed to stop workflow',
-        error instanceof Error ? error : undefined,
-        {
-          module: 'workflowHandlers',
-          projectPath,
-        },
-      );
+      appLogger.error('Failed to stop workflow', error instanceof Error ? error : undefined, {
+        module: 'workflowHandlers',
+        projectPath,
+      });
       throw error;
     }
   });
@@ -158,14 +149,10 @@ export function registerWorkflowHandlers(router: IPCRouter): void {
       const workflow = await getWorkflowInstance(projectPath);
       return await workflow.getStats();
     } catch (error) {
-      appLogger.error(
-        'Failed to get workflow stats',
-        error instanceof Error ? error : undefined,
-        {
-          module: 'workflowHandlers',
-          projectPath,
-        },
-      );
+      appLogger.error('Failed to get workflow stats', error instanceof Error ? error : undefined, {
+        module: 'workflowHandlers',
+        projectPath,
+      });
 
       // Return default stats on error
       return {

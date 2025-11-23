@@ -89,7 +89,7 @@ export const WorkflowPage: React.FC = () => {
     });
 
     return unsubscribe;
-  }, [projectPath, loadWorkflowStats, loadTasks]);
+  }, [projectPath, loadWorkflowStats, loadTasks, formatEventMessage]);
 
   // Auto-refresh stats every 5 seconds when running
   useEffect(() => {
@@ -152,7 +152,9 @@ export const WorkflowPage: React.FC = () => {
   const handleStopWorkflow = async () => {
     if (!projectPath) return;
 
-    if (!confirm('Are you sure you want to stop the workflow? Running tasks will complete first.')) {
+    if (
+      !confirm('Are you sure you want to stop the workflow? Running tasks will complete first.')
+    ) {
       return;
     }
 
@@ -341,7 +343,9 @@ export const WorkflowPage: React.FC = () => {
               </div>
               <div className={styles.statItem}>
                 <span className={styles.statLabel}>Elapsed Time</span>
-                <span className={styles.statValue}>{formatDuration(workflowStats.elapsedTime)}</span>
+                <span className={styles.statValue}>
+                  {formatDuration(workflowStats.elapsedTime)}
+                </span>
               </div>
               {workflowStats.estimatedRemaining && (
                 <div className={styles.statItem}>

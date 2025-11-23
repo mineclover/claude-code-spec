@@ -12,7 +12,7 @@
 import type { ProcessManager } from '@context-action/code-api';
 import { appLogger } from '../main/app-context';
 import type { ExecutionRecord } from '../types/report';
-import { CentralDatabase } from './CentralDatabase';
+import type { CentralDatabase } from './CentralDatabase';
 
 export interface TrackedExecution {
   sessionId: string;
@@ -307,7 +307,7 @@ export class AgentTracker {
       trackedCount: this.trackedExecutions.size,
     });
 
-    const now = Date.now();
+    const _now = Date.now();
     let healthyCount = 0;
     let zombieCount = 0;
     let completedCount = 0;

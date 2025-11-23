@@ -10,9 +10,9 @@
  * Storage location: ~/.claude/central-management/
  */
 
-import { createHash } from 'crypto';
-import fs from 'fs/promises';
-import path from 'path';
+import { createHash } from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { appLogger } from '../main/app-context';
 import type {
   ExecutionRecord,
@@ -152,7 +152,7 @@ export class CentralDatabase {
         try {
           const content = await fs.readFile(statePath, 'utf-8');
           projects.push(JSON.parse(content));
-        } catch (error) {
+        } catch (_error) {
           appLogger.warn('Failed to read project state', {
             module: 'CentralDatabase',
             projectHash: entry,
@@ -257,7 +257,7 @@ export class CentralDatabase {
             const content = await fs.readFile(filePath, 'utf-8');
             const reports: Report[] = JSON.parse(content);
             allReports.push(...reports);
-          } catch (error) {
+          } catch (_error) {
             appLogger.warn('Failed to read report file', {
               module: 'CentralDatabase',
               file,
@@ -397,7 +397,7 @@ export class CentralDatabase {
         try {
           const content = await fs.readFile(filePath, 'utf-8');
           executions.push(JSON.parse(content));
-        } catch (error) {
+        } catch (_error) {
           appLogger.warn('Failed to read execution file', {
             module: 'CentralDatabase',
             file,
@@ -526,7 +526,7 @@ export class CentralDatabase {
       // Clean up temp file if it exists
       try {
         await fs.unlink(tempFile);
-      } catch (cleanupError) {
+      } catch (_cleanupError) {
         // Ignore cleanup errors
       }
       throw error;
