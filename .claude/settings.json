@@ -3,6 +3,8 @@
     "allow": [
       "Read(./src/**)",
       "Read(./docs/**)",
+      "Read(./workflow/**)",
+      "Read(./CLAUDE.md)",
       "Read(./package.json)",
       "Read(./tsconfig.json)",
       "Read(./electron.vite.config.ts)",
@@ -10,6 +12,8 @@
       "Edit(./src/**)",
       "Write(./docs/**)",
       "Edit(./docs/**)",
+      "Write(./workflow/tasks/**)",
+      "Edit(./workflow/tasks/**)",
       "Glob(**/*)",
       "Grep(**/*)",
       "Bash(npm run build)",
