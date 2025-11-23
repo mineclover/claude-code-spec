@@ -3,6 +3,7 @@ import { HashRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { ProjectProvider } from './contexts/ProjectContext';
 import { AgentsPage } from './pages/AgentsPage';
+import { CentralDashboardPage } from './pages/CentralDashboardPage';
 import { ClaudeDocsPage } from './pages/ClaudeDocsPage';
 import { ClaudeProjectsListPage } from './pages/ClaudeProjectsListPage';
 import { ClaudeSessionAnalysisPage } from './pages/ClaudeSessionAnalysisPage';
@@ -30,6 +31,7 @@ function App() {
             <Route path="/" element={<ExecutionsPage />} />
             <Route path="/executions/:sessionId" element={<ExecutionDetailPage />} />
             <Route path="/index" element={<IndexPage />} />
+            <Route path="/central-dashboard" element={<CentralDashboardPage />} />
             <Route path="/claude-projects" element={<ClaudeProjectsListPage />} />
             <Route path="/claude-projects/:projectDirName" element={<ClaudeSessionsListPage />} />
             <Route

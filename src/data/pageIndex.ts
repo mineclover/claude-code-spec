@@ -56,6 +56,16 @@ export const PAGE_INDEX: PageIndex[] = [
 
   // Management
   {
+    id: 'central-dashboard',
+    name: 'Central Dashboard',
+    displayName: '중앙 대시보드',
+    description: '모든 프로젝트의 통합 현황을 모니터링하고 관리합니다.',
+    route: '/central-dashboard',
+    icon: '🎛️',
+    category: 'management',
+    keywords: ['central', 'dashboard', 'monitoring', 'overview', '중앙', '대시보드', '모니터링', '현황'],
+  },
+  {
     id: 'claude-projects',
     name: 'Claude Projects',
     displayName: 'Claude 프로젝트',

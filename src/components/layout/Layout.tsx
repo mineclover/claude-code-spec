@@ -88,6 +88,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Link>
 
           <Link
+            to="/central-dashboard"
+            className={`${styles.navItem} ${isActive('/central-dashboard') ? styles.active : ''}`}
+          >
+            <span className={styles.icon}>🎛️</span>
+            <span>Central Dashboard</span>
+          </Link>
+
+          <Link
             to="/claude-projects"
             className={`${styles.navItem} ${isActive('/claude-projects') ? styles.active : ''}`}
           >
