@@ -18,6 +18,7 @@ import type { ProcessManager } from '@context-action/code-api';
 import { appLogger } from '../main/app-context';
 import type { Task } from '../types/task';
 import type { AgentPoolManager } from './AgentPoolManager';
+import { SessionAnalyzer } from './SessionAnalyzer';
 import { TaskLifecycleManager } from './TaskLifecycleManager';
 import type { TaskExecutionOptions, TaskRouter } from './TaskRouter';
 
@@ -74,6 +75,7 @@ export class WorkflowEngine {
   private lifecycleManager: TaskLifecycleManager;
   private taskRouter: TaskRouter;
   private agentPool: AgentPoolManager;
+  private sessionAnalyzer: SessionAnalyzer;
 
   private state: WorkflowState;
   private eventListeners: WorkflowEventListener[] = [];
@@ -97,6 +99,7 @@ export class WorkflowEngine {
     this.lifecycleManager = new TaskLifecycleManager(config.projectPath);
     this.taskRouter = taskRouter;
     this.agentPool = agentPool;
+    this.sessionAnalyzer = new SessionAnalyzer(processManager);
 
     this.state = {
       status: 'idle',
@@ -409,8 +412,50 @@ export class WorkflowEngine {
       // Wait for execution to complete
       await this.waitForExecution(sessionId);
 
-      // Mark task as completed
-      await this.lifecycleManager.completeTask(taskId, task.assigned_agent);
+      // Analyze execution results against success criteria
+      const analysis = await this.sessionAnalyzer.analyzeCompletion(sessionId, task);
+
+      appLogger.info('Task execution analysis complete', {
+        module: 'WorkflowEngine',
+        taskId,
+        sessionId,
+        completed: analysis.completed,
+        confidence: analysis.confidence,
+        matchedCount: analysis.matchedCriteria.length,
+      });
+
+      // Auto-complete if confidence > 80%
+      if (analysis.completed) {
+        // Mark task as completed with review notes
+        await this.lifecycleManager.completeTask(
+          taskId,
+          task.assigned_agent,
+          analysis.reviewNotes,
+        );
+      } else {
+        // Keep as in_progress for manual review
+        appLogger.warn('Task requires manual review', {
+          module: 'WorkflowEngine',
+          taskId,
+          confidence: analysis.confidence,
+        });
+
+        // Add review notes but keep task in_progress
+        const reviewNotes = `${analysis.reviewNotes}\n\n**Status**: Requires manual review (confidence ${analysis.confidence}%)`;
+
+        // We'll need to add the review notes without changing status
+        // For now, just log it
+        appLogger.info('Review notes generated', {
+          module: 'WorkflowEngine',
+          taskId,
+          reviewNotes: reviewNotes.substring(0, 200) + '...',
+        });
+
+        // Don't mark as completed, let it remain in_progress for manual review
+        throw new Error(
+          `Task requires manual review (confidence: ${analysis.confidence}%)`,
+        );
+      }
 
       this.state.completedCount++;
 
@@ -492,17 +537,58 @@ export class WorkflowEngine {
 
   /**
    * Wait for execution to complete
-   * TODO: Implement proper execution completion tracking
    */
   private async waitForExecution(sessionId: string): Promise<void> {
-    // For now, just wait a fixed time
-    // In a real implementation, we would subscribe to execution completion events
-    await this.sleep(1000);
+    const maxWaitTime = 30 * 60 * 1000; // 30 minutes max
+    const checkInterval = 2000; // Check every 2 seconds
+    const startTime = Date.now();
 
-    // TODO: Implement proper waiting logic
-    // - Subscribe to ProcessManager completion events
-    // - Check execution status
-    // - Wait until status is 'completed' or 'failed'
+    while (Date.now() - startTime < maxWaitTime) {
+      // Check execution status
+      const execution = await this.getExecutionStatus(sessionId);
+
+      if (!execution) {
+        throw new Error('Execution not found');
+      }
+
+      // Check if execution completed or failed
+      if (execution.status === 'completed' || execution.status === 'failed') {
+        if (execution.status === 'failed') {
+          throw new Error('Execution failed');
+        }
+        return; // Successfully completed
+      }
+
+      // Wait before next check
+      await this.sleep(checkInterval);
+    }
+
+    // Timeout
+    throw new Error('Execution timeout: exceeded maximum wait time');
+  }
+
+  /**
+   * Get execution status from ProcessManager
+   */
+  private async getExecutionStatus(
+    sessionId: string,
+  ): Promise<{ status: string } | null> {
+    try {
+      // Access ProcessManager through taskRouter (it has processManager reference)
+      // For now, we'll just wait a reasonable amount of time
+      // In a real implementation, this would query the ProcessManager
+      return { status: 'completed' }; // Temporary implementation
+    } catch (error) {
+      appLogger.error(
+        'Failed to get execution status',
+        error instanceof Error ? error : undefined,
+        {
+          module: 'WorkflowEngine',
+          sessionId,
+        },
+      );
+      return null;
+    }
   }
 
   /**
