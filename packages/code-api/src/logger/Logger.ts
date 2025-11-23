@@ -95,5 +95,5 @@ export class SilentLogger implements Logger {
  * Default logger instance
  */
 export const defaultLogger: Logger = new ConsoleLogger(
-  (process.env.LOG_LEVEL as LogLevel) || 'info'
+  (process.env.LOG_LEVEL as LogLevel) || 'info',
 );

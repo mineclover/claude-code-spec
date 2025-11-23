@@ -162,10 +162,12 @@ function createAnsiEscapeRegex() {
   return new RegExp(`${esc}\\[[0-9;?]*[a-zA-Z]|${esc}\\)[a-zA-Z]`, "g");
 }
 var StreamParser = class {
-  constructor(onEvent, onError) {
+  constructor(onEvent, onError, options = {}) {
     this.buffer = "";
     this.onEvent = onEvent;
     this.onError = onError;
+    this.maxBufferSize = options.maxBufferSize ?? 10 * 1024 * 1024;
+    this.onBufferOverflow = options.onBufferOverflow;
   }
   /**
    * Process incoming data chunk from stdout
@@ -173,6 +175,19 @@ var StreamParser = class {
   processChunk(chunk) {
     const data = typeof chunk === "string" ? chunk : chunk.toString("utf8");
     this.buffer += data;
+    const bufferSize = Buffer.byteLength(this.buffer, "utf8");
+    if (bufferSize > this.maxBufferSize) {
+      const errorMsg = `Buffer overflow: ${bufferSize} bytes exceeds limit of ${this.maxBufferSize} bytes`;
+      console.error("[StreamParser]", errorMsg);
+      if (this.onBufferOverflow) {
+        this.onBufferOverflow(bufferSize);
+      }
+      if (this.onError) {
+        this.onError(errorMsg);
+      }
+      this.buffer = "";
+      return;
+    }
     const lines = this.buffer.split("\n");
     this.buffer = lines.pop() || "";
     for (const line of lines) {
@@ -1739,6 +1754,62 @@ var ValidationError = class extends AppError {
   }
 };
 
+// src/logger/Logger.ts
+var ConsoleLogger = class {
+  constructor(minLevel = "info") {
+    this.minLevel = minLevel;
+  }
+  shouldLog(level) {
+    const levels = ["debug", "info", "warn", "error"];
+    const minIndex = levels.indexOf(this.minLevel);
+    const currentIndex = levels.indexOf(level);
+    return currentIndex >= minIndex;
+  }
+  formatLog(level, message, context, error) {
+    const timestamp = (/* @__PURE__ */ new Date()).toISOString();
+    const base = {
+      timestamp,
+      level,
+      message,
+      ...context
+    };
+    if (error) {
+      return JSON.stringify({
+        ...base,
+        error: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        }
+      });
+    }
+    return JSON.stringify(base);
+  }
+  debug(message, context) {
+    if (this.shouldLog("debug")) {
+      console.debug(this.formatLog("debug", message, context));
+    }
+  }
+  info(message, context) {
+    if (this.shouldLog("info")) {
+      console.log(this.formatLog("info", message, context));
+    }
+  }
+  warn(message, context) {
+    if (this.shouldLog("warn")) {
+      console.warn(this.formatLog("warn", message, context));
+    }
+  }
+  error(message, error, context) {
+    if (this.shouldLog("error")) {
+      console.error(this.formatLog("error", message, context, error));
+    }
+  }
+};
+var defaultLogger = new ConsoleLogger(
+  process.env.LOG_LEVEL || "info"
+);
+
 // src/process/ProcessManager.ts
 var ProcessManager = class {
   constructor(options = {}) {
@@ -1746,6 +1817,7 @@ var ProcessManager = class {
     this.maxConcurrent = options.maxConcurrent ?? 10;
     this.maxHistorySize = options.maxHistorySize ?? 100;
     this.autoCleanupInterval = options.autoCleanupInterval ?? 0;
+    this.logger = options.logger ?? defaultLogger;
     if (this.autoCleanupInterval > 0) {
       this.startAutoCleanup();
     }
@@ -1790,14 +1862,14 @@ var ProcessManager = class {
         this.executions.delete(execution.sessionId);
         removed++;
       } catch (error) {
-        console.error("Error removing execution", error instanceof Error ? error : void 0, {
+        this.logger.error("Error removing execution", error instanceof Error ? error : void 0, {
           module: "ProcessManager",
           sessionId: execution.sessionId
         });
       }
     }
     if (removed > 0) {
-      console.log("Enforced history limit", {
+      this.logger.info("Enforced history limit", {
         module: "ProcessManager",
         removed,
         remaining: this.executions.size,
@@ -1840,7 +1912,7 @@ var ProcessManager = class {
         projectPath: params.projectPath
       });
     }
-    console.log("Starting execution", {
+    this.logger.info("Starting execution", {
       module: "ProcessManager",
       projectPath: params.projectPath,
       query: `${params.query.substring(0, 50)}...`,
@@ -1854,7 +1926,7 @@ var ProcessManager = class {
       enhancedQuery = `${skillReference}
 
 ${params.query}`;
-      console.log("Enhanced query with skill", {
+      this.logger.info("Enhanced query with skill", {
         module: "ProcessManager",
         skillId: params.skillId
       });
@@ -1881,9 +1953,7 @@ ${params.query}`;
       if (tempExecution) {
         return tempExecution;
       }
-      const found = Array.from(this.executions.values()).find(
-        (exec) => exec === tempExecution
-      );
+      const found = Array.from(this.executions.values()).find((exec) => exec === tempExecution);
       return found ?? null;
     };
     const getCurrentSessionId = () => {
@@ -1899,7 +1969,7 @@ ${params.query}`;
       onStream: (event) => {
         if (isSystemInitEvent(event) && !params.sessionId) {
           const newSessionId = event.session_id;
-          console.debug("Received sessionId from system:init", {
+          this.logger.debug("Received sessionId from system:init", {
             module: "ProcessManager",
             sessionId: newSessionId
           });
@@ -1936,7 +2006,7 @@ ${params.query}`;
           execution.status = code === 0 ? "completed" : "failed";
           execution.endTime = Date.now();
           if (currentSessionId) {
-            console.log("Execution completed", {
+            this.logger.info("Execution completed", {
               module: "ProcessManager",
               sessionId: currentSessionId,
               status: execution.status,
@@ -1982,7 +2052,7 @@ ${params.query}`;
       const process2 = client.execute(enhancedQuery);
       executionInfo.pid = process2.pid || null;
       executionInfo.status = "running";
-      console.log("Execution started", {
+      this.logger.info("Execution started", {
         module: "ProcessManager",
         sessionId: params.sessionId || "pending",
         pid: executionInfo.pid
@@ -1995,7 +2065,7 @@ ${params.query}`;
       executionInfo.endTime = Date.now();
       const errorMsg = error instanceof Error ? error.message : String(error);
       executionInfo.errors.push(errorMsg);
-      console.error("Execution failed to start", error instanceof Error ? error : void 0, {
+      this.logger.error("Execution failed to start", error instanceof Error ? error : void 0, {
         module: "ProcessManager",
         sessionId: params.sessionId || "unknown",
         error: errorMsg
@@ -2070,14 +2140,14 @@ ${params.query}`;
       throw new ExecutionNotFoundError(sessionId);
     }
     if (execution.status !== "running" && execution.status !== "pending") {
-      console.warn("Execution already terminated", {
+      this.logger.warn("Execution already terminated", {
         module: "ProcessManager",
         sessionId,
         status: execution.status
       });
       return;
     }
-    console.log("Killing execution", {
+    this.logger.info("Killing execution", {
       module: "ProcessManager",
       sessionId
     });
@@ -2094,7 +2164,7 @@ ${params.query}`;
           originalError: error
         }
       );
-      console.error("Failed to kill execution", error instanceof Error ? error : void 0, {
+      this.logger.error("Failed to kill execution", error instanceof Error ? error : void 0, {
         module: "ProcessManager",
         sessionId
       });
@@ -2110,7 +2180,7 @@ ${params.query}`;
   cleanupExecution(sessionId) {
     const execution = this.executions.get(sessionId);
     if (!execution) {
-      console.warn("Execution not found for cleanup", {
+      this.logger.warn("Execution not found for cleanup", {
         module: "ProcessManager",
         sessionId
       });
@@ -2122,7 +2192,7 @@ ${params.query}`;
         status: execution.status
       });
     }
-    console.log("Cleaning up execution", {
+    this.logger.info("Cleaning up execution", {
       module: "ProcessManager",
       sessionId
     });
@@ -2137,7 +2207,7 @@ ${params.query}`;
     for (const id of completedIds) {
       this.cleanupExecution(id);
     }
-    console.log("Cleaned up executions", {
+    this.logger.info("Cleaned up executions", {
       module: "ProcessManager",
       count: completedIds.length
     });
@@ -2148,7 +2218,7 @@ ${params.query}`;
    */
   killAll() {
     const activeExecutions = this.getActiveExecutions();
-    console.log("Killing all executions", {
+    this.logger.info("Killing all executions", {
       module: "ProcessManager",
       count: activeExecutions.length
     });
@@ -2185,7 +2255,7 @@ ${params.query}`;
       );
     }
     this.maxConcurrent = max;
-    console.log("Max concurrent set", {
+    this.logger.info("Max concurrent set", {
       module: "ProcessManager",
       maxConcurrent: max
     });

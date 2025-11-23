@@ -245,9 +245,7 @@ export class ProcessManager {
         return tempExecution;
       }
       // Find by tempExecution reference
-      const found = Array.from(this.executions.values()).find(
-        (exec) => exec === tempExecution
-      );
+      const found = Array.from(this.executions.values()).find((exec) => exec === tempExecution);
       return found ?? null;
     };
 
@@ -517,7 +515,7 @@ export class ProcessManager {
         {
           sessionId,
           originalError: error,
-        }
+        },
       );
 
       this.logger.error('Failed to kill execution', error instanceof Error ? error : undefined, {

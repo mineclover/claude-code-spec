@@ -1,11 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ExecutionNotFoundError, ProcessKillError } from '../../src/errors/errors';
 import { ProcessManager } from '../../src/process/ProcessManager';
-import {
-  MaxConcurrentError,
-  ExecutionNotFoundError,
-  ProcessKillError,
-} from '../../src/errors/errors';
-import type { ExecutionStatus } from '../../src/process/ProcessManager';
 
 // Mock ClaudeClient to simulate real behavior
 vi.mock('../../src/client/ClaudeClient', () => {
@@ -15,7 +10,7 @@ vi.mock('../../src/client/ClaudeClient', () => {
       constructor(options: any) {
         this.options = options;
       }
-      execute = vi.fn().mockImplementation((query: string) => {
+      execute = vi.fn().mockImplementation((_query: string) => {
         // Simulate system:init event after a short delay
         setTimeout(() => {
           if (this.options.onStream) {
@@ -162,9 +157,7 @@ describe('ProcessManager', () => {
 
   describe('killExecution', () => {
     it('should throw ExecutionNotFoundError for non-existent execution', () => {
-      expect(() => manager.killExecution('non-existent')).toThrow(
-        ExecutionNotFoundError
-      );
+      expect(() => manager.killExecution('non-existent')).toThrow(ExecutionNotFoundError);
     });
   });
 
@@ -228,7 +221,7 @@ describe('ProcessManager', () => {
           projectPath: '/test',
           query: 'test',
           sessionId,
-        })
+        }),
       ).resolves.toBe(sessionId);
     });
   });

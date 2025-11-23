@@ -161,11 +161,17 @@ declare function extractSessionId(event: StreamEvent$1): string | null;
 
 type StreamCallback = (event: StreamEvent$1) => void;
 type ErrorCallback = (error: string) => void;
+interface StreamParserOptions {
+    maxBufferSize?: number;
+    onBufferOverflow?: (bufferSize: number) => void;
+}
 declare class StreamParser {
     private buffer;
     private onEvent;
     private onError?;
-    constructor(onEvent: StreamCallback, onError?: ErrorCallback);
+    private maxBufferSize;
+    private onBufferOverflow?;
+    constructor(onEvent: StreamCallback, onError?: ErrorCallback, options?: StreamParserOptions);
     /**
      * Process incoming data chunk from stdout
      */
@@ -1013,6 +1019,17 @@ declare class ValidationError extends AppError {
     constructor(message: string, code: string, context?: Record<string, unknown>);
 }
 
+interface LogContext {
+    module?: string;
+    [key: string]: unknown;
+}
+interface Logger {
+    debug(message: string, context?: LogContext): void;
+    info(message: string, context?: LogContext): void;
+    warn(message: string, context?: LogContext): void;
+    error(message: string, error?: Error, context?: LogContext): void;
+}
+
 /**
  * ProcessManager - Manages multiple Claude CLI executions
  *
@@ -1062,6 +1079,7 @@ interface ProcessManagerOptions {
     maxConcurrent?: number;
     maxHistorySize?: number;
     autoCleanupInterval?: number;
+    logger?: Logger;
 }
 declare class ProcessManager {
     private executions;
@@ -1070,6 +1088,7 @@ declare class ProcessManager {
     private autoCleanupInterval;
     private autoCleanupTimer?;
     private executionsChangeListener?;
+    private logger;
     constructor(options?: ProcessManagerOptions);
     /**
      * Start automatic cleanup timer

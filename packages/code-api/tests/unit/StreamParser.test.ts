@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StreamParser } from '../../src/parser/StreamParser';
 import type { StreamEvent } from '../../src/parser/types';
 
@@ -31,7 +31,7 @@ describe('StreamParser', () => {
         uuid: 'test-uuid-123',
       };
 
-      parser.processChunk(JSON.stringify(event) + '\n');
+      parser.processChunk(`${JSON.stringify(event)}\n`);
 
       expect(onEvent).toHaveBeenCalledTimes(1);
       expect(onEvent).toHaveBeenCalledWith(event);
@@ -66,7 +66,7 @@ describe('StreamParser', () => {
         uuid: 'test-uuid-456',
       };
 
-      const chunk = JSON.stringify(event1) + '\n' + JSON.stringify(event2) + '\n';
+      const chunk = `${JSON.stringify(event1)}\n${JSON.stringify(event2)}\n`;
       parser.processChunk(chunk);
 
       expect(onEvent).toHaveBeenCalledTimes(2);
@@ -93,7 +93,7 @@ describe('StreamParser', () => {
 
       const jsonString = JSON.stringify(event);
       const part1 = jsonString.substring(0, 20);
-      const part2 = jsonString.substring(20) + '\n';
+      const part2 = `${jsonString.substring(20)}\n`;
 
       // First chunk - incomplete
       parser.processChunk(part1);
@@ -123,7 +123,7 @@ describe('StreamParser', () => {
       };
 
       // Add ANSI codes
-      const chunk = '\x1b[32m' + JSON.stringify(event) + '\x1b[0m\n';
+      const chunk = `\x1b[32m${JSON.stringify(event)}\x1b[0m\n`;
       parser.processChunk(chunk);
 
       expect(onEvent).toHaveBeenCalledTimes(1);
@@ -161,7 +161,7 @@ describe('StreamParser', () => {
         uuid: 'test-uuid-123',
       };
 
-      const chunk = '{invalid json}\n' + JSON.stringify(validEvent) + '\n';
+      const chunk = `{invalid json}\n${JSON.stringify(validEvent)}\n`;
       parser.processChunk(chunk);
 
       expect(onError).toHaveBeenCalledTimes(1);
@@ -187,7 +187,7 @@ describe('StreamParser', () => {
       };
 
       // Mixed \n and \r\n
-      parser.processChunk(JSON.stringify(event) + '\r\n');
+      parser.processChunk(`${JSON.stringify(event)}\r\n`);
 
       expect(onEvent).toHaveBeenCalledTimes(1);
       expect(onEvent).toHaveBeenCalledWith(event);
@@ -240,7 +240,7 @@ describe('StreamParser', () => {
         },
       };
 
-      smallBufferParser.processChunk(JSON.stringify(validEvent) + '\n');
+      smallBufferParser.processChunk(`${JSON.stringify(validEvent)}\n`);
 
       expect(onEvent).toHaveBeenCalledTimes(1);
       expect(onEvent).toHaveBeenCalledWith(validEvent);
@@ -275,7 +275,7 @@ describe('StreamParser', () => {
         uuid: 'test-uuid-789',
       };
 
-      parser.processChunk(JSON.stringify(largeEvent) + '\n');
+      parser.processChunk(`${JSON.stringify(largeEvent)}\n`);
 
       expect(onEvent).toHaveBeenCalledTimes(1);
       expect(onEvent).toHaveBeenCalledWith(largeEvent);
@@ -294,7 +294,7 @@ describe('StreamParser', () => {
       }));
 
       events.forEach((event) => {
-        parser.processChunk(JSON.stringify(event) + '\n');
+        parser.processChunk(`${JSON.stringify(event)}\n`);
       });
 
       expect(onEvent).toHaveBeenCalledTimes(100);
@@ -312,7 +312,7 @@ describe('StreamParser', () => {
         uuid: 'test-uuid-special',
       };
 
-      parser.processChunk(JSON.stringify(event) + '\n');
+      parser.processChunk(`${JSON.stringify(event)}\n`);
 
       expect(onEvent).toHaveBeenCalledTimes(1);
       expect(onEvent).toHaveBeenCalledWith(event);

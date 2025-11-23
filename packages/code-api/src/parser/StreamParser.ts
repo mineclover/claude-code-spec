@@ -35,11 +35,7 @@ export class StreamParser {
   private maxBufferSize: number;
   private onBufferOverflow?: (bufferSize: number) => void;
 
-  constructor(
-    onEvent: StreamCallback,
-    onError?: ErrorCallback,
-    options: StreamParserOptions = {},
-  ) {
+  constructor(onEvent: StreamCallback, onError?: ErrorCallback, options: StreamParserOptions = {}) {
     this.onEvent = onEvent;
     this.onError = onError;
     this.maxBufferSize = options.maxBufferSize ?? 10 * 1024 * 1024; // 10MB default
