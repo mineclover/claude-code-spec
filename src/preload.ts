@@ -7,6 +7,7 @@
 import { exposeAgentAPI } from './preload/apis/agent';
 import { exposeAppSettingsAPI } from './preload/apis/app-settings';
 import { exposeBookmarksAPI } from './preload/apis/bookmarks';
+import { exposeCentralDatabaseAPI } from './preload/apis/centralDatabase';
 import { exposeClaudeAPI } from './preload/apis/claude';
 import { exposeDocsAPI } from './preload/apis/docs';
 import { exposeFileAPI } from './preload/apis/file';
@@ -40,6 +41,7 @@ exposeWorkAreaAPI();
 exposeOutputStyleAPI();
 exposeQueryAPI();
 exposeWorkflowAPI();
+exposeCentralDatabaseAPI();
 
 // Re-export types for convenience
 export * from './types/api';

@@ -2,6 +2,7 @@
 
 export * from './app-settings';
 export * from './bookmarks';
+export * from './centralDatabase';
 export * from './claude';
 export * from './docs';
 export * from './file';

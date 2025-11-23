@@ -5,6 +5,7 @@
 import { registerAgentHandlers } from '../ipc/handlers/agentHandlers';
 import { registerAppSettingsHandlers } from '../ipc/handlers/appSettingsHandlers';
 import { registerBookmarksHandlers } from '../ipc/handlers/bookmarksHandlers';
+import { registerCentralDatabaseHandlers } from '../ipc/handlers/centralDatabaseHandlers';
 import { registerClaudeHandlers } from '../ipc/handlers/claudeHandlers';
 import { registerClaudeSessionsHandlers } from '../ipc/handlers/claudeSessionsHandlers';
 import { registerDialogHandlers } from '../ipc/handlers/dialogHandlers';
@@ -102,6 +103,10 @@ export function setupIPCHandlers(): void {
   // Workflow handlers
   const workflowRouter = ipcRegistry.router('workflow');
   registerWorkflowHandlers(workflowRouter);
+
+  // Central database handlers
+  const centralDatabaseRouter = ipcRegistry.router('central-database');
+  registerCentralDatabaseHandlers(centralDatabaseRouter);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }
