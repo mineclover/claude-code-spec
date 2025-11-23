@@ -5,6 +5,7 @@
 
 // Import all API exposure functions
 import { exposeAgentAPI } from './preload/apis/agent';
+import { exposeAgentTrackerAPI } from './preload/apis/agentTracker';
 import { exposeAppSettingsAPI } from './preload/apis/app-settings';
 import { exposeBookmarksAPI } from './preload/apis/bookmarks';
 import { exposeCentralDatabaseAPI } from './preload/apis/centralDatabase';
@@ -42,6 +43,7 @@ exposeOutputStyleAPI();
 exposeQueryAPI();
 exposeWorkflowAPI();
 exposeCentralDatabaseAPI();
+exposeAgentTrackerAPI();
 
 // Re-export types for convenience
 export * from './types/api';

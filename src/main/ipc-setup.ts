@@ -3,6 +3,7 @@
  */
 
 import { registerAgentHandlers } from '../ipc/handlers/agentHandlers';
+import { registerAgentTrackerHandlers } from '../ipc/handlers/agentTrackerHandlers';
 import { registerAppSettingsHandlers } from '../ipc/handlers/appSettingsHandlers';
 import { registerBookmarksHandlers } from '../ipc/handlers/bookmarksHandlers';
 import { registerCentralDatabaseHandlers } from '../ipc/handlers/centralDatabaseHandlers';
@@ -107,6 +108,10 @@ export function setupIPCHandlers(): void {
   // Central database handlers
   const centralDatabaseRouter = ipcRegistry.router('central-database');
   registerCentralDatabaseHandlers(centralDatabaseRouter);
+
+  // Agent tracker handlers
+  const agentTrackerRouter = ipcRegistry.router('agent-tracker');
+  registerAgentTrackerHandlers(agentTrackerRouter);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }

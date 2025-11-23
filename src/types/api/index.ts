@@ -1,5 +1,6 @@
 // Re-export all API types from a centralized location
 
+export * from './agentTracker';
 export * from './app-settings';
 export * from './bookmarks';
 export * from './centralDatabase';
