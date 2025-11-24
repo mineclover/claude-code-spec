@@ -87,15 +87,95 @@ export class LangGraphEngine {
   }
 
   /**
-   * Build a simple sequential graph from tasks
+   * Analyze task dependencies and determine execution levels
+   * Returns tasks grouped by execution level (0 = no deps, 1 = depends on level 0, etc.)
    */
-  buildSimpleGraph(tasks: Task[]) {
+  private analyzeDependencies(tasks: Task[]): Task[][] {
+    const taskMap = new Map<string, Task>();
+    const levels: Task[][] = [];
+    const taskLevels = new Map<string, number>();
+
+    // Build task map
+    for (const task of tasks) {
+      taskMap.set(task.id, task);
+    }
+
+    // Calculate level for each task (topological sort by level)
+    const calculateLevel = (taskId: string, visited = new Set<string>()): number => {
+      if (taskLevels.has(taskId)) {
+        return taskLevels.get(taskId)!;
+      }
+
+      if (visited.has(taskId)) {
+        throw new Error(`Circular dependency detected involving task: ${taskId}`);
+      }
+
+      visited.add(taskId);
+      const task = taskMap.get(taskId);
+
+      if (!task) {
+        throw new Error(`Task not found: ${taskId}`);
+      }
+
+      // If no dependencies, level is 0
+      if (!task.dependencies || task.dependencies.length === 0) {
+        taskLevels.set(taskId, 0);
+        return 0;
+      }
+
+      // Calculate level based on dependencies
+      let maxDepLevel = -1;
+      for (const depId of task.dependencies) {
+        const depLevel = calculateLevel(depId, new Set(visited));
+        maxDepLevel = Math.max(maxDepLevel, depLevel);
+      }
+
+      const level = maxDepLevel + 1;
+      taskLevels.set(taskId, level);
+      return level;
+    };
+
+    // Calculate levels for all tasks
+    for (const task of tasks) {
+      calculateLevel(task.id);
+    }
+
+    // Group tasks by level
+    for (const task of tasks) {
+      const level = taskLevels.get(task.id)!;
+      if (!levels[level]) {
+        levels[level] = [];
+      }
+      levels[level].push(task);
+    }
+
+    return levels;
+  }
+
+  /**
+   * Build a dependency-aware graph from tasks
+   * Tasks with dependencies will execute after their dependencies complete
+   * Tasks at the same level (no inter-dependencies) can execute in parallel
+   */
+  buildGraph(tasks: Task[]) {
     const graph = new StateGraph(WorkflowStateAnnotation);
 
-    appLogger.info('Building LangGraph', {
+    appLogger.info('Building LangGraph with dependencies', {
       module: 'LangGraphEngine',
       taskCount: tasks.length,
       taskIds: tasks.map((t) => t.id),
+    });
+
+    // Analyze dependencies and group by execution level
+    const levels = this.analyzeDependencies(tasks);
+
+    appLogger.info('Dependency analysis complete', {
+      module: 'LangGraphEngine',
+      levelCount: levels.length,
+      levels: levels.map((level, idx) => ({
+        level: idx,
+        tasks: level.map((t) => t.id),
+      })),
     });
 
     // Add nodes for each task
@@ -169,16 +249,48 @@ export class LangGraphEngine {
       });
     }
 
-    // Add sequential edges
-    if (tasks.length > 0) {
-      graph.addEdge('__start__', tasks[0].id);
-      for (let i = 0; i < tasks.length - 1; i++) {
-        graph.addEdge(tasks[i].id, tasks[i + 1].id);
-      }
-      graph.addEdge(tasks[tasks.length - 1].id, END);
+    // Add edges based on dependencies
+    if (tasks.length === 0) {
+      return graph.compile({ checkpointer: this.checkpointer });
     }
 
+    // Connect __start__ to all level 0 tasks (no dependencies)
+    const level0Tasks = levels[0] || [];
+    for (const task of level0Tasks) {
+      graph.addEdge('__start__', task.id);
+    }
+
+    // Connect tasks to their dependencies
+    for (const task of tasks) {
+      if (task.dependencies && task.dependencies.length > 0) {
+        // Add edge from each dependency to this task
+        for (const depId of task.dependencies) {
+          graph.addEdge(depId, task.id);
+        }
+      }
+    }
+
+    // Connect final level tasks to END
+    const finalLevel = levels[levels.length - 1] || [];
+    for (const task of finalLevel) {
+      graph.addEdge(task.id, END);
+    }
+
+    appLogger.info('Graph edges configured', {
+      module: 'LangGraphEngine',
+      startNodes: level0Tasks.map((t) => t.id),
+      endNodes: finalLevel.map((t) => t.id),
+    });
+
     return graph.compile({ checkpointer: this.checkpointer });
+  }
+
+  /**
+   * Build a simple sequential graph from tasks (legacy, for backward compatibility)
+   */
+  buildSimpleGraph(tasks: Task[]) {
+    // Redirect to buildGraph which handles both cases
+    return this.buildGraph(tasks);
   }
 
   /**
