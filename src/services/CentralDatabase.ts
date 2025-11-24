@@ -512,6 +512,122 @@ export class CentralDatabase {
     }
   }
 
+  // ========== Workflow Execution Management ==========
+
+  /**
+   * Save workflow execution record
+   */
+  async saveWorkflowExecution(execution: WorkflowExecution): Promise<void> {
+    appLogger.info('Saving workflow execution', {
+      module: 'CentralDatabase',
+      workflowId: execution.workflowId,
+      status: execution.status,
+    });
+
+    try {
+      const workflowsDir = path.join(this.executionsDir, 'workflows');
+      await fs.mkdir(workflowsDir, { recursive: true });
+
+      const executionFile = path.join(workflowsDir, `${execution.workflowId}.json`);
+      await this.writeJsonAtomic(executionFile, execution);
+
+      appLogger.info('Workflow execution saved', {
+        module: 'CentralDatabase',
+        workflowId: execution.workflowId,
+      });
+    } catch (error) {
+      appLogger.error('Failed to save workflow execution', error as Error, {
+        module: 'CentralDatabase',
+        workflowId: execution.workflowId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get workflow execution by ID
+   */
+  async getWorkflowExecution(workflowId: string): Promise<WorkflowExecution | null> {
+    try {
+      const workflowsDir = path.join(this.executionsDir, 'workflows');
+      const executionFile = path.join(workflowsDir, `${workflowId}.json`);
+
+      const content = await fs.readFile(executionFile, 'utf-8');
+      return JSON.parse(content) as WorkflowExecution;
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        return null;
+      }
+      appLogger.error('Failed to get workflow execution', error as Error, {
+        module: 'CentralDatabase',
+        workflowId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * List workflow executions for a project
+   */
+  async listWorkflowExecutions(
+    projectPath: string,
+    limit?: number,
+  ): Promise<WorkflowExecution[]> {
+    appLogger.info('Listing workflow executions', {
+      module: 'CentralDatabase',
+      projectPath,
+      limit,
+    });
+
+    try {
+      const workflowsDir = path.join(this.executionsDir, 'workflows');
+      const files = await fs.readdir(workflowsDir);
+      const executions: WorkflowExecution[] = [];
+
+      for (const file of files) {
+        if (!file.endsWith('.json')) continue;
+
+        try {
+          const filePath = path.join(workflowsDir, file);
+          const content = await fs.readFile(filePath, 'utf-8');
+          const execution = JSON.parse(content) as WorkflowExecution;
+
+          if (execution.projectPath === projectPath) {
+            executions.push(execution);
+          }
+        } catch (_error) {
+          appLogger.warn('Failed to read workflow execution file', {
+            module: 'CentralDatabase',
+            file,
+          });
+        }
+      }
+
+      // Sort by start time (descending)
+      executions.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+
+      // Apply limit
+      const result = limit ? executions.slice(0, limit) : executions;
+
+      appLogger.info('Workflow executions listed', {
+        module: 'CentralDatabase',
+        projectPath,
+        count: result.length,
+      });
+
+      return result;
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        return [];
+      }
+      appLogger.error('Failed to list workflow executions', error as Error, {
+        module: 'CentralDatabase',
+        projectPath,
+      });
+      throw error;
+    }
+  }
+
   // ========== Utility Methods ==========
 
   /**

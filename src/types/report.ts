@@ -135,3 +135,42 @@ export interface SystemMetrics {
     zombies: number;
   };
 }
+
+// LangGraph Workflow Execution Record
+export interface WorkflowExecution {
+  workflowId: string; // Unique workflow ID
+  projectPath: string;
+  status: 'running' | 'completed' | 'failed' | 'partial';
+  startedAt: string; // ISO 8601
+  completedAt?: string; // ISO 8601
+  duration?: number; // Milliseconds
+
+  // Task execution summary
+  tasks: {
+    total: number;
+    completed: number;
+    failed: number;
+    taskIds: string[];
+  };
+
+  // Metrics
+  metrics: {
+    totalTokens: {
+      input: number;
+      output: number;
+      cacheRead: number;
+    };
+    totalCost: number; // USD
+    avgTaskDuration: number; // Milliseconds
+  };
+
+  // State snapshot
+  finalState?: {
+    completedTasks: string[];
+    failedTasks: string[];
+    logs: string[];
+  };
+
+  // Error info
+  error?: string;
+}

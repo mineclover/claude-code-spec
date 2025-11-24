@@ -7,6 +7,7 @@ import { LangGraphEngine, type WorkflowState } from '../../services/LangGraphEng
 import type { Task } from '../../types/task';
 import type { IpcRouter } from '../IpcRouter';
 import { getAgentTracker } from './agentTrackerHandlers';
+import { getCentralDatabase } from './centralDatabaseHandlers';
 
 let langGraphEngine: LangGraphEngine | null = null;
 
@@ -16,7 +17,8 @@ let langGraphEngine: LangGraphEngine | null = null;
 export function getLangGraphEngine(): LangGraphEngine {
   if (!langGraphEngine) {
     const agentTracker = getAgentTracker();
-    langGraphEngine = new LangGraphEngine(processManager, agentTracker);
+    const database = getCentralDatabase();
+    langGraphEngine = new LangGraphEngine(processManager, agentTracker, database);
   }
   return langGraphEngine;
 }

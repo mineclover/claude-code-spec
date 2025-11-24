@@ -11,7 +11,9 @@ import type { ProcessManager, StreamEvent } from '@context-action/code-api';
 import { Annotation, END, MemorySaver, StateGraph } from '@langchain/langgraph';
 import { appLogger } from '../main/app-context';
 import type { Task } from '../types/task';
+import type { WorkflowExecution } from '../types/report';
 import type { AgentTracker } from './AgentTracker';
+import type { CentralDatabase } from './CentralDatabase';
 
 // Type guards for stream events
 function isAssistantEvent(
@@ -75,11 +77,17 @@ export type WorkflowState = typeof WorkflowStateAnnotation.State;
 export class LangGraphEngine {
   private processManager: ProcessManager;
   private agentTracker: AgentTracker;
+  private database: CentralDatabase;
   private checkpointer = new MemorySaver();
 
-  constructor(processManager: ProcessManager, agentTracker: AgentTracker) {
+  constructor(
+    processManager: ProcessManager,
+    agentTracker: AgentTracker,
+    database: CentralDatabase,
+  ) {
     this.processManager = processManager;
     this.agentTracker = agentTracker;
+    this.database = database;
 
     appLogger.info('LangGraphEngine initialized', {
       module: 'LangGraphEngine',
@@ -419,12 +427,36 @@ export class LangGraphEngine {
     projectPath: string,
     tasks: Task[],
   ): Promise<WorkflowState> {
+    const startTime = Date.now();
+
     appLogger.info('Starting LangGraph workflow', {
       module: 'LangGraphEngine',
       workflowId,
       projectPath,
       taskCount: tasks.length,
     });
+
+    // Create initial workflow execution record
+    const workflowExecution: WorkflowExecution = {
+      workflowId,
+      projectPath,
+      status: 'running',
+      startedAt: new Date().toISOString(),
+      tasks: {
+        total: tasks.length,
+        completed: 0,
+        failed: 0,
+        taskIds: tasks.map((t) => t.id),
+      },
+      metrics: {
+        totalTokens: { input: 0, output: 0, cacheRead: 0 },
+        totalCost: 0,
+        avgTaskDuration: 0,
+      },
+    };
+
+    // Save initial workflow state
+    await this.database.saveWorkflowExecution(workflowExecution);
 
     const graph = this.buildSimpleGraph(tasks);
 
@@ -437,7 +469,7 @@ export class LangGraphEngine {
       results: {},
       logs: ['Workflow started'],
       taskProgress: {},
-      startTime: Date.now(),
+      startTime,
       lastUpdateTime: Date.now(),
     };
 
@@ -449,15 +481,58 @@ export class LangGraphEngine {
       // Invoke graph
       const finalState = await graph.invoke(initialState, config);
 
+      // Calculate aggregate metrics from taskProgress
+      const allProgress = Object.values(finalState.taskProgress);
+      const totalTokens = {
+        input: allProgress.reduce((sum, p) => sum + (p.tokenUsage?.inputTokens || 0), 0),
+        output: allProgress.reduce((sum, p) => sum + (p.tokenUsage?.outputTokens || 0), 0),
+        cacheRead: allProgress.reduce((sum, p) => sum + (p.tokenUsage?.cacheReadTokens || 0), 0),
+      };
+
+      // Update workflow execution with final state
+      workflowExecution.status =
+        finalState.failedTasks.length > 0
+          ? finalState.completedTasks.length > 0
+            ? 'partial'
+            : 'failed'
+          : 'completed';
+      workflowExecution.completedAt = new Date().toISOString();
+      workflowExecution.duration = Date.now() - startTime;
+      workflowExecution.tasks.completed = finalState.completedTasks.length;
+      workflowExecution.tasks.failed = finalState.failedTasks.length;
+      workflowExecution.metrics = {
+        totalTokens,
+        totalCost: allProgress.reduce((sum, p) => sum + (p.tokenUsage?.totalCostUSD || 0), 0),
+        avgTaskDuration: tasks.length > 0 ? (Date.now() - startTime) / tasks.length : 0,
+      };
+      workflowExecution.finalState = {
+        completedTasks: finalState.completedTasks,
+        failedTasks: finalState.failedTasks,
+        logs: finalState.logs,
+      };
+
+      // Save final workflow state
+      await this.database.saveWorkflowExecution(workflowExecution);
+
       appLogger.info('Workflow completed', {
         module: 'LangGraphEngine',
         workflowId,
         completedTasks: finalState.completedTasks.length,
         failedTasks: finalState.failedTasks.length,
+        duration: workflowExecution.duration,
+        totalCost: workflowExecution.metrics.totalCost,
       });
 
       return finalState;
     } catch (error) {
+      // Update workflow execution with error
+      workflowExecution.status = 'failed';
+      workflowExecution.completedAt = new Date().toISOString();
+      workflowExecution.duration = Date.now() - startTime;
+      workflowExecution.error = String(error);
+
+      await this.database.saveWorkflowExecution(workflowExecution);
+
       appLogger.error('Workflow execution failed', {
         module: 'LangGraphEngine',
         workflowId,
