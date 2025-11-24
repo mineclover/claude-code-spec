@@ -14,6 +14,7 @@ import { ControllerDocsPage } from './pages/ControllerDocsPage';
 import { ExecutionDetailPage } from './pages/ExecutionDetailPage';
 import { ExecutionsPage } from './pages/ExecutionsPage';
 import { IndexPage } from './pages/IndexPage';
+import { LangGraphTestPage } from './pages/LangGraphTestPage';
 import { McpConfigsPage } from './pages/McpConfigsPage';
 import { MemoryPage } from './pages/MemoryPage';
 import { OutputStylesPage } from './pages/OutputStylesPage';
@@ -54,6 +55,7 @@ function App() {
             <Route path="/output-styles" element={<OutputStylesPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/langgraph-test" element={<LangGraphTestPage />} />
           </Routes>
         </Layout>
       </HashRouter>

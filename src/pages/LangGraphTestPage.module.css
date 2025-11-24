@@ -1,0 +1,264 @@
+.container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  color: #1a202c;
+}
+
+.header p {
+  margin: 0;
+  color: #718096;
+  font-size: 1.1rem;
+}
+
+.controls {
+  display: flex;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.startButton,
+.stateButton {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.startButton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.startButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.startButton:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.stateButton {
+  background: #48bb78;
+  color: white;
+}
+
+.stateButton:hover:not(:disabled) {
+  background: #38a169;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+}
+
+.stateButton:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.warning {
+  padding: 1.5rem;
+  background: #fef5e7;
+  border: 2px solid #f39c12;
+  border-radius: 8px;
+  margin: 2rem 0;
+}
+
+.warning strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #d68910;
+  font-size: 1.1rem;
+}
+
+.warning p {
+  margin: 0;
+  color: #7d6608;
+}
+
+.error {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #fee;
+  border: 2px solid #f00;
+  border-radius: 8px;
+}
+
+.error h3 {
+  margin: 0 0 1rem 0;
+  color: #c00;
+}
+
+.error pre {
+  margin: 0;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 4px;
+  overflow: auto;
+  font-size: 0.9rem;
+}
+
+.infoBox {
+  padding: 1rem;
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.infoBox code {
+  padding: 0.2rem 0.4rem;
+  background: #fff;
+  border-radius: 3px;
+  font-family: "Courier New", monospace;
+  font-size: 0.9rem;
+}
+
+.stateContainer {
+  margin: 2rem 0;
+  padding: 2rem;
+  background: #f7fafc;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+}
+
+.stateContainer h2 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  color: #2d3748;
+}
+
+.stateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stateCard {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stateCard h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #2d3748;
+}
+
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.taskItem {
+  padding: 0.5rem 0.75rem;
+  background: #edf2f7;
+  border-radius: 4px;
+  font-family: "Courier New", monospace;
+  font-size: 0.9rem;
+}
+
+.emptyState {
+  padding: 1rem;
+  text-align: center;
+  color: #a0aec0;
+  font-style: italic;
+}
+
+.resultsSection,
+.logsSection,
+.fullStateSection {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.resultsSection h3,
+.logsSection h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #2d3748;
+}
+
+.jsonDisplay {
+  margin: 0;
+  padding: 1rem;
+  background: #1a202c;
+  color: #a0aec0;
+  border-radius: 6px;
+  overflow: auto;
+  max-height: 400px;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.logsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.logItem {
+  padding: 0.75rem;
+  background: #edf2f7;
+  border-left: 4px solid #4299e1;
+  border-radius: 4px;
+  font-family: "Courier New", monospace;
+  font-size: 0.9rem;
+}
+
+.fullStateSection summary {
+  cursor: pointer;
+  padding: 0.5rem;
+  user-select: none;
+}
+
+.fullStateSection summary:hover {
+  background: #edf2f7;
+  border-radius: 4px;
+}
+
+.instructions {
+  margin: 3rem 0 0 0;
+  padding: 2rem;
+  background: #f0f9ff;
+  border-radius: 12px;
+  border: 2px solid #bfdbfe;
+}
+
+.instructions h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  color: #1e40af;
+}
+
+.instructions ol {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #1e3a8a;
+}
+
+.instructions li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}

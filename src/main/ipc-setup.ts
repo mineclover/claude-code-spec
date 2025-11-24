@@ -12,6 +12,7 @@ import { registerClaudeSessionsHandlers } from '../ipc/handlers/claudeSessionsHa
 import { registerDialogHandlers } from '../ipc/handlers/dialogHandlers';
 import { registerDocsHandlers } from '../ipc/handlers/docsHandlers';
 import { registerFileHandlers } from '../ipc/handlers/fileHandlers';
+import { registerLangGraphHandlers } from '../ipc/handlers/langGraphHandlers';
 import { registerLoggerHandlers } from '../ipc/handlers/loggerHandlers';
 import { registerMetadataHandlers } from '../ipc/handlers/metadataHandlers';
 import { registerOutputStyleHandlers } from '../ipc/handlers/outputStyleHandlers';
@@ -112,6 +113,10 @@ export function setupIPCHandlers(): void {
   // Agent tracker handlers
   const agentTrackerRouter = ipcRegistry.router('agent-tracker');
   registerAgentTrackerHandlers(agentTrackerRouter);
+
+  // LangGraph handlers
+  const langGraphRouter = ipcRegistry.router('langgraph');
+  registerLangGraphHandlers(langGraphRouter);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }

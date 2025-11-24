@@ -12,6 +12,7 @@ import { exposeCentralDatabaseAPI } from './preload/apis/centralDatabase';
 import { exposeClaudeAPI } from './preload/apis/claude';
 import { exposeDocsAPI } from './preload/apis/docs';
 import { exposeFileAPI } from './preload/apis/file';
+import { exposeLangGraphAPI } from './preload/apis/langGraph';
 import { exposeLoggerAPI } from './preload/apis/logger';
 import { exposeMetadataAPI } from './preload/apis/metadata';
 import { exposeOutputStyleAPI } from './preload/apis/outputStyle';
@@ -44,6 +45,7 @@ exposeQueryAPI();
 exposeWorkflowAPI();
 exposeCentralDatabaseAPI();
 exposeAgentTrackerAPI();
+exposeLangGraphAPI();
 
 // Re-export types for convenience
 export * from './types/api';
