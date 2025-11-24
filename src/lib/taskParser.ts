@@ -37,6 +37,13 @@ export function parseTaskMarkdown(content: string): Task {
         metadata.created = value;
       } else if (keyName === 'updated') {
         metadata.updated = value;
+      } else if (keyName === 'dependencies') {
+        // Parse dependencies as comma-separated list or array
+        metadata.dependencies = value
+          .replace(/^\[|\]$/g, '') // Remove brackets if present
+          .split(',')
+          .map((dep) => dep.trim())
+          .filter((dep) => dep.length > 0);
       }
     }
   });
@@ -85,6 +92,11 @@ export function parseTaskMarkdown(content: string): Task {
  * Generate task markdown content from Task object
  */
 export function generateTaskMarkdown(task: Task): string {
+  const dependenciesLine =
+    task.dependencies && task.dependencies.length > 0
+      ? `dependencies: [${task.dependencies.join(', ')}]\n`
+      : '';
+
   const frontmatter = `---
 id: ${task.id}
 title: ${task.title}
@@ -94,7 +106,7 @@ reviewer: ${task.reviewer}
 status: ${task.status}
 created: ${task.created}
 updated: ${task.updated}
----`;
+${dependenciesLine}---`;
 
   const references =
     task.references.length > 0

@@ -7,6 +7,7 @@ export interface TaskMetadata {
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   created: string; // ISO 8601 timestamp
   updated: string; // ISO 8601 timestamp
+  dependencies?: string[]; // Task IDs that must be completed first
 }
 
 export interface Task extends TaskMetadata {

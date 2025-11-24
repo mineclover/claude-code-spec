@@ -186,6 +186,20 @@ export function registerTaskHandlers(router: IPCRouter): void {
       const parsed = matter(content);
       const metadata = parsed.data;
 
+      // Parse dependencies if present
+      let dependencies: string[] | undefined;
+      if (metadata.dependencies) {
+        if (Array.isArray(metadata.dependencies)) {
+          dependencies = metadata.dependencies;
+        } else if (typeof metadata.dependencies === 'string') {
+          dependencies = metadata.dependencies
+            .replace(/^\[|\]$/g, '')
+            .split(',')
+            .map((dep) => dep.trim())
+            .filter((dep) => dep.length > 0);
+        }
+      }
+
       // Create Task object
       const task: Task = {
         id: taskId,
@@ -197,6 +211,7 @@ export function registerTaskHandlers(router: IPCRouter): void {
         status: metadata.status || 'pending',
         references: metadata.references,
         successCriteria: metadata.success_criteria,
+        dependencies,
         projectPath,
       };
 

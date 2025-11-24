@@ -23,6 +23,7 @@ export interface Task {
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   references?: string;
   successCriteria?: string;
+  dependencies?: string[]; // Task IDs that must be completed first
   projectPath: string; // Added for routing
 }
 
