@@ -176,6 +176,18 @@
   font-size: 0.9rem;
 }
 
+.progressInfo {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #cbd5e0;
+  color: #718096;
+}
+
+.progressInfo small {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 .emptyState {
   padding: 1rem;
   text-align: center;

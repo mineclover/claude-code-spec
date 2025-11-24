@@ -7,11 +7,38 @@
  * - Integration with ProcessManager and AgentTracker
  */
 
-import type { ProcessManager } from '@context-action/code-api';
+import type { ProcessManager, StreamEvent } from '@context-action/code-api';
 import { Annotation, END, MemorySaver, StateGraph } from '@langchain/langgraph';
 import { appLogger } from '../main/app-context';
 import type { Task } from '../types/task';
 import type { AgentTracker } from './AgentTracker';
+
+// Type guards for stream events
+function isAssistantEvent(
+  event: StreamEvent,
+): event is Extract<StreamEvent, { type: 'assistant' }> {
+  return event.type === 'assistant';
+}
+
+function isResultEvent(event: StreamEvent): event is Extract<StreamEvent, { type: 'result' }> {
+  return event.type === 'result';
+}
+
+// Task execution status
+export type TaskExecutionStatus = 'idle' | 'running' | 'completed' | 'failed';
+
+export interface TaskProgress {
+  status: TaskExecutionStatus;
+  currentTool?: string; // Current tool being used
+  eventCount: number; // Number of events received
+  tokenUsage?: {
+    inputTokens: number;
+    outputTokens: number;
+    cacheReadTokens: number;
+    totalCostUSD: number;
+  };
+  lastActivity: number; // Timestamp of last activity
+}
 
 // State annotation for workflow
 const WorkflowStateAnnotation = Annotation.Root({
@@ -33,6 +60,11 @@ const WorkflowStateAnnotation = Annotation.Root({
   logs: Annotation<string[]>({
     reducer: (x, y) => [...x, ...y],
     default: () => [],
+  }),
+  // Phase 2: Real-time task progress tracking
+  taskProgress: Annotation<Record<string, TaskProgress>>({
+    reducer: (x, y) => ({ ...x, ...y }),
+    default: () => ({}),
   }),
   startTime: Annotation<number>,
   lastUpdateTime: Annotation<number>,
@@ -94,12 +126,20 @@ export class LangGraphEngine {
             module: 'LangGraphEngine',
             taskId: task.id,
             sessionId,
+            progress: result.progress,
           });
 
           return {
             completedTasks: [task.id],
             results: { [task.id]: result },
             logs: [`Task ${task.id} completed successfully`],
+            taskProgress: {
+              [task.id]: result.progress || {
+                status: 'completed',
+                eventCount: result.events?.length || 0,
+                lastActivity: Date.now(),
+              },
+            },
             lastUpdateTime: Date.now(),
           };
         } catch (error) {
@@ -116,6 +156,13 @@ export class LangGraphEngine {
             failedTasks: [task.id],
             results: { [task.id]: { error: String(error) } },
             logs: [`Task ${task.id} failed: ${String(error)}`],
+            taskProgress: {
+              [task.id]: {
+                status: 'failed',
+                eventCount: 0,
+                lastActivity: Date.now(),
+              },
+            },
             lastUpdateTime: Date.now(),
           };
         }
@@ -135,7 +182,7 @@ export class LangGraphEngine {
   }
 
   /**
-   * Execute a single Claude task
+   * Execute a single Claude task with real-time progress tracking
    */
   private async executeClaudeTask(task: Task, state: WorkflowState): Promise<any> {
     const query = this.buildQueryFromTask(task, state);
@@ -155,26 +202,71 @@ export class LangGraphEngine {
       sessionId,
     });
 
+    // Initialize task progress
+    const progress: TaskProgress = {
+      status: 'running',
+      eventCount: 0,
+      lastActivity: Date.now(),
+    };
+
     // Monitor heartbeats
     const heartbeatInterval = setInterval(() => {
       this.agentTracker.updateHeartbeat(sessionId);
     }, 30000); // Every 30 seconds
 
     try {
-      // Wait for completion
+      // Wait for completion with real-time event analysis
       const result = await new Promise<any>((resolve, reject) => {
-        const events: any[] = [];
+        const events: StreamEvent[] = [];
 
-        execution.on('stream', (event) => {
+        execution.on('stream', (event: StreamEvent) => {
           events.push(event);
+          progress.eventCount++;
+          progress.lastActivity = Date.now();
+
           this.agentTracker.updateHeartbeat(sessionId);
+
+          // Analyze assistant events for tool usage
+          if (isAssistantEvent(event) && 'message' in event) {
+            const toolUses = event.message.content.filter((c) => c.type === 'tool_use');
+            if (toolUses.length > 0) {
+              const lastTool = toolUses[toolUses.length - 1];
+              if ('name' in lastTool) {
+                progress.currentTool = lastTool.name;
+                appLogger.debug('Tool use detected', {
+                  module: 'LangGraphEngine',
+                  taskId: task.id,
+                  tool: lastTool.name,
+                });
+              }
+            }
+          }
+
+          // Analyze result event for token usage
+          if (isResultEvent(event)) {
+            const usage = event.usage;
+            progress.tokenUsage = {
+              inputTokens: usage.input_tokens || 0,
+              outputTokens: usage.output_tokens || 0,
+              cacheReadTokens: usage.cache_read_input_tokens || 0,
+              totalCostUSD: event.total_cost_usd || 0,
+            };
+
+            appLogger.info('Task execution metrics', {
+              module: 'LangGraphEngine',
+              taskId: task.id,
+              tokenUsage: progress.tokenUsage,
+            });
+          }
         });
 
         execution.on('complete', () => {
-          resolve({ success: true, events });
+          progress.status = 'completed';
+          resolve({ success: true, events, progress });
         });
 
         execution.on('error', (error) => {
+          progress.status = 'failed';
           reject(new Error(`Execution error: ${error}`));
         });
       });
@@ -183,6 +275,7 @@ export class LangGraphEngine {
       return result;
     } catch (error) {
       clearInterval(heartbeatInterval);
+      progress.status = 'failed';
       throw error;
     }
   }
@@ -231,6 +324,7 @@ export class LangGraphEngine {
       failedTasks: [],
       results: {},
       logs: ['Workflow started'],
+      taskProgress: {},
       startTime: Date.now(),
       lastUpdateTime: Date.now(),
     };

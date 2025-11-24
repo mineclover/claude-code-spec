@@ -145,11 +145,24 @@ export const LangGraphTestPage: React.FC = () => {
               <h3>✅ Completed Tasks</h3>
               <div className={styles.taskList}>
                 {state.completedTasks.length > 0 ? (
-                  state.completedTasks.map((taskId) => (
-                    <div key={taskId} className={styles.taskItem}>
-                      {taskId}
-                    </div>
-                  ))
+                  state.completedTasks.map((taskId) => {
+                    const progress = state.taskProgress?.[taskId];
+                    return (
+                      <div key={taskId} className={styles.taskItem}>
+                        <div>{taskId}</div>
+                        {progress && (
+                          <div className={styles.progressInfo}>
+                            <small>
+                              Events: {progress.eventCount} |{' '}
+                              {progress.currentTool && `Tool: ${progress.currentTool} | `}
+                              {progress.tokenUsage &&
+                                `Tokens: ${progress.tokenUsage.inputTokens}/${progress.tokenUsage.outputTokens} | Cost: $${progress.tokenUsage.totalCostUSD.toFixed(4)}`}
+                            </small>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
                 ) : (
                   <div className={styles.emptyState}>No completed tasks yet</div>
                 )}
