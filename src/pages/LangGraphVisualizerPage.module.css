@@ -1,0 +1,426 @@
+.container {
+  padding: 2rem;
+  max-width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  color: #1a202c;
+}
+
+.header p {
+  margin: 0;
+  color: #718096;
+  font-size: 1.1rem;
+}
+
+.controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.startButton {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.startButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.startButton:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.warning {
+  padding: 1.5rem;
+  background: #fef5e7;
+  border: 2px solid #f39c12;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.warning strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #d68910;
+  font-size: 1.1rem;
+}
+
+.warning p {
+  margin: 0;
+  color: #7d6608;
+}
+
+.error {
+  margin-bottom: 1rem;
+  padding: 1.5rem;
+  background: #fee;
+  border: 2px solid #f00;
+  border-radius: 8px;
+}
+
+.error h3 {
+  margin: 0 0 1rem 0;
+  color: #c00;
+}
+
+.error pre {
+  margin: 0;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 4px;
+  overflow: auto;
+  font-size: 0.9rem;
+}
+
+.mainContent {
+  display: flex;
+  gap: 1.5rem;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 1.5rem;
+}
+
+.graphSection {
+  flex: 1;
+  position: relative;
+  min-height: 500px;
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.graphContainer {
+  width: 100%;
+  height: 100%;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.loadingSpinner {
+  padding: 2rem 3rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.sidePanel {
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+}
+
+.nodeInspector,
+.stateInspector {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.nodeInspector h3,
+.stateInspector h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #2d3748;
+}
+
+.nodeInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.infoItem {
+  padding: 0.5rem;
+  background: #f7fafc;
+  border-radius: 6px;
+}
+
+.infoItem strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #4a5568;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.infoItem p {
+  margin: 0;
+  color: #2d3748;
+  line-height: 1.5;
+}
+
+.infoItem ul {
+  margin: 0.5rem 0 0 0;
+  padding-left: 1.5rem;
+}
+
+.infoItem li {
+  margin: 0.25rem 0;
+  color: #2d3748;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge.pending {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+.badge.running {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge.completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge.failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.stateSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #f7fafc;
+  border-radius: 6px;
+}
+
+.statItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.statItem strong {
+  color: #4a5568;
+}
+
+.logsSection h4 {
+  margin: 1rem 0 0.5rem 0;
+  font-size: 0.95rem;
+  color: #4a5568;
+}
+
+.logsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.logItem {
+  padding: 0.5rem;
+  background: #f7fafc;
+  border-left: 3px solid #4299e1;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-family: 'Courier New', monospace;
+  color: #2d3748;
+}
+
+.instructions {
+  padding: 1.5rem;
+  background: #f0f9ff;
+  border-radius: 12px;
+  border: 2px solid #bfdbfe;
+}
+
+.instructions h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #1e40af;
+}
+
+.instructions ol {
+  margin: 0 0 1rem 0;
+  padding-left: 1.5rem;
+  color: #1e3a8a;
+}
+
+.instructions li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.instructions p {
+  margin: 0;
+  color: #1e3a8a;
+  font-weight: 500;
+}
+
+/* Phase 4: Approval Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modalContent {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modalHeader {
+  padding: 1.5rem 2rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #2d3748;
+}
+
+.modalBody {
+  padding: 2rem;
+}
+
+.approvalInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.approvalItem {
+  padding: 0.75rem;
+  background: #f7fafc;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.approvalItem strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #4a5568;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.approvalMessage {
+  padding: 1.5rem;
+  background: #fff5e6;
+  border: 2px solid #f59e0b;
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 1rem;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.modalFooter {
+  padding: 1.5rem 2rem;
+  border-top: 2px solid #e2e8f0;
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.modalButton {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.approveButton {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.approveButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.rejectButton {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.rejectButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}

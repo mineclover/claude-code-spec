@@ -3,7 +3,12 @@
  */
 
 import { processManager } from '@context-action/code-api';
-import { LangGraphEngine, type WorkflowState } from '../../services/LangGraphEngine';
+import { BrowserWindow } from 'electron';
+import {
+  LangGraphEngine,
+  type StateUpdateEvent,
+  type WorkflowState,
+} from '../../services/LangGraphEngine';
 import type { Task } from '../../types/task';
 import type { IpcRouter } from '../IpcRouter';
 import { getAgentTracker } from './agentTrackerHandlers';
@@ -19,6 +24,24 @@ export function getLangGraphEngine(): LangGraphEngine {
     const agentTracker = getAgentTracker();
     const database = getCentralDatabase();
     langGraphEngine = new LangGraphEngine(processManager, agentTracker, database);
+
+    // Set up state update listener
+    langGraphEngine.on('stateUpdate', (event: StateUpdateEvent) => {
+      // Send to all windows
+      const windows = BrowserWindow.getAllWindows();
+      for (const window of windows) {
+        window.webContents.send('langgraph:state-update', event);
+      }
+    });
+
+    // Phase 4: Set up approval request listener
+    langGraphEngine.on('approvalRequest', (event: any) => {
+      // Send to all windows
+      const windows = BrowserWindow.getAllWindows();
+      for (const window of windows) {
+        window.webContents.send('langgraph:approval-request', event);
+      }
+    });
   }
   return langGraphEngine;
 }
@@ -64,6 +87,15 @@ export function registerLangGraphHandlers(router: IpcRouter): void {
       const engine = getLangGraphEngine();
       const finalState = await engine.resumeWorkflow(workflowId, tasks);
       return { success: true, state: finalState };
+    },
+  );
+
+  // Phase 4: Respond to approval request
+  router.handle(
+    'respondToApproval',
+    async ({ taskId, approved }: { taskId: string; approved: boolean }): Promise<void> => {
+      const engine = getLangGraphEngine();
+      engine.respondToApproval(taskId, approved);
     },
   );
 }

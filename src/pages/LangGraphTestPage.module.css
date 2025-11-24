@@ -274,3 +274,229 @@
   margin-bottom: 0.5rem;
   line-height: 1.6;
 }
+
+/* Phase 2: Live Updates Section */
+.liveUpdatesSection {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.liveUpdatesSection h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.3rem;
+  color: #2d3748;
+}
+
+.updatesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.updateItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  border-left: 4px solid #cbd5e0;
+  transition: all 0.2s;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.updateItem.event-task_started {
+  background: #f0f9ff;
+  border-left-color: #3b82f6;
+}
+
+.updateItem.event-task_completed {
+  background: #f0fdf4;
+  border-left-color: #10b981;
+}
+
+.updateItem.event-task_failed {
+  background: #fef2f2;
+  border-left-color: #ef4444;
+}
+
+.updateItem.event-workflow_completed {
+  background: #faf5ff;
+  border-left-color: #a855f7;
+}
+
+.updateTime {
+  font-family: "Courier New", monospace;
+  font-size: 0.85rem;
+  color: #64748b;
+  min-width: 80px;
+}
+
+.updateEvent {
+  font-weight: 600;
+  font-size: 0.9rem;
+  min-width: 140px;
+}
+
+.event-task_started .updateEvent {
+  color: #2563eb;
+}
+
+.event-task_completed .updateEvent {
+  color: #059669;
+}
+
+.event-task_failed .updateEvent {
+  color: #dc2626;
+}
+
+.event-workflow_completed .updateEvent {
+  color: #9333ea;
+}
+
+.updateTaskId {
+  font-family: "Courier New", monospace;
+  font-size: 0.85rem;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+/* Phase 4: Approval Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modalContent {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modalHeader {
+  padding: 1.5rem 2rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #2d3748;
+}
+
+.modalBody {
+  padding: 2rem;
+}
+
+.approvalInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.approvalItem {
+  padding: 0.75rem;
+  background: #f7fafc;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.approvalItem strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #4a5568;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.approvalMessage {
+  padding: 1.5rem;
+  background: #fff5e6;
+  border: 2px solid #f59e0b;
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 1rem;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.modalFooter {
+  padding: 1.5rem 2rem;
+  border-top: 2px solid #e2e8f0;
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.modalButton {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.approveButton {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.approveButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.rejectButton {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.rejectButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}

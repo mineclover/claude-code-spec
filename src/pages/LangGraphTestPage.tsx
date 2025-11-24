@@ -1,11 +1,17 @@
 /**
  * LangGraphTestPage - POC Test Page for LangGraph integration
+ *
+ * Phase 2 Enhancement:
+ * - Real-time state updates via event subscription
+ * - Live progress tracking for each task
+ * - Task status visualization
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useProject } from '../contexts/ProjectContext';
-import type { WorkflowState } from '../services/LangGraphEngine';
+import type { StateUpdateEvent, WorkflowState } from '../services/LangGraphEngine';
 import type { Task } from '../types/task';
+import type { ApprovalRequestEvent } from '../preload/apis/langGraph';
 import styles from './LangGraphTestPage.module.css';
 
 export const LangGraphTestPage: React.FC = () => {
@@ -14,6 +20,50 @@ export const LangGraphTestPage: React.FC = () => {
   const [state, setState] = useState<WorkflowState | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [liveUpdates, setLiveUpdates] = useState<StateUpdateEvent[]>([]);
+
+  // Phase 4: Human-in-the-loop approval state
+  const [approvalRequest, setApprovalRequest] = useState<ApprovalRequestEvent | null>(null);
+
+  // Subscribe to real-time state updates
+  useEffect(() => {
+    const unsubscribe = window.langGraphAPI.onStateUpdate((event: StateUpdateEvent) => {
+      console.log('State update received:', event);
+
+      // Only update if it's for our current workflow
+      if (workflowId && event.workflowId === workflowId) {
+        setState(event.state);
+        setLiveUpdates((prev) => [...prev, event]);
+
+        // Auto-stop loading when workflow completes
+        if (event.eventType === 'workflow_completed') {
+          setLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [workflowId]);
+
+  // Phase 4: Subscribe to approval requests
+  useEffect(() => {
+    const unsubscribe = window.langGraphAPI.onApprovalRequest(
+      (event: ApprovalRequestEvent) => {
+        console.log('Approval request received:', event);
+
+        // Only show approval request for our current workflow
+        if (workflowId && event.workflowId === workflowId) {
+          setApprovalRequest(event);
+        }
+      },
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [workflowId]);
 
   const handleStartTest = async () => {
     if (!projectPath) {
@@ -23,9 +73,11 @@ export const LangGraphTestPage: React.FC = () => {
 
     setLoading(true);
     setError(null);
+    setLiveUpdates([]);
 
     try {
       // Create test tasks
+      // Phase 4: Add approval requirement to test-task-002
       const testTasks: Task[] = [
         {
           id: 'test-task-001',
@@ -37,12 +89,18 @@ export const LangGraphTestPage: React.FC = () => {
         },
         {
           id: 'test-task-002',
-          title: 'Test Task 2',
+          title: 'Test Task 2 (Requires Approval)',
           description: 'Count the total number of files found in the previous task',
           assigned_agent: 'claude-sonnet-4',
           status: 'pending',
           area: 'Test',
           dependencies: ['test-task-001'],
+          approval: {
+            required: true,
+            message:
+              'Task 2 will count files from Task 1. This requires approval before execution.',
+            approver: 'human',
+          },
         },
       ];
 
@@ -50,17 +108,26 @@ export const LangGraphTestPage: React.FC = () => {
       setWorkflowId(wfId);
 
       console.log('Starting LangGraph workflow:', wfId);
-      const result = await window.langGraphAPI.startWorkflow(wfId, projectPath, testTasks);
 
-      console.log('Workflow completed:', result);
-      setState(result.state);
-      alert('Workflow completed successfully!');
+      // Start workflow (non-blocking, state updates will come via events)
+      window.langGraphAPI
+        .startWorkflow(wfId, projectPath, testTasks)
+        .then((result) => {
+          console.log('Workflow completed:', result);
+          alert('Workflow completed successfully!');
+        })
+        .catch((err) => {
+          const errorMessage = (err as Error).message;
+          setError(errorMessage);
+          console.error('Workflow error:', err);
+          alert(`Workflow failed: ${errorMessage}`);
+          setLoading(false);
+        });
     } catch (err) {
       const errorMessage = (err as Error).message;
       setError(errorMessage);
       console.error('Workflow error:', err);
       alert(`Workflow failed: ${errorMessage}`);
-    } finally {
       setLoading(false);
     }
   };
@@ -93,8 +160,63 @@ export const LangGraphTestPage: React.FC = () => {
     }
   };
 
+  // Phase 4: Handle approval response
+  const handleApprovalResponse = async (approved: boolean) => {
+    if (!approvalRequest) return;
+
+    try {
+      await window.langGraphAPI.respondToApproval(approvalRequest.taskId, approved);
+      setApprovalRequest(null); // Clear approval request
+    } catch (err) {
+      console.error('Failed to respond to approval:', err);
+      alert(`Failed to respond to approval: ${(err as Error).message}`);
+    }
+  };
+
   return (
     <div className={styles.container}>
+      {/* Phase 4: Approval Modal */}
+      {approvalRequest && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h2>🤚 Approval Required</h2>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.approvalInfo}>
+                <div className={styles.approvalItem}>
+                  <strong>Task ID:</strong> {approvalRequest.taskId}
+                </div>
+                <div className={styles.approvalItem}>
+                  <strong>Task Title:</strong>{' '}
+                  {approvalRequest.state.tasks.find((t) => t.id === approvalRequest.taskId)?.title}
+                </div>
+                {approvalRequest.request.approver && (
+                  <div className={styles.approvalItem}>
+                    <strong>Approver:</strong> {approvalRequest.request.approver}
+                  </div>
+                )}
+              </div>
+              <div className={styles.approvalMessage}>{approvalRequest.request.message}</div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button
+                onClick={() => handleApprovalResponse(false)}
+                className={`${styles.modalButton} ${styles.rejectButton}`}
+              >
+                ❌ Reject
+              </button>
+              <button
+                onClick={() => handleApprovalResponse(true)}
+                className={`${styles.modalButton} ${styles.approveButton}`}
+              >
+                ✅ Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={styles.header}>
         <h1>🧪 LangGraph POC Test</h1>
         <p>Test the LangGraph workflow engine with simple sequential tasks</p>
@@ -133,6 +255,31 @@ export const LangGraphTestPage: React.FC = () => {
       {workflowId && (
         <div className={styles.infoBox}>
           <strong>🆔 Workflow ID:</strong> <code>{workflowId}</code>
+        </div>
+      )}
+
+      {liveUpdates.length > 0 && (
+        <div className={styles.liveUpdatesSection}>
+          <h2>📡 Live Updates</h2>
+          <div className={styles.updatesList}>
+            {liveUpdates.map((update, idx) => (
+              <div
+                key={idx}
+                className={`${styles.updateItem} ${styles[`event-${update.eventType}`]}`}
+              >
+                <span className={styles.updateTime}>
+                  {new Date(update.state.lastUpdateTime).toLocaleTimeString()}
+                </span>
+                <span className={styles.updateEvent}>
+                  {update.eventType === 'task_started' && '▶️ Task Started'}
+                  {update.eventType === 'task_completed' && '✅ Task Completed'}
+                  {update.eventType === 'task_failed' && '❌ Task Failed'}
+                  {update.eventType === 'workflow_completed' && '🎉 Workflow Completed'}
+                </span>
+                {update.taskId && <span className={styles.updateTaskId}>{update.taskId}</span>}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

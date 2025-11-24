@@ -198,6 +198,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <span className={styles.icon}>🧪</span>
             <span>LangGraph Test</span>
           </Link>
+
+          <Link
+            to="/langgraph-visualizer"
+            className={`${styles.navItem} ${isActive('/langgraph-visualizer') ? styles.active : ''}`}
+          >
+            <span className={styles.icon}>🔮</span>
+            <span>LangGraph Visualizer</span>
+          </Link>
         </div>
 
         <div className={styles.footer}>

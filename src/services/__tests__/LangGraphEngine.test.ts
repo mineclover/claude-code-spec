@@ -529,4 +529,283 @@ describe('LangGraphEngine Integration Patterns', () => {
       expect(true).toBe(true); // Placeholder for circular dependency detection
     });
   });
+
+  describe('Phase 4: Conditional Branching', () => {
+    it('should route to target task when condition is true', async () => {
+      const StateAnnotation = Annotation.Root({
+        workflowId: Annotation<string>,
+        completedTasks: Annotation<string[]>({
+          reducer: (x, y) => [...x, ...y],
+          default: () => [],
+        }),
+        results: Annotation<Record<string, any>>({
+          reducer: (x, y) => ({ ...x, ...y }),
+          default: () => ({}),
+        }),
+      });
+
+      const graph = new StateGraph(StateAnnotation);
+
+      // Task A: Produces a result
+      graph.addNode('task-a', async (state) => {
+        return {
+          completedTasks: ['task-a'],
+          results: { 'task-a': { value: 10 } },
+        };
+      });
+
+      // Task B: Conditional target (value > 5)
+      graph.addNode('task-b', async (state) => {
+        return {
+          completedTasks: ['task-b'],
+          results: { 'task-b': { executed: true } },
+        };
+      });
+
+      // Task C: Default target (value <= 5)
+      graph.addNode('task-c', async (state) => {
+        return {
+          completedTasks: ['task-c'],
+          results: { 'task-c': { executed: true } },
+        };
+      });
+
+      // Build graph with conditional edge
+      graph.addEdge('__start__', 'task-a');
+      graph.addConditionalEdges('task-a', (state) => {
+        // Simulate conditional branching logic
+        const result = state.results['task-a'];
+        if (result && result.value > 5) {
+          return 'task-b'; // Route to task-b if value > 5
+        }
+        return 'task-c'; // Otherwise route to task-c
+      });
+      graph.addEdge('task-b', END);
+      graph.addEdge('task-c', END);
+
+      const compiled = graph.compile();
+      const result = await compiled.invoke({
+        workflowId: 'test-conditional',
+        completedTasks: [],
+        results: {},
+      });
+
+      // Verify that task-b was executed (value 10 > 5)
+      expect(result.completedTasks).toContain('task-a');
+      expect(result.completedTasks).toContain('task-b');
+      expect(result.completedTasks).not.toContain('task-c');
+      expect(result.results['task-b'].executed).toBe(true);
+    });
+
+    it('should route to default task when condition is false', async () => {
+      const StateAnnotation = Annotation.Root({
+        workflowId: Annotation<string>,
+        completedTasks: Annotation<string[]>({
+          reducer: (x, y) => [...x, ...y],
+          default: () => [],
+        }),
+        results: Annotation<Record<string, any>>({
+          reducer: (x, y) => ({ ...x, ...y }),
+          default: () => ({}),
+        }),
+      });
+
+      const graph = new StateGraph(StateAnnotation);
+
+      // Task A: Produces a result with small value
+      graph.addNode('task-a', async (state) => {
+        return {
+          completedTasks: ['task-a'],
+          results: { 'task-a': { value: 3 } },
+        };
+      });
+
+      // Task B: Conditional target (value > 5)
+      graph.addNode('task-b', async (state) => {
+        return {
+          completedTasks: ['task-b'],
+          results: { 'task-b': { executed: true } },
+        };
+      });
+
+      // Task C: Default target (value <= 5)
+      graph.addNode('task-c', async (state) => {
+        return {
+          completedTasks: ['task-c'],
+          results: { 'task-c': { executed: true } },
+        };
+      });
+
+      // Build graph with conditional edge
+      graph.addEdge('__start__', 'task-a');
+      graph.addConditionalEdges('task-a', (state) => {
+        const result = state.results['task-a'];
+        if (result && result.value > 5) {
+          return 'task-b';
+        }
+        return 'task-c';
+      });
+      graph.addEdge('task-b', END);
+      graph.addEdge('task-c', END);
+
+      const compiled = graph.compile();
+      const result = await compiled.invoke({
+        workflowId: 'test-conditional-false',
+        completedTasks: [],
+        results: {},
+      });
+
+      // Verify that task-c was executed (value 3 <= 5)
+      expect(result.completedTasks).toContain('task-a');
+      expect(result.completedTasks).toContain('task-c');
+      expect(result.completedTasks).not.toContain('task-b');
+      expect(result.results['task-c'].executed).toBe(true);
+    });
+
+    it('should handle multiple conditional branches', async () => {
+      const StateAnnotation = Annotation.Root({
+        workflowId: Annotation<string>,
+        completedTasks: Annotation<string[]>({
+          reducer: (x, y) => [...x, ...y],
+          default: () => [],
+        }),
+        results: Annotation<Record<string, any>>({
+          reducer: (x, y) => ({ ...x, ...y }),
+          default: () => ({}),
+        }),
+      });
+
+      const graph = new StateGraph(StateAnnotation);
+
+      // Task A: Produces a status result
+      graph.addNode('task-a', async (state) => {
+        return {
+          completedTasks: ['task-a'],
+          results: { 'task-a': { status: 'success' } },
+        };
+      });
+
+      // Task B: For success status
+      graph.addNode('task-b', async (state) => {
+        return {
+          completedTasks: ['task-b'],
+          results: { 'task-b': { route: 'success' } },
+        };
+      });
+
+      // Task C: For error status
+      graph.addNode('task-c', async (state) => {
+        return {
+          completedTasks: ['task-c'],
+          results: { 'task-c': { route: 'error' } },
+        };
+      });
+
+      // Task D: For unknown status
+      graph.addNode('task-d', async (state) => {
+        return {
+          completedTasks: ['task-d'],
+          results: { 'task-d': { route: 'unknown' } },
+        };
+      });
+
+      // Build graph with multiple conditional branches
+      graph.addEdge('__start__', 'task-a');
+      graph.addConditionalEdges('task-a', (state) => {
+        const result = state.results['task-a'];
+        if (result?.status === 'success') {
+          return 'task-b';
+        } else if (result?.status === 'error') {
+          return 'task-c';
+        }
+        return 'task-d';
+      });
+      graph.addEdge('task-b', END);
+      graph.addEdge('task-c', END);
+      graph.addEdge('task-d', END);
+
+      const compiled = graph.compile();
+      const result = await compiled.invoke({
+        workflowId: 'test-multi-conditional',
+        completedTasks: [],
+        results: {},
+      });
+
+      // Verify that task-b was executed (status is 'success')
+      expect(result.completedTasks).toEqual(['task-a', 'task-b']);
+      expect(result.results['task-b'].route).toBe('success');
+    });
+
+    it('should handle conditional branching with dependencies', async () => {
+      const StateAnnotation = Annotation.Root({
+        workflowId: Annotation<string>,
+        completedTasks: Annotation<string[]>({
+          reducer: (x, y) => [...x, ...y],
+          default: () => [],
+        }),
+        results: Annotation<Record<string, any>>({
+          reducer: (x, y) => ({ ...x, ...y }),
+          default: () => ({}),
+        }),
+      });
+
+      const graph = new StateGraph(StateAnnotation);
+
+      // Task A: Base task
+      graph.addNode('task-a', async (state) => {
+        return {
+          completedTasks: ['task-a'],
+          results: { 'task-a': { count: 5 } },
+        };
+      });
+
+      // Task B: Conditional branch (count >= 5)
+      graph.addNode('task-b', async (state) => {
+        return {
+          completedTasks: ['task-b'],
+          results: { 'task-b': { processed: state.results['task-a'].count * 2 } },
+        };
+      });
+
+      // Task C: Alternative branch (count < 5)
+      graph.addNode('task-c', async (state) => {
+        return {
+          completedTasks: ['task-c'],
+          results: { 'task-c': { processed: state.results['task-a'].count + 10 } },
+        };
+      });
+
+      // Task D: Final task (depends on either B or C)
+      graph.addNode('task-d', async (state) => {
+        const processedValue =
+          state.results['task-b']?.processed || state.results['task-c']?.processed;
+        return {
+          completedTasks: ['task-d'],
+          results: { 'task-d': { final: processedValue + 1 } },
+        };
+      });
+
+      // Build graph
+      graph.addEdge('__start__', 'task-a');
+      graph.addConditionalEdges('task-a', (state) => {
+        const result = state.results['task-a'];
+        return result.count >= 5 ? 'task-b' : 'task-c';
+      });
+      graph.addEdge('task-b', 'task-d');
+      graph.addEdge('task-c', 'task-d');
+      graph.addEdge('task-d', END);
+
+      const compiled = graph.compile();
+      const result = await compiled.invoke({
+        workflowId: 'test-conditional-deps',
+        completedTasks: [],
+        results: {},
+      });
+
+      // Verify execution path: A -> B -> D (since count = 5 >= 5)
+      expect(result.completedTasks).toEqual(['task-a', 'task-b', 'task-d']);
+      expect(result.results['task-b'].processed).toBe(10); // 5 * 2
+      expect(result.results['task-d'].final).toBe(11); // 10 + 1
+    });
+  });
 });

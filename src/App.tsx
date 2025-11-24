@@ -15,6 +15,7 @@ import { ExecutionDetailPage } from './pages/ExecutionDetailPage';
 import { ExecutionsPage } from './pages/ExecutionsPage';
 import { IndexPage } from './pages/IndexPage';
 import { LangGraphTestPage } from './pages/LangGraphTestPage';
+import { LangGraphVisualizerPage } from './pages/LangGraphVisualizerPage';
 import { McpConfigsPage } from './pages/McpConfigsPage';
 import { MemoryPage } from './pages/MemoryPage';
 import { OutputStylesPage } from './pages/OutputStylesPage';
@@ -56,6 +57,7 @@ function App() {
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/langgraph-test" element={<LangGraphTestPage />} />
+            <Route path="/langgraph-visualizer" element={<LangGraphVisualizerPage />} />
           </Routes>
         </Layout>
       </HashRouter>

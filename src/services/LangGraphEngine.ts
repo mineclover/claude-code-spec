@@ -5,10 +5,17 @@
  * - Simple sequential task execution
  * - State management with checkpoints
  * - Integration with ProcessManager and AgentTracker
+ *
+ * Phase 2 Implementation:
+ * - Real-time state updates via EventEmitter
+ * - Stream event to state mapping
+ * - CentralDatabase integration
+ * - Checkpoint resume mechanism
  */
 
 import type { ProcessManager, StreamEvent } from '@context-action/code-api';
 import { Annotation, END, MemorySaver, StateGraph } from '@langchain/langgraph';
+import { EventEmitter } from 'node:events';
 import { appLogger } from '../main/app-context';
 import type { Task } from '../types/task';
 import type { WorkflowExecution } from '../types/report';
@@ -42,6 +49,14 @@ export interface TaskProgress {
   lastActivity: number; // Timestamp of last activity
 }
 
+// Phase 4: Approval request
+export interface ApprovalRequest {
+  taskId: string;
+  message: string;
+  approver?: string;
+  requestedAt: number;
+}
+
 // State annotation for workflow
 const WorkflowStateAnnotation = Annotation.Root({
   workflowId: Annotation<string>,
@@ -68,23 +83,39 @@ const WorkflowStateAnnotation = Annotation.Root({
     reducer: (x, y) => ({ ...x, ...y }),
     default: () => ({}),
   }),
+  // Phase 4: Human-in-the-loop
+  pendingApprovals: Annotation<ApprovalRequest[]>({
+    reducer: (x, y) => [...x, ...y],
+    default: () => [],
+  }),
   startTime: Annotation<number>,
   lastUpdateTime: Annotation<number>,
 });
 
 export type WorkflowState = typeof WorkflowStateAnnotation.State;
 
-export class LangGraphEngine {
+// Event types for real-time updates
+export interface StateUpdateEvent {
+  workflowId: string;
+  state: WorkflowState;
+  taskId?: string;
+  eventType: 'task_started' | 'task_completed' | 'task_failed' | 'workflow_completed';
+}
+
+export class LangGraphEngine extends EventEmitter {
   private processManager: ProcessManager;
   private agentTracker: AgentTracker;
   private database: CentralDatabase;
   private checkpointer = new MemorySaver();
+  // Phase 4: Approval handling
+  private approvalResolvers: Map<string, (approved: boolean) => void> = new Map();
 
   constructor(
     processManager: ProcessManager,
     agentTracker: AgentTracker,
     database: CentralDatabase,
   ) {
+    super();
     this.processManager = processManager;
     this.agentTracker = agentTracker;
     this.database = database;
@@ -92,6 +123,79 @@ export class LangGraphEngine {
     appLogger.info('LangGraphEngine initialized', {
       module: 'LangGraphEngine',
     });
+  }
+
+  /**
+   * Phase 4: Request approval for a task (Human-in-the-loop)
+   */
+  private async requestApproval(
+    workflowId: string,
+    task: Task,
+    state: WorkflowState,
+  ): Promise<boolean> {
+    if (!task.approval?.required) {
+      return true; // No approval required
+    }
+
+    const approvalRequest: ApprovalRequest = {
+      taskId: task.id,
+      message: task.approval.message,
+      approver: task.approval.approver,
+      requestedAt: Date.now(),
+    };
+
+    appLogger.info('Requesting approval', {
+      module: 'LangGraphEngine',
+      workflowId,
+      taskId: task.id,
+    });
+
+    // Emit approval request event
+    this.emit('approvalRequest', {
+      workflowId,
+      taskId: task.id,
+      request: approvalRequest,
+      state,
+    });
+
+    // Wait for approval with optional timeout
+    return new Promise<boolean>((resolve) => {
+      this.approvalResolvers.set(task.id, resolve);
+
+      if (task.approval?.timeout) {
+        setTimeout(() => {
+          if (this.approvalResolvers.has(task.id)) {
+            appLogger.warn('Approval timeout', {
+              module: 'LangGraphEngine',
+              taskId: task.id,
+            });
+            this.approvalResolvers.delete(task.id);
+            resolve(false); // Timeout = rejection
+          }
+        }, task.approval.timeout);
+      }
+    });
+  }
+
+  /**
+   * Phase 4: Respond to approval request
+   */
+  respondToApproval(taskId: string, approved: boolean): void {
+    const resolver = this.approvalResolvers.get(taskId);
+    if (resolver) {
+      appLogger.info('Approval response received', {
+        module: 'LangGraphEngine',
+        taskId,
+        approved,
+      });
+      resolver(approved);
+      this.approvalResolvers.delete(taskId);
+    } else {
+      appLogger.warn('No pending approval for task', {
+        module: 'LangGraphEngine',
+        taskId,
+      });
+    }
   }
 
   /**
@@ -195,6 +299,55 @@ export class LangGraphEngine {
           workflowId: state.workflowId,
         });
 
+        // Emit task_started event
+        this.emit('stateUpdate', {
+          workflowId: state.workflowId,
+          state: {
+            ...state,
+            currentTask: task.id,
+          },
+          taskId: task.id,
+          eventType: 'task_started',
+        } as StateUpdateEvent);
+
+        // Phase 4: Request approval if required (Human-in-the-loop)
+        if (task.approval?.required) {
+          const approved = await this.requestApproval(state.workflowId, task, state);
+          if (!approved) {
+            // Approval denied
+            appLogger.warn('Task approval denied', {
+              module: 'LangGraphEngine',
+              taskId: task.id,
+            });
+
+            const deniedState = {
+              failedTasks: [task.id],
+              results: { [task.id]: { error: 'Approval denied by user' } },
+              logs: [`Task ${task.id} approval denied`],
+              taskProgress: {
+                [task.id]: {
+                  status: 'failed' as const,
+                  eventCount: 0,
+                  lastActivity: Date.now(),
+                },
+              },
+              lastUpdateTime: Date.now(),
+            };
+
+            this.emit('stateUpdate', {
+              workflowId: state.workflowId,
+              state: {
+                ...state,
+                ...deniedState,
+              },
+              taskId: task.id,
+              eventType: 'task_failed',
+            } as StateUpdateEvent);
+
+            return deniedState;
+          }
+        }
+
         // Register execution
         const sessionId = `${state.workflowId}-${task.id}`;
         await this.agentTracker.registerExecution(sessionId, {
@@ -217,7 +370,7 @@ export class LangGraphEngine {
             progress: result.progress,
           });
 
-          return {
+          const updatedState = {
             completedTasks: [task.id],
             results: { [task.id]: result },
             logs: [`Task ${task.id} completed successfully`],
@@ -230,6 +383,19 @@ export class LangGraphEngine {
             },
             lastUpdateTime: Date.now(),
           };
+
+          // Emit task_completed event
+          this.emit('stateUpdate', {
+            workflowId: state.workflowId,
+            state: {
+              ...state,
+              ...updatedState,
+            },
+            taskId: task.id,
+            eventType: 'task_completed',
+          } as StateUpdateEvent);
+
+          return updatedState;
         } catch (error) {
           await this.agentTracker.updateStatus(sessionId, 'failed');
 
@@ -240,7 +406,7 @@ export class LangGraphEngine {
             error: String(error),
           });
 
-          return {
+          const errorState = {
             failedTasks: [task.id],
             results: { [task.id]: { error: String(error) } },
             logs: [`Task ${task.id} failed: ${String(error)}`],
@@ -253,6 +419,19 @@ export class LangGraphEngine {
             },
             lastUpdateTime: Date.now(),
           };
+
+          // Emit task_failed event
+          this.emit('stateUpdate', {
+            workflowId: state.workflowId,
+            state: {
+              ...state,
+              ...errorState,
+            },
+            taskId: task.id,
+            eventType: 'task_failed',
+          } as StateUpdateEvent);
+
+          return errorState;
         }
       });
     }
@@ -315,12 +494,22 @@ export class LangGraphEngine {
       agent: task.assigned_agent,
     });
 
-    // Execute via ProcessManager
-    const execution = this.processManager.executeCommand({
+    // Execute via ProcessManager with data-flow output style
+    await this.processManager.startExecution({
       projectPath: state.projectPath,
       query,
       sessionId,
+      outputStyle: 'data-flow', // Use data-flow style for workflow data tracking
+      agentName: task.assigned_agent,
+      taskId: task.id,
     });
+
+    // Get execution info
+    const executionInfo = this.processManager.getExecution(sessionId);
+    if (!executionInfo) {
+      throw new Error(`Execution not found: ${sessionId}`);
+    }
+    const execution = executionInfo.client;
 
     // Initialize task progress
     const progress: TaskProgress = {
@@ -522,6 +711,13 @@ export class LangGraphEngine {
         duration: workflowExecution.duration,
         totalCost: workflowExecution.metrics.totalCost,
       });
+
+      // Emit workflow_completed event
+      this.emit('stateUpdate', {
+        workflowId,
+        state: finalState,
+        eventType: 'workflow_completed',
+      } as StateUpdateEvent);
 
       return finalState;
     } catch (error) {
