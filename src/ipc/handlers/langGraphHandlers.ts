@@ -2,7 +2,7 @@
  * IPC Handlers for LangGraph operations
  */
 
-import { processManager } from '@context-action/code-api';
+import { processManager } from '../../services/ProcessManager';
 import { BrowserWindow } from 'electron';
 import {
   LangGraphEngine,
@@ -10,7 +10,7 @@ import {
   type WorkflowState,
 } from '../../services/LangGraphEngine';
 import type { Task } from '../../types/task';
-import type { IpcRouter } from '../IpcRouter';
+import type { IPCRouter } from '../IPCRouter';
 import { getAgentTracker } from './agentTrackerHandlers';
 import { getCentralDatabase } from './centralDatabaseHandlers';
 
@@ -49,7 +49,7 @@ export function getLangGraphEngine(): LangGraphEngine {
 /**
  * Register all LangGraph handlers
  */
-export function registerLangGraphHandlers(router: IpcRouter): void {
+export function registerLangGraphHandlers(router: IPCRouter): void {
   // Start workflow
   router.handle(
     'startWorkflow',

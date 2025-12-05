@@ -10,7 +10,7 @@ import type {
   ReportFilter,
   TimeRange,
 } from '../../types/report';
-import type { IpcRouter } from '../IpcRouter';
+import type { IPCRouter } from '../IPCRouter';
 
 let centralDatabase: CentralDatabase | null = null;
 
@@ -31,7 +31,7 @@ export function getCentralDatabase(): CentralDatabase {
 /**
  * Register all central database handlers
  */
-export function registerCentralDatabaseHandlers(router: IpcRouter): void {
+export function registerCentralDatabaseHandlers(router: IPCRouter): void {
   // Project management
   router.handle('saveProjectState', async (registration: ProjectRegistration) => {
     const db = getCentralDatabase();

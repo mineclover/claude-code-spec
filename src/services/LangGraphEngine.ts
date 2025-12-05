@@ -13,7 +13,8 @@
  * - Checkpoint resume mechanism
  */
 
-import type { ProcessManager, StreamEvent } from '@context-action/code-api';
+import type { ProcessManager } from './ProcessManager';
+import type { StreamEvent } from '../types/stream-events';
 import { Annotation, END, MemorySaver, StateGraph } from '@langchain/langgraph';
 import { EventEmitter } from 'node:events';
 import { appLogger } from '../main/app-context';

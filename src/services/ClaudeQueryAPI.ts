@@ -1,33 +1,42 @@
 /**
- * ClaudeQueryAPI - API-style query executor with output-style injection
+ * ClaudeQueryAPI - API-style query executor using ai-sdk-cli
+ *
+ * Migrated from CLI spawn to SDK-based implementation
  *
  * Features:
- * - Forces output-style for consistent formatting
- * - Filters thinking blocks for clean results
- * - Provides simple query() interface
- * - Returns structured responses
- * - JSON extraction and validation
+ * - Uses @anthropic-ai/claude-agent-sdk via ai-sdk-cli
+ * - Structured output with JSON schema validation
+ * - cwd validation for security
+ * - MCP server configuration support
  */
 
-import type { ChildProcess } from 'node:child_process';
-import { spawn } from 'node:child_process';
-import { extractAndValidate, extractJSON, type JSONExtractionResult } from '../lib/jsonExtractor';
-import { buildSchemaPrompt, type JSONSchema, validateAgainstSchema } from '../lib/schemaBuilder';
+import {
+  createClaudeAgent,
+  type ClaudeAgent,
+  type ClaudeAgentConfig,
+  type JSONSchema,
+  Schema,
+  processStream,
+  ClaudeAgentError,
+  StructuredOutputError,
+} from '@packages/ai-sdk-cli';
 import { appLogger } from '../main/app-context';
 
 export interface QueryOptions {
   /**
    * Output style to force (e.g., 'structured-json', 'default', 'explanatory')
+   * @deprecated Use structured output instead
    */
   outputStyle?: string;
 
   /**
    * Model to use
    */
-  model?: 'sonnet' | 'opus' | 'haiku';
+  model?: 'sonnet' | 'opus' | 'haiku' | 'claude-sonnet-4-5' | 'claude-opus-4' | 'claude-haiku-3-5';
 
   /**
-   * MCP config path
+   * MCP config path (for CLI compatibility)
+   * @deprecated Use mcpServers config object instead
    */
   mcpConfig?: string;
 
@@ -40,21 +49,41 @@ export interface QueryOptions {
    * Timeout in milliseconds
    */
   timeout?: number;
+
+  /**
+   * System prompt
+   */
+  systemPrompt?: string;
+
+  /**
+   * MCP servers configuration (SDK native)
+   */
+  mcpServers?: ClaudeAgentConfig['mcpServers'];
+
+  /**
+   * Only use specified MCP servers
+   */
+  strictMcpConfig?: boolean;
+
+  /**
+   * Tools to disallow
+   */
+  disallowedTools?: string[];
 }
 
 export interface QueryResult {
   /**
-   * Final result text (thinking filtered if requested)
+   * Final result text
    */
   result: string;
 
   /**
-   * All assistant messages (thinking filtered if requested)
+   * All assistant messages
    */
   messages: string[];
 
   /**
-   * Raw events (for debugging)
+   * Raw events (for debugging) - simplified for SDK
    */
   events: StreamEvent[];
 
@@ -66,307 +95,195 @@ export interface QueryResult {
     durationMs: number;
     numTurns: number;
     outputStyle?: string;
+    inputTokens?: number;
+    outputTokens?: number;
   };
+
+  /**
+   * Session ID for resume/fork
+   */
+  sessionId?: string;
+
+  /**
+   * Structured output (if schema provided)
+   */
+  structuredOutput?: unknown;
 }
 
 interface StreamEvent {
   type: string;
   subtype?: string;
-  [key: string]: any;
+  [key: string]: unknown;
+}
+
+export interface JSONExtractionResult<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  raw?: string;
+  cleanedText?: string;
+}
+
+/**
+ * Model name mapping
+ */
+function mapModelName(
+  model?: string,
+): 'claude-sonnet-4-5' | 'claude-opus-4-5' | 'claude-haiku-3-5' | undefined {
+  if (!model) return undefined;
+
+  const modelMap: Record<string, 'claude-sonnet-4-5' | 'claude-opus-4-5' | 'claude-haiku-3-5'> = {
+    sonnet: 'claude-sonnet-4-5',
+    opus: 'claude-opus-4-5',
+    haiku: 'claude-haiku-3-5',
+    'claude-sonnet-4-5': 'claude-sonnet-4-5',
+    'claude-opus-4-5': 'claude-opus-4-5',
+    'claude-haiku-3-5': 'claude-haiku-3-5',
+  };
+
+  return modelMap[model];
 }
 
 export class ClaudeQueryAPI {
-  private runningProcess: ChildProcess | null = null;
+  private currentAgent: ClaudeAgent | null = null;
+  private abortController: AbortController | null = null;
 
   /**
-   * Execute a query with output-style and get clean results
+   * Execute a query and get results
    */
-  async query(
-    projectPath: string,
-    query: string,
-    options: QueryOptions = {},
-  ): Promise<QueryResult> {
-    const { outputStyle, model, mcpConfig, filterThinking = true, timeout = 120000 } = options;
+  async query(projectPath: string, query: string, options: QueryOptions = {}): Promise<QueryResult> {
+    const {
+      model,
+      filterThinking = true,
+      timeout = 120000,
+      systemPrompt,
+      mcpServers,
+      strictMcpConfig,
+      disallowedTools,
+      outputStyle,
+    } = options;
 
-    appLogger.info('Executing query with ClaudeQueryAPI', {
+    appLogger.info('Executing query with ClaudeQueryAPI (SDK)', {
       module: 'ClaudeQueryAPI',
       projectPath,
-      outputStyle,
       model,
       filterThinking,
     });
 
-    // Build enhanced query with output-style
-    const enhancedQuery = this.buildQuery(query, outputStyle);
+    const startTime = Date.now();
 
-    // Execute
-    const events = await this.executeClaudeProcess(projectPath, enhancedQuery, {
-      model,
-      mcpConfig,
-      timeout,
-    });
-
-    // Filter thinking if requested
-    const processedEvents = filterThinking ? this.filterThinkingBlocks(events) : events;
-
-    // Extract results
-    const result = this.extractResult(processedEvents);
-    const messages = this.extractMessages(processedEvents);
-    const metadata = this.extractMetadata(events);
-
-    if (outputStyle) {
-      metadata.outputStyle = outputStyle;
-    }
-
-    return {
-      result,
-      messages,
-      events: processedEvents,
-      metadata,
-    };
-  }
-
-  /**
-   * Build query with output-style injection
-   */
-  private buildQuery(query: string, outputStyle?: string): string {
-    if (!outputStyle) {
-      return query;
-    }
-
-    // Inject output-style command at the beginning
-    return `/output-style ${outputStyle}\n\n${query}`;
-  }
-
-  /**
-   * Execute Claude process and collect events
-   */
-  private async executeClaudeProcess(
-    projectPath: string,
-    query: string,
-    options: {
-      model?: string;
-      mcpConfig?: string;
-      timeout?: number;
-    },
-  ): Promise<StreamEvent[]> {
-    return new Promise((resolve, reject) => {
-      const events: StreamEvent[] = [];
-      const { model, mcpConfig, timeout = 120000 } = options;
-
-      // Build arguments
-      const args = ['-p', query, '--output-format', 'stream-json', '--verbose'];
-
-      if (model) {
-        args.push('--model', model);
-      }
-
-      if (mcpConfig) {
-        args.push('--mcp-config', mcpConfig);
-        args.push('--strict-mcp-config');
-      }
-
-      appLogger.debug('Spawning Claude process', {
-        module: 'ClaudeQueryAPI',
-        args,
+    try {
+      // Create agent
+      const agent = createClaudeAgent({
         cwd: projectPath,
+        model: mapModelName(model),
+        permissionMode: 'bypassPermissions',
+        systemPrompt,
+        mcpServers,
+        strictMcpConfig,
+        disallowedTools,
       });
 
-      const child = spawn('claude', args, {
-        cwd: projectPath,
-        shell: true,
-        env: {
-          ...process.env,
-          FORCE_COLOR: '0',
-        },
-      });
-
-      this.runningProcess = child;
-
-      let buffer = '';
-      let timeoutHandle: NodeJS.Timeout | null = null;
+      this.currentAgent = agent;
+      this.abortController = new AbortController();
 
       // Set timeout
-      if (timeout > 0) {
-        timeoutHandle = setTimeout(() => {
-          appLogger.warn('Query timeout, killing process', {
-            module: 'ClaudeQueryAPI',
-            timeout,
-          });
+      const timeoutId = setTimeout(() => {
+        this.abortController?.abort();
+      }, timeout);
 
-          child.kill('SIGTERM');
-          reject(new Error(`Query timeout after ${timeout}ms`));
-        }, timeout);
-      }
+      // Build query with output style hint if provided
+      const enhancedQuery = outputStyle ? `/output-style ${outputStyle}\n\n${query}` : query;
 
-      child.stdout.on('data', (data: Buffer) => {
-        buffer += data.toString();
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (!line.trim()) continue;
-
-          try {
-            const event = JSON.parse(line);
-            events.push(event);
-          } catch (_error) {
-            appLogger.debug('Failed to parse stream line', {
-              module: 'ClaudeQueryAPI',
-              line: line.substring(0, 100),
-            });
-          }
-        }
+      // Execute query
+      const result = await agent.query(enhancedQuery, {
+        abortController: this.abortController,
       });
 
-      child.stderr.on('data', (data: Buffer) => {
-        appLogger.debug('Claude stderr', {
-          module: 'ClaudeQueryAPI',
-          data: data.toString(),
-        });
+      clearTimeout(timeoutId);
+
+      const durationMs = Date.now() - startTime;
+
+      // Build response
+      const response: QueryResult = {
+        result: result.text || '',
+        messages: result.text ? [result.text] : [],
+        events: [],
+        metadata: {
+          totalCost: 0, // SDK doesn't expose cost directly
+          durationMs,
+          numTurns: 1,
+          outputStyle,
+          inputTokens: result.usage?.inputTokens,
+          outputTokens: result.usage?.outputTokens,
+        },
+        sessionId: result.sessionId,
+        structuredOutput: result.structuredOutput,
+      };
+
+      appLogger.info('Query completed successfully', {
+        module: 'ClaudeQueryAPI',
+        durationMs,
+        sessionId: result.sessionId,
       });
 
-      child.on('close', (code) => {
-        this.runningProcess = null;
+      return response;
+    } catch (error) {
+      const durationMs = Date.now() - startTime;
 
-        if (timeoutHandle) {
-          clearTimeout(timeoutHandle);
-        }
-
-        if (code === 0) {
-          appLogger.info('Query completed successfully', {
-            module: 'ClaudeQueryAPI',
-            eventsCount: events.length,
-          });
-          resolve(events);
-        } else {
-          appLogger.error('Query failed', undefined, {
-            module: 'ClaudeQueryAPI',
-            code,
-          });
-          reject(new Error(`Process exited with code ${code}`));
-        }
+      appLogger.error('Query failed', error instanceof Error ? error : undefined, {
+        module: 'ClaudeQueryAPI',
+        durationMs,
       });
 
-      child.on('error', (error) => {
-        this.runningProcess = null;
-
-        if (timeoutHandle) {
-          clearTimeout(timeoutHandle);
-        }
-
-        appLogger.error('Process error', error, {
-          module: 'ClaudeQueryAPI',
-        });
-        reject(error);
-      });
-    });
-  }
-
-  /**
-   * Filter thinking blocks from events
-   */
-  private filterThinkingBlocks(events: StreamEvent[]): StreamEvent[] {
-    return events.map((event) => {
-      if (event.type === 'message' && event.message?.content) {
-        return {
-          ...event,
-          message: {
-            ...event.message,
-            content: event.message.content.filter((block: any) => block.type !== 'thinking'),
-          },
-        };
-      }
-      return event;
-    });
-  }
-
-  /**
-   * Extract final result from events
-   */
-  private extractResult(events: StreamEvent[]): string {
-    const resultEvent = events.find((e) => e.type === 'result');
-    return resultEvent?.result || '';
-  }
-
-  /**
-   * Extract all assistant messages
-   */
-  private extractMessages(events: StreamEvent[]): string[] {
-    const messages: string[] = [];
-
-    for (const event of events) {
-      if (event.type === 'message' && event.subtype === 'assistant') {
-        const content = event.message?.content || [];
-        for (const block of content) {
-          if (block.type === 'text') {
-            messages.push(block.text);
-          }
-        }
-      }
+      throw error;
+    } finally {
+      this.currentAgent = null;
+      this.abortController = null;
     }
-
-    return messages;
-  }
-
-  /**
-   * Extract execution metadata
-   */
-  private extractMetadata(events: StreamEvent[]): QueryResult['metadata'] {
-    const resultEvent = events.find((e) => e.type === 'result');
-
-    return {
-      totalCost: resultEvent?.total_cost_usd || 0,
-      durationMs: resultEvent?.duration_ms || 0,
-      numTurns: resultEvent?.num_turns || 0,
-    };
   }
 
   /**
    * Execute query and extract JSON result
-   *
-   * Automatically:
-   * - Uses 'structured-json' output-style
-   * - Filters thinking blocks
-   * - Extracts and validates JSON
    */
-  async queryJSON<T = any>(
+  async queryJSON<T = unknown>(
     projectPath: string,
     query: string,
     options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> & {
       requiredFields?: (keyof T)[];
     } = {},
   ): Promise<JSONExtractionResult<T>> {
-    const { requiredFields, ...queryOptions } = options;
-
     appLogger.info('Executing JSON query', {
       module: 'ClaudeQueryAPI',
       projectPath,
-      requiredFields: requiredFields?.length || 0,
     });
 
     try {
-      // Execute with structured-json output-style
       const result = await this.query(projectPath, query, {
-        ...queryOptions,
+        ...options,
         outputStyle: 'structured-json',
         filterThinking: true,
       });
 
-      // Extract and validate JSON
-      if (requiredFields && requiredFields.length > 0) {
-        return extractAndValidate<T extends Record<string, any> ? T : any>(
-          result.result,
-          requiredFields as string[],
-        );
-      } else {
-        return extractJSON<T>(result.result);
+      // Try to extract JSON from result
+      const jsonMatch = result.result.match(/```json\s*([\s\S]*?)\s*```/);
+      const jsonStr = jsonMatch ? jsonMatch[1] : result.result;
+
+      try {
+        const data = JSON.parse(jsonStr) as T;
+        return {
+          success: true,
+          data,
+          raw: result.result,
+        };
+      } catch {
+        return {
+          success: false,
+          error: 'Failed to parse JSON from response',
+          raw: result.result,
+        };
       }
     } catch (error) {
-      appLogger.error('JSON query failed', error instanceof Error ? error : undefined, {
-        module: 'ClaudeQueryAPI',
-      });
-
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -375,205 +292,124 @@ export class ClaudeQueryAPI {
   }
 
   /**
-   * Execute query and get typed JSON result with validation
+   * Execute query with JSON schema for structured output
    */
-  async queryTypedJSON<T extends Record<string, any>>(
-    projectPath: string,
-    query: string,
-    requiredFields: (keyof T)[],
-    options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> = {},
-  ): Promise<JSONExtractionResult<T>> {
-    return this.queryJSON<T>(projectPath, query, {
-      ...options,
-      requiredFields,
-    });
-  }
-
-  /**
-   * Execute query with explicit JSON schema
-   *
-   * Automatically injects schema into prompt and validates response
-   */
-  async queryWithSchema<T = any>(
+  async queryWithSchema<T = unknown>(
     projectPath: string,
     instruction: string,
     schema: JSONSchema,
     options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> = {},
   ): Promise<JSONExtractionResult<T>> {
-    appLogger.info('Executing query with schema', {
+    const { model, timeout = 120000, systemPrompt, mcpServers, strictMcpConfig, disallowedTools } =
+      options;
+
+    appLogger.info('Executing query with schema (SDK native)', {
       module: 'ClaudeQueryAPI',
       projectPath,
-      schemaFields: Object.keys(schema).length,
     });
 
+    const startTime = Date.now();
+
     try {
-      // Build schema prompt
-      const schemaPrompt = buildSchemaPrompt(schema, instruction);
-
-      appLogger.debug('Built schema prompt', {
-        module: 'ClaudeQueryAPI',
-        promptLength: schemaPrompt.length,
+      const agent = createClaudeAgent({
+        cwd: projectPath,
+        model: mapModelName(model),
+        permissionMode: 'bypassPermissions',
+        systemPrompt,
+        mcpServers,
+        strictMcpConfig,
+        disallowedTools,
       });
 
-      // Execute with 'json' output-style (generic)
-      const result = await this.query(projectPath, schemaPrompt, {
-        ...options,
-        outputStyle: 'json',
-        filterThinking: true,
-      });
+      this.currentAgent = agent;
+      this.abortController = new AbortController();
 
-      // Extract JSON
-      const extracted = extractJSON<T>(result.result);
+      const timeoutId = setTimeout(() => {
+        this.abortController?.abort();
+      }, timeout);
 
-      if (!extracted.success) {
-        return extracted;
-      }
+      // Use SDK's native structured output
+      const data = await agent.queryStructured<T>(instruction, schema, 'response');
 
-      // Validate against schema
-      const validation = validateAgainstSchema(extracted.data, schema);
+      clearTimeout(timeoutId);
 
-      if (!validation.valid) {
-        appLogger.warn('Schema validation failed', {
-          module: 'ClaudeQueryAPI',
-          errors: validation.errors,
-        });
-
-        return {
-          success: false,
-          error: `Schema validation failed: ${validation.errors.join('; ')}`,
-          raw: extracted.raw,
-          cleanedText: extracted.cleanedText,
-        };
-      }
+      const durationMs = Date.now() - startTime;
 
       appLogger.info('Schema query successful', {
         module: 'ClaudeQueryAPI',
-        dataKeys: extracted.data ? Object.keys(extracted.data).length : 0,
+        durationMs,
       });
 
-      return extracted;
+      return {
+        success: true,
+        data,
+      };
     } catch (error) {
+      const durationMs = Date.now() - startTime;
+
       appLogger.error('Schema query failed', error instanceof Error ? error : undefined, {
         module: 'ClaudeQueryAPI',
+        durationMs,
       });
+
+      if (error instanceof StructuredOutputError) {
+        return {
+          success: false,
+          error: `Structured output error: ${error.message}`,
+        };
+      }
 
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
       };
+    } finally {
+      this.currentAgent = null;
+      this.abortController = null;
     }
   }
 
   /**
-   * Kill running process
-   */
-  kill(): void {
-    if (this.runningProcess) {
-      appLogger.info('Killing running query process', {
-        module: 'ClaudeQueryAPI',
-      });
-
-      this.runningProcess.kill('SIGTERM');
-      this.runningProcess = null;
-    }
-  }
-
-  /**
-   * Execute query with Zod schema validation (Standard Schema compliant)
-   *
-   * Output-style은 힌트 역할, 실제 검증은 Zod가 수행
-   *
-   * @example
-   * ```typescript
-   * import { z } from 'zod';
-   *
-   * const schema = z.object({
-   *   file: z.string(),
-   *   complexity: z.number().min(1).max(20)
-   * });
-   *
-   * const result = await api.queryWithZod(
-   *   projectPath,
-   *   'Analyze src/main.ts',
-   *   schema
-   * );
-   *
-   * if (result.success) {
-   *   console.log(result.data.file);
-   * }
-   * ```
+   * Execute query with Zod schema validation
    */
   async queryWithZod<T>(
     projectPath: string,
     instruction: string,
-    schema: import('zod').ZodType<T>,
+    zodSchema: import('zod').ZodType<T>,
     options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> = {},
   ): Promise<JSONExtractionResult<T>> {
-    const { zodSchemaToPrompt, validateWithZod } = await import('../lib/zodSchemaBuilder');
-
     appLogger.info('Executing query with Zod schema', {
       module: 'ClaudeQueryAPI',
       projectPath,
-      schemaType: schema.constructor.name,
     });
 
     try {
-      // Build schema prompt (힌트용)
-      const schemaPrompt = zodSchemaToPrompt(schema, instruction);
+      // Convert Zod schema to JSON Schema
+      const jsonSchema = this.zodToJsonSchema(zodSchema);
 
-      appLogger.debug('Built Zod schema prompt', {
-        module: 'ClaudeQueryAPI',
-        promptLength: schemaPrompt.length,
-      });
+      // Use queryWithSchema
+      const result = await this.queryWithSchema<T>(projectPath, instruction, jsonSchema, options);
 
-      // Execute with 'json' output-style (힌트만 제공)
-      const result = await this.query(projectPath, schemaPrompt, {
-        ...options,
-        outputStyle: 'json',
-        filterThinking: true,
-      });
-
-      // Extract JSON
-      const extracted = extractJSON<T>(result.result);
-
-      if (!extracted.success) {
-        return extracted;
+      if (!result.success) {
+        return result;
       }
 
-      // Validate with Zod (실제 검증)
-      const validation = validateWithZod(extracted.data, schema);
+      // Validate with Zod
+      const parsed = zodSchema.safeParse(result.data);
 
-      if (!validation.success) {
-        appLogger.warn('Zod validation failed', {
-          module: 'ClaudeQueryAPI',
-          error: validation.error,
-          issuesCount: validation.issues.length,
-        });
-
+      if (!parsed.success) {
         return {
           success: false,
-          error: `Schema validation failed: ${validation.error}`,
-          raw: extracted.raw,
-          cleanedText: extracted.cleanedText,
+          error: `Zod validation failed: ${parsed.error.message}`,
+          raw: JSON.stringify(result.data),
         };
       }
 
-      appLogger.info('Zod validation successful', {
-        module: 'ClaudeQueryAPI',
-        dataKeys: extracted.data ? Object.keys(extracted.data).length : 0,
-      });
-
       return {
         success: true,
-        data: validation.data,
-        raw: extracted.raw,
-        cleanedText: extracted.cleanedText,
+        data: parsed.data,
       };
     } catch (error) {
-      appLogger.error('Zod query failed', error instanceof Error ? error : undefined, {
-        module: 'ClaudeQueryAPI',
-      });
-
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -582,112 +418,87 @@ export class ClaudeQueryAPI {
   }
 
   /**
-   * Execute query with Standard Schema validation
-   *
-   * Zod v3.24.0+ 스키마는 자동으로 Standard Schema를 구현합니다.
-   *
-   * @example
-   * ```typescript
-   * import { z } from 'zod';
-   *
-   * const schema = z.object({
-   *   name: z.string(),
-   *   age: z.number()
-   * });
-   *
-   * const result = await api.queryWithStandardSchema(
-   *   projectPath,
-   *   'Get user info',
-   *   schema
-   * );
-   * ```
+   * Convert Zod schema to JSON Schema (basic implementation)
    */
-  async queryWithStandardSchema<T extends import('../lib/zodSchemaBuilder').StandardSchemaV1>(
-    projectPath: string,
-    instruction: string,
-    schema: T,
-    options: Omit<QueryOptions, 'outputStyle' | 'filterThinking'> = {},
-  ): Promise<
-    JSONExtractionResult<import('../lib/zodSchemaBuilder').StandardSchemaV1.InferOutput<T>>
-  > {
-    const { zodSchemaToPrompt, validateWithStandardSchema, isStandardSchema } = await import(
-      '../lib/zodSchemaBuilder'
-    );
+  private zodToJsonSchema(zodSchema: import('zod').ZodType): JSONSchema {
+    // Basic conversion - for complex schemas, use a dedicated library
+    const schema: JSONSchema = { type: 'object' };
 
-    appLogger.info('Executing query with Standard Schema', {
-      module: 'ClaudeQueryAPI',
-      projectPath,
-    });
+    if ('shape' in zodSchema._def) {
+      const shape = zodSchema._def.shape as Record<string, import('zod').ZodType>;
+      schema.properties = {};
 
-    // Standard Schema 체크
-    if (!isStandardSchema(schema)) {
-      return {
-        success: false,
-        error: 'Provided schema does not implement Standard Schema V1',
-      };
+      for (const [key, value] of Object.entries(shape)) {
+        schema.properties[key] = this.zodTypeToJsonSchema(value);
+      }
     }
 
-    try {
-      // Zod 스키마인 경우 프롬프트 생성
-      let schemaPrompt = instruction;
-      if ('_def' in schema) {
-        // Zod schema
-        schemaPrompt = zodSchemaToPrompt(schema as any, instruction);
-      } else {
-        // 다른 Standard Schema 구현체
-        schemaPrompt = `${instruction}\n\nRespond with valid JSON.`;
-      }
+    return schema;
+  }
 
-      // Execute
-      const result = await this.query(projectPath, schemaPrompt, {
-        ...options,
-        outputStyle: 'json',
-        filterThinking: true,
-      });
+  private zodTypeToJsonSchema(zodType: import('zod').ZodType): JSONSchema {
+    const typeName = zodType._def.typeName;
 
-      // Extract JSON
-      const extracted = extractJSON(result.result);
-
-      if (!extracted.success) {
-        return extracted;
-      }
-
-      // Validate with Standard Schema
-      const validation = await validateWithStandardSchema(extracted.data, schema);
-
-      if (!validation.success) {
-        appLogger.warn('Standard Schema validation failed', {
-          module: 'ClaudeQueryAPI',
-          error: validation.error,
-        });
-
+    switch (typeName) {
+      case 'ZodString':
+        return { type: 'string' };
+      case 'ZodNumber':
+        return { type: 'number' };
+      case 'ZodBoolean':
+        return { type: 'boolean' };
+      case 'ZodArray':
         return {
-          success: false,
-          error: `Schema validation failed: ${validation.error}`,
-          raw: extracted.raw,
-          cleanedText: extracted.cleanedText,
+          type: 'array',
+          items: this.zodTypeToJsonSchema(zodType._def.type),
         };
-      }
+      case 'ZodObject':
+        return this.zodToJsonSchema(zodType);
+      default:
+        return {};
+    }
+  }
 
-      appLogger.info('Standard Schema validation successful', {
+  /**
+   * Kill running query
+   */
+  kill(): void {
+    if (this.abortController) {
+      appLogger.info('Aborting running query', {
         module: 'ClaudeQueryAPI',
       });
+      this.abortController.abort();
+    }
+  }
 
-      return {
-        success: true,
-        data: validation.data,
-        raw: extracted.raw,
-        cleanedText: extracted.cleanedText,
-      };
-    } catch (error) {
-      appLogger.error('Standard Schema query failed', error instanceof Error ? error : undefined, {
-        module: 'ClaudeQueryAPI',
-      });
+  /**
+   * Stream query results
+   */
+  async *stream(
+    projectPath: string,
+    query: string,
+    options: QueryOptions = {},
+  ): AsyncGenerator<StreamEvent> {
+    const { model, systemPrompt, mcpServers, strictMcpConfig, disallowedTools, outputStyle } =
+      options;
 
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
+    const agent = createClaudeAgent({
+      cwd: projectPath,
+      model: mapModelName(model),
+      permissionMode: 'bypassPermissions',
+      systemPrompt,
+      mcpServers,
+      strictMcpConfig,
+      disallowedTools,
+    });
+
+    const enhancedQuery = outputStyle ? `/output-style ${outputStyle}\n\n${query}` : query;
+
+    for await (const message of agent.stream(enhancedQuery)) {
+      yield message as StreamEvent;
     }
   }
 }
+
+// Re-export Schema builder from ai-sdk-cli
+export { Schema };
+export type { JSONSchema };

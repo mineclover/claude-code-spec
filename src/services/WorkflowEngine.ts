@@ -14,7 +14,7 @@
  * - AgentPoolManager: Agent availability
  */
 
-import type { ProcessManager } from '@context-action/code-api';
+import type { ProcessManager } from './ProcessManager';
 import { appLogger } from '../main/app-context';
 import type { Task } from '../types/task';
 import type { AgentPoolManager } from './AgentPoolManager';
@@ -76,6 +76,7 @@ export class WorkflowEngine {
   private config: Required<WorkflowConfig>;
   private lifecycleManager: TaskLifecycleManager;
   private taskRouter: TaskRouter;
+  private agentPool: AgentPoolManager;
   private sessionAnalyzer: SessionAnalyzer;
   private agentTracker: AgentTracker;
   private centralDatabase: CentralDatabase;

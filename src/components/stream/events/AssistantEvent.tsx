@@ -1,4 +1,4 @@
-import type { AssistantEvent as AssistantEventType } from '@context-action/code-api';
+import type { AssistantEvent as AssistantEventType } from '../../../types/stream-events';
 import type React from 'react';
 import { extractTextFromMessage, extractToolUsesFromMessage } from '../../../lib/messageUtils';
 import { EventBox } from '../common/EventBox';

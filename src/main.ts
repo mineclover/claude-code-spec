@@ -2,7 +2,7 @@
  * Main process entry point
  */
 
-import { processManager } from '@context-action/code-api';
+import { processManager } from './services/ProcessManager';
 import { app, BrowserWindow } from 'electron';
 import started from 'electron-squirrel-startup';
 import { setupIPCHandlers } from './main/ipc-setup';

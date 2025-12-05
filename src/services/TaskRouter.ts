@@ -7,7 +7,7 @@
  * - Task API: Loads task definitions
  */
 
-import type { ProcessManager, StartExecutionParams } from '@context-action/code-api';
+import type { ProcessManager, StartExecutionParams } from './ProcessManager';
 import type { AgentContext } from '../lib/agent-types';
 import { appLogger } from '../main/app-context';
 import type { AgentPoolManager } from './AgentPoolManager';

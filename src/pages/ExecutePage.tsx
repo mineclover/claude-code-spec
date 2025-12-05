@@ -1,4 +1,4 @@
-import type { StreamEvent } from '@context-action/code-api';
+import type { StreamEvent } from '../types/stream-events';
 import type React from 'react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';

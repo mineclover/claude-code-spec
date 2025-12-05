@@ -1,7 +1,7 @@
 /**
  * Workflow-related IPC handlers
  */
-import { processManager } from '@context-action/code-api';
+import { processManager } from '../../services/ProcessManager';
 import { agentPoolManager, appLogger } from '../../main/app-context';
 import { TaskRouter } from '../../services/TaskRouter';
 import type {

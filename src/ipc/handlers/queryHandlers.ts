@@ -6,7 +6,7 @@ import {
   type JSONExtractionResult,
   type QueryOptions,
   type QueryResult,
-} from '@context-action/code-api';
+} from '../../services/ClaudeQueryAPI';
 import type { IPCRouter } from '../IPCRouter';
 
 // Singleton instance

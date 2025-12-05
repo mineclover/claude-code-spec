@@ -7,7 +7,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import type { StreamEvent } from '@context-action/code-api';
+import type { StreamEvent } from '../types/stream-events';
 
 // ============================================================================
 // Types

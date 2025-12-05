@@ -2,7 +2,7 @@
  * Query API Preload
  */
 
-import type { JSONExtractionResult, QueryOptions, QueryResult } from '@context-action/code-api';
+import type { JSONExtractionResult, QueryOptions, QueryResult } from '../../services/ClaudeQueryAPI';
 import { contextBridge, ipcRenderer } from 'electron';
 
 export interface QueryAPI {

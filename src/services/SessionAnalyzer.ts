@@ -9,7 +9,7 @@
  * - Generate review notes with matched criteria
  */
 
-import type { ProcessManager } from '@context-action/code-api';
+import type { ProcessManager } from './ProcessManager';
 import { appLogger } from '../main/app-context';
 import type { Task } from '../types/task';
 

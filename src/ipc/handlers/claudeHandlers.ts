@@ -3,14 +3,28 @@
  * Handles Claude CLI execution and session management with ProcessManager
  */
 
-import type { SessionManager, StreamEvent } from '@context-action/code-api';
-import {
-  extractSessionId,
-  isResultEvent,
-  isSystemInitEvent,
-  processManager,
-} from '@context-action/code-api';
 import { BrowserWindow, type IpcMainInvokeEvent } from 'electron';
+import { processManager } from '../../services/ProcessManager';
+import type { StreamEvent } from '../../types/stream-events';
+import { isResultEvent, isSystemInitEvent } from '../../types/stream-events';
+
+/**
+ * Extract session ID from a stream event
+ */
+function extractSessionId(event: StreamEvent): string | undefined {
+  return (event as { session_id?: string }).session_id;
+}
+
+/**
+ * SessionManager interface (matches the expected API)
+ */
+interface SessionManager {
+  saveSession(sessionId: string, data: { cwd: string; query: string; timestamp: number }): void;
+  updateSessionResult(sessionId: string, result: string): void;
+  getAllSessions(): Array<{ id: string; cwd: string; query: string; timestamp: number }>;
+  getCurrentSessionId(): string | null;
+  clearSessions(): void;
+}
 import type { SessionLogger } from '../../services/logger';
 import type { IPCRouter } from '../IPCRouter';
 

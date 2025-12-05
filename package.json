@@ -45,6 +45,7 @@
     "@types/node": "^22.18.12",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@types/uuid": "^10.0.0",
     "@vitest/ui": "^2.1.9",
     "electron": "^38.4.0",
     "typescript": "^5.9.2",
@@ -52,7 +53,9 @@
     "vitest": "^2.1.9"
   },
   "dependencies": {
+    "@packages/ai-sdk-cli": "file:../ai-sdk-cli",
     "@anthropic-ai/claude-agent-sdk": "^0.1.25",
+    "uuid": "^11.1.0",
     "@langchain/core": "^1.0.6",
     "@langchain/langgraph": "^1.0.2",
     "@standard-schema/spec": "^1.0.0",

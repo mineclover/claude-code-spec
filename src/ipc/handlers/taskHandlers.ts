@@ -3,7 +3,7 @@
  */
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { processManager } from '@context-action/code-api';
+import { processManager } from '../../services/ProcessManager';
 import matter from 'gray-matter';
 import { TaskValidator } from '../../lib/TaskValidator';
 import { agentPoolManager } from '../../main/app-context';

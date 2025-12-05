@@ -9,7 +9,7 @@
  * - Auto-cleanup unresponsive processes
  */
 
-import type { ProcessManager } from '@context-action/code-api';
+import type { ProcessManager } from './ProcessManager';
 import { appLogger } from '../main/app-context';
 import type { ExecutionRecord } from '../types/report';
 import type { CentralDatabase } from './CentralDatabase';

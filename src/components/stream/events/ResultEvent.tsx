@@ -1,4 +1,4 @@
-import type { ResultEvent as ResultEventType } from '@context-action/code-api';
+import type { ResultEvent as ResultEventType } from '../../../types/stream-events';
 import type React from 'react';
 import { EventBox } from '../common/EventBox';
 import { TokenUsage } from '../common/TokenUsage';

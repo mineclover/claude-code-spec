@@ -3,14 +3,46 @@
  */
 
 import path from 'node:path';
-import { SessionManager } from '@context-action/code-api';
 import { app } from 'electron';
 import { AgentPoolManager } from '../services/AgentPoolManager';
 import { AppLogger, ConsoleTransport, FileTransport, parseLogLevel } from '../services/AppLogger';
 import { createConfig, createSessionLogger } from '../services/logger';
 
+/**
+ * Simple SessionManager for tracking sessions
+ */
+class SessionManagerImpl {
+  private sessions = new Map<string, { id: string; cwd: string; query: string; timestamp: number; result?: string }>();
+  private currentSessionId: string | null = null;
+
+  saveSession(sessionId: string, data: { cwd: string; query: string; timestamp: number }): void {
+    this.sessions.set(sessionId, { id: sessionId, ...data });
+    this.currentSessionId = sessionId;
+  }
+
+  updateSessionResult(sessionId: string, result: string): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.result = result;
+    }
+  }
+
+  getAllSessions(): Array<{ id: string; cwd: string; query: string; timestamp: number }> {
+    return Array.from(this.sessions.values());
+  }
+
+  getCurrentSessionId(): string | null {
+    return this.currentSessionId;
+  }
+
+  clearSessions(): void {
+    this.sessions.clear();
+    this.currentSessionId = null;
+  }
+}
+
 // Session manager
-export const sessionManager = new SessionManager();
+export const sessionManager = new SessionManagerImpl();
 
 // Logger configuration and instance
 // Use Electron's userData directory for logs in production

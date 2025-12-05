@@ -2,7 +2,7 @@
  * IPC Handlers for AgentTracker operations
  */
 
-import { processManager } from '@context-action/code-api';
+import { processManager } from '../../services/ProcessManager';
 import {
   AgentTracker,
   type ExecutionMetadata,
@@ -11,7 +11,7 @@ import {
   type WebhookConfig,
 } from '../../services/AgentTracker';
 import { CentralDatabase } from '../../services/CentralDatabase';
-import type { IpcRouter } from '../IpcRouter';
+import type { IPCRouter } from '../IPCRouter';
 
 let agentTracker: AgentTracker | null = null;
 
@@ -35,7 +35,7 @@ export function getAgentTracker(): AgentTracker {
 /**
  * Register all agent tracker handlers
  */
-export function registerAgentTrackerHandlers(router: IpcRouter): void {
+export function registerAgentTrackerHandlers(router: IPCRouter): void {
   // Execution registration
   router.handle(
     'registerExecution',

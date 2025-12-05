@@ -8,7 +8,7 @@
  * - Observable queue state changes
  */
 
-import type { StartExecutionParams } from '@context-action/code-api';
+import type { StartExecutionParams } from './ProcessManager';
 import { appLogger } from '../main/app-context';
 
 export interface QueuedExecution {
