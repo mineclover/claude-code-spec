@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **MCP Configurations** page provides a graphical interface for managing Model Context Protocol (MCP) server configurations within your Claude Code projects.
+The **MCP Configurations** page provides a graphical interface for managing Model Context Protocol (MCP) server configurations within your projects.
 
 **Route:** `/mcp-configs`  
 **Component:** `src/pages/McpConfigsPage.tsx`
@@ -98,6 +98,16 @@ MCP configuration files follow the pattern:
 - `.mcp-e2e.json`
 - `.mcp-empty.json`
 
+### Shared MCP Server Candidate Pool
+
+MCP server candidates are collected from a shared pool so multiple CLIs can reuse the same server definitions.
+
+Sources are merged in order and deduplicated by server name:
+1. User-level: `~/.claude.json`
+2. Project root: `.mcp.json`, `.mcp.local.json`, `.mcp-*.json`
+3. Tool directories: `.claude/.mcp*.json`, `.codex/.mcp*.json`, `.gemini/.mcp*.json`
+4. App Settings MCP resource paths (custom file paths)
+
 ## Feature Components
 
 ### Left Sidebar
@@ -116,7 +126,7 @@ MCP configuration files follow the pattern:
 **Create Mode:**
 - Configuration name input
 - MCP server selection (checkboxes)
-- Refresh servers button
+- Loaded source file list
 - Create/Cancel buttons
 
 ## Implementation Details
@@ -148,36 +158,33 @@ export async function listMcpConfigs(projectPath: string): Promise<McpConfigFile
 }
 ```
 
-**getMcpServerList()** (src/services/settings.ts:268-357)
+**getMcpServerList()** (src/services/settings.ts)
 
 Loads available MCP servers from configured paths:
 1. User-level: `~/.claude.json`
-2. Project-level: `.claude/.mcp.json`
-3. Local-level: `.claude/.mcp.local.json`
+2. Project root: `.mcp.json`, `.mcp.local.json`, `.mcp-*.json`
+3. Tool directories: `.claude/.mcp*.json`, `.codex/.mcp*.json`, `.gemini/.mcp*.json`
+4. App Settings MCP resource paths (`MCP Configuration Resource Paths`)
 
-**createMcpConfig()** (src/services/settings.ts:362+)
+**createMcpConfig()** (src/services/settings.ts)
 
-Creates a new MCP configuration file with selected servers.
+Creates a new MCP configuration file with selected servers from the same merged source pool used by `getMcpServerList()`.
 
 ### IPC Handlers
 
 ```typescript
-// src/ipc/handlers/settingsHandlers.ts:74-91
 ipcMain.handle('settings:list-mcp-configs', async (_, projectPath: string) => {
-  return await listMcpConfigs(projectPath);
+  return listMcpConfigs(projectPath);
 });
 
-ipcMain.handle('settings:get-mcp-servers', async () => {
-  return await getMcpServerList();
+ipcMain.handle('settings:get-mcp-servers', async (_, projectPath?: string) => {
+  const additionalPaths = settingsService.getMcpResourcePaths();
+  return getMcpServerList({ additionalPaths, projectPath });
 });
 
-ipcMain.handle('settings:create-mcp-config', async (
-  _,
-  projectPath: string,
-  name: string,
-  servers: string[]
-) => {
-  return await createMcpConfig(projectPath, name, servers);
+ipcMain.handle('settings:create-mcp-config', async (_, projectPath, name, servers) => {
+  const additionalPaths = settingsService.getMcpResourcePaths();
+  return createMcpConfig(projectPath, name, servers, { additionalPaths });
 });
 ```
 
@@ -187,7 +194,7 @@ ipcMain.handle('settings:create-mcp-config', async (
 
 1. Click "**+ New Configuration**"
 2. Enter configuration name (e.g., "dev", "analysis")
-3. Click "**🔄 Refresh Servers**" to load available servers
+3. Review the "**Loaded from**" source file list
 4. Select MCP servers (check boxes)
 5. Click "**Create Configuration**"
 6. File created at `.claude/.mcp-{name}.json`
@@ -453,8 +460,9 @@ claude --mcp-config .claude/.mcp-e2e.json \
 
 **Solutions:**
 1. Check if server is configured in `~/.claude.json`
-2. Run "Refresh Servers" button
-3. Manually add to configuration file
+2. Check project MCP files (`.mcp*.json`, `.claude/.mcp*.json`, `.codex/.mcp*.json`, `.gemini/.mcp*.json`)
+3. Check Settings > MCP Configuration Resource Paths
+4. Re-open MCP Configs page or click Refresh in Settings preview
 
 ### JSON Validation Errors
 

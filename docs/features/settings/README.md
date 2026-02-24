@@ -5,8 +5,8 @@
 Settings 페이지는 플랫폼 전역 설정 및 Claude Code 프로젝트 설정을 관리합니다.
 
 **Route:** `/settings`
-**Component:** `src/pages/SettingsPage.tsx` (11 lines)
-**Main Implementation:** `src/components/settings/SettingsTab.tsx` (665 lines)
+**Component:** `src/pages/SettingsPage.tsx`
+**Main Implementation:** `src/pages/SettingsPage.tsx`
 
 ## Claude Code Settings
 
@@ -117,15 +117,11 @@ Grep(pattern)
 
 ### File Structure
 
-**SettingsPage** (src/pages/SettingsPage.tsx): 11 lines
-- Simple wrapper component
-- Renders SettingsTab
-
-**SettingsTab** (src/components/settings/SettingsTab.tsx): 665 lines
-- Two modes: Application settings, Project settings
-- State management for all settings
-- File I/O operations
-- Validation and error handling
+**SettingsPage** (`src/pages/SettingsPage.tsx`)
+- Application settings UI
+- MCP resource path management
+- Effective MCP preview (source files + server candidates)
+- Quick project select integration
 
 **appSettings Service** (src/services/appSettings.ts): 219 lines
 - Application-level settings management
@@ -137,37 +133,18 @@ Grep(pattern)
 - Permissions handling
 - MCP configuration utilities
 
-**IPC Handlers** (src/ipc/handlers/settingsHandlers.ts): 92 lines
+**IPC Handlers** (src/ipc/handlers/settingsHandlers.ts)
 - Bridges renderer and main process
 - File system operations
 - Settings validation
 
 ### Component Architecture
 
-**SettingsTab Structure:**
-```typescript
-// lines 16-48: State Management
-const [currentTab, setCurrentTab] = useState<'application' | 'project'>('application');
-const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
-const [projectSettings, setProjectSettings] = useState<string>('');
-// ... + 30 more state variables
-
-// lines 294-560: Application Mode
-<div>
-  <h2>Application Settings</h2>
-  <FormGroup label="Claude Projects Path" />
-  <FormGroup label="MCP Resource Paths" />
-  <FormGroup label="Document Paths" />
-</div>
-
-// lines 563-665: Project Mode
-<div>
-  <h2>Project Settings</h2>
-  <FormGroup label="Settings File Path" />
-  <textarea value={projectSettings} />
-  <Button onClick={handleSaveProjectSettings} />
-</div>
-```
+**SettingsPage Structure:**
+- Application-level configuration only
+- Quick project switcher
+- MCP resource path management
+- Effective MCP preview section
 
 ### Platform Settings
 
@@ -187,7 +164,7 @@ interface AppSettings {
 
 **Default Paths (macOS):**
 - Claude Projects: `~/.claude/projects`
-- MCP Resources: `~/.claude.json`, `~/.config/claude/mcp.json`
+- MCP Resources: `~/.claude.json`
 - Claude Docs: `~/Library/Application Support/claude-code-controller/claude-docs`
 - Controller Docs: `{app}/docs/controller-docs`
 
@@ -209,7 +186,12 @@ interface AppSettings {
 **2. MCP Resource Paths**
 - Where to search for MCP server definitions
 - Multiple paths supported
-- Used by MCP Configs page to discover servers
+- Used by MCP Configs page and Settings MCP preview to discover servers
+
+**Effective MCP Preview**
+- Shows currently loaded source files
+- Shows merged MCP server candidates for the selected project
+- Uses the same source resolution as MCP config creation
 
 **3. Document Paths**
 - Claude docs location

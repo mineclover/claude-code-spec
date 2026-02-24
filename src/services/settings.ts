@@ -231,6 +231,58 @@ export interface McpServer {
   env: Record<string, string>;
 }
 
+interface McpServerListOptions {
+  additionalPaths?: string[];
+  projectPath?: string;
+}
+
+const MCP_FILE_PATTERN = /^\.mcp(?:[-.].+)?\.json$/;
+const PROJECT_MCP_DIRECTORIES = ['.claude', '.codex', '.gemini'] as const;
+
+function listMcpConfigFilesInDirectory(dirPath: string): string[] {
+  try {
+    if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
+      return [];
+    }
+
+    return fs
+      .readdirSync(dirPath)
+      .filter((fileName) => MCP_FILE_PATTERN.test(fileName))
+      .map((fileName) => path.join(dirPath, fileName))
+      .sort((a, b) => a.localeCompare(b));
+  } catch {
+    return [];
+  }
+}
+
+function collectProjectMcpCandidates(projectPath: string): string[] {
+  const ordered = new Set<string>();
+  const add = (targetPath: string) => {
+    ordered.add(targetPath);
+  };
+
+  // Root-level primary files first.
+  add(path.join(projectPath, '.mcp.json'));
+  add(path.join(projectPath, '.mcp.local.json'));
+
+  // Root-level profile files (.mcp-dev.json, .mcp-analysis.json, ...)
+  for (const targetPath of listMcpConfigFilesInDirectory(projectPath)) {
+    add(targetPath);
+  }
+
+  // Tool directories (shared MCP schema across CLIs).
+  for (const dirName of PROJECT_MCP_DIRECTORIES) {
+    const toolDir = path.join(projectPath, dirName);
+    add(path.join(toolDir, '.mcp.json'));
+    add(path.join(toolDir, '.mcp.local.json'));
+    for (const targetPath of listMcpConfigFilesInDirectory(toolDir)) {
+      add(targetPath);
+    }
+  }
+
+  return Array.from(ordered);
+}
+
 /**
  * List all MCP configuration files in project's .claude/ directory
  */
@@ -266,21 +318,43 @@ export const listMcpConfigs = (projectPath: string): McpConfigFile[] => {
  * @param additionalPaths - Optional additional config file paths to read
  */
 export const getMcpServerList = (
-  additionalPaths?: string[],
+  options: McpServerListOptions = {},
 ): { servers: McpServer[]; error?: string; sourcePaths: string[] } => {
+  const { additionalPaths, projectPath } = options;
   const allServers: McpServer[] = [];
   const sourcePathsSet = new Set<string>(); // Track unique source paths
+  const attemptedPaths = new Set<string>();
   const errors: string[] = [];
   const serverNames = new Set<string>(); // Track unique server names
+  const homeDir = process.env.HOME || process.env.USERPROFILE;
+
+  const normalizeConfigPath = (targetPath: string): string => {
+    const expandedPath =
+      targetPath.startsWith('~') && homeDir ? path.join(homeDir, targetPath.slice(1)) : targetPath;
+    return path.normalize(path.resolve(expandedPath));
+  };
+
+  const projectCandidates = projectPath ? collectProjectMcpCandidates(projectPath) : [];
+  const sourceCandidates = [
+    homeDir ? path.join(homeDir, '.claude.json') : null,
+    ...projectCandidates,
+    ...(additionalPaths ?? []),
+  ].filter((item): item is string => Boolean(item));
 
   // Helper function to read servers from a config file
   const readServersFromPath = (configPath: string): McpServer[] => {
+    const normalizedPath = normalizeConfigPath(configPath);
+    if (attemptedPaths.has(normalizedPath)) {
+      return [];
+    }
+    attemptedPaths.add(normalizedPath);
+
     try {
-      if (!fs.existsSync(configPath)) {
+      if (!fs.existsSync(normalizedPath)) {
         return [];
       }
 
-      const content = fs.readFileSync(configPath, 'utf-8');
+      const content = fs.readFileSync(normalizedPath, 'utf-8');
       const config = JSON.parse(content);
 
       if (!config.mcpServers || typeof config.mcpServers !== 'object') {
@@ -300,51 +374,22 @@ export const getMcpServerList = (
         },
       );
 
-      // Normalize path and add to set (prevents duplicates)
-      const normalizedPath = path.normalize(configPath);
       sourcePathsSet.add(normalizedPath);
       return servers;
     } catch (error) {
       errors.push(
-        `Failed to read ${configPath}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to read ${normalizedPath}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
       return [];
     }
   };
 
-  // Read from default ~/.claude.json
-  const homeDir = process.env.HOME || process.env.USERPROFILE;
-  if (homeDir) {
-    const claudeConfigPath = path.join(homeDir, '.claude.json');
-    const defaultServers = readServersFromPath(claudeConfigPath);
-    for (const server of defaultServers) {
+  for (const candidatePath of sourceCandidates) {
+    const discoveredServers = readServersFromPath(candidatePath);
+    for (const server of discoveredServers) {
       if (!serverNames.has(server.name)) {
         allServers.push(server);
         serverNames.add(server.name);
-      }
-    }
-  }
-
-  // Read from additional paths
-  if (additionalPaths && additionalPaths.length > 0) {
-    for (const additionalPath of additionalPaths) {
-      // Expand ~ in path
-      const expandedPath = additionalPath.startsWith('~')
-        ? path.join(homeDir || '', additionalPath.slice(1))
-        : additionalPath;
-
-      // Normalize and check if we've already read this path
-      const normalizedPath = path.normalize(expandedPath);
-      if (sourcePathsSet.has(normalizedPath)) {
-        continue; // Skip duplicate paths
-      }
-
-      const additionalServers = readServersFromPath(expandedPath);
-      for (const server of additionalServers) {
-        if (!serverNames.has(server.name)) {
-          allServers.push(server);
-          serverNames.add(server.name);
-        }
       }
     }
   }
@@ -363,10 +408,14 @@ export const createMcpConfig = (
   projectPath: string,
   name: string,
   servers: string[],
+  options: Pick<McpServerListOptions, 'additionalPaths'> = {},
 ): { success: boolean; path?: string; error?: string } => {
   try {
     // Get available servers
-    const { servers: availableServers, error } = getMcpServerList();
+    const { servers: availableServers, error } = getMcpServerList({
+      additionalPaths: options.additionalPaths,
+      projectPath,
+    });
     if (error) {
       return { success: false, error };
     }

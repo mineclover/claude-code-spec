@@ -1,18 +1,21 @@
 /**
  * MCP Configurations Page
  * Manage MCP configuration files for the selected project
+ * Includes quick project selector from active session folders
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { ProgressBar } from '../components/common/ProgressBar';
 import { useProject } from '../contexts/ProjectContext';
-import type { McpConfigFile, McpServer } from '../preload';
+import { useToolContext } from '../contexts/ToolContext';
+import type { ProjectFolder, SessionLoadProgress } from '../types/api/sessions';
+import type { McpConfigFile, McpServer } from '../types/api/settings';
 import styles from './McpConfigsPage.module.css';
 
 export function McpConfigsPage() {
-  const navigate = useNavigate();
-  const { projectPath, projectDirName } = useProject();
+  const { projectPath, projectDirName, updateProject } = useProject();
+  const { selectedToolId } = useToolContext();
   const [configs, setConfigs] = useState<McpConfigFile[]>([]);
   const [availableServers, setAvailableServers] = useState<McpServer[]>([]);
   const [sourcePaths, setSourcePaths] = useState<string[]>([]);
@@ -22,11 +25,40 @@ export function McpConfigsPage() {
   const [newConfigName, setNewConfigName] = useState('');
   const [selectedServers, setSelectedServers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [skipPermissions, setSkipPermissions] = useState(false);
+
+  // Project picker state
+  const [sessionProjects, setSessionProjects] = useState<ProjectFolder[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [progressMessage, setProgressMessage] = useState<string | undefined>();
+  const [showProjectPicker, setShowProjectPicker] = useState(false);
+
+  // Subscribe to load progress events
+  useEffect(() => {
+    const cleanup = window.sessionsAPI.onLoadProgress((progress: SessionLoadProgress) => {
+      if (progress.phase === 'done') {
+        setProgressMessage(undefined);
+      } else {
+        setProgressMessage(progress.message);
+      }
+    });
+    return cleanup;
+  }, []);
+
+  // Load session projects for the quick picker (lightweight folder listing)
+  const loadSessionProjects = useCallback(async () => {
+    setProjectsLoading(true);
+    try {
+      const folders = await window.sessionsAPI.listProjectFolders(selectedToolId);
+      setSessionProjects(folders);
+    } catch (error) {
+      console.error('Failed to load session projects:', error);
+    } finally {
+      setProjectsLoading(false);
+    }
+  }, [selectedToolId]);
 
   const loadConfigs = useCallback(async () => {
     if (!projectPath) return;
-
     try {
       setLoading(true);
       const result = await window.settingsAPI.listMcpConfigs(projectPath);
@@ -40,261 +72,239 @@ export function McpConfigsPage() {
   }, [projectPath]);
 
   const loadAvailableServers = useCallback(async () => {
+    if (!projectPath) {
+      setAvailableServers([]);
+      setSourcePaths([]);
+      return;
+    }
     try {
-      const result = await window.settingsAPI.getMcpServers();
+      const result = await window.settingsAPI.getMcpServers(projectPath);
+      setAvailableServers(result.servers);
+      setSourcePaths(result.sourcePaths || []);
       if (result.error) {
         toast.error(result.error);
-      } else {
-        setAvailableServers(result.servers);
-        setSourcePaths(result.sourcePaths || []);
       }
     } catch (error) {
       console.error('Failed to load available servers:', error);
-      toast.error('Failed to load available MCP servers');
     }
-  }, []);
+  }, [projectPath]);
 
-  // Load MCP configs and available servers
+  useEffect(() => {
+    loadSessionProjects();
+  }, [loadSessionProjects]);
+
   useEffect(() => {
     if (!projectPath) {
       setLoading(false);
       return;
     }
-
     loadConfigs();
     loadAvailableServers();
-  }, [projectPath, loadAvailableServers, loadConfigs]);
+  }, [projectPath, loadConfigs, loadAvailableServers]);
+
+  const handleSelectProject = async (project: ProjectFolder) => {
+    await updateProject(project.projectPath, project.projectDirName);
+    setShowProjectPicker(false);
+    setSelectedConfig(null);
+    setEditingContent('');
+  };
 
   const handleSelectConfig = (config: McpConfigFile) => {
     setSelectedConfig(config);
     setEditingContent(config.content);
     setIsCreating(false);
-
-    // Parse current config to extract selected servers
     try {
       const parsed = JSON.parse(config.content);
-      const serverNames = parsed.mcpServers ? Object.keys(parsed.mcpServers) : [];
-      setSelectedServers(serverNames);
-    } catch (error) {
-      console.error('Failed to parse config:', error);
+      setSelectedServers(parsed.mcpServers ? Object.keys(parsed.mcpServers) : []);
+    } catch {
       setSelectedServers([]);
     }
   };
 
   const handleSaveConfig = async () => {
     if (!selectedConfig) return;
-
     try {
-      // Validate JSON
       const validation = await window.settingsAPI.validateMcpJson(editingContent);
       if (!validation.valid) {
         toast.error(`Invalid JSON: ${validation.error}`);
         return;
       }
-
-      // Write file
       const success = await window.settingsAPI.writeFile(selectedConfig.path, editingContent);
       if (success) {
-        toast.success('Configuration saved successfully');
+        toast.success('Saved');
         loadConfigs();
       } else {
-        toast.error('Failed to save configuration');
+        toast.error('Failed to save');
       }
-    } catch (error) {
-      console.error('Failed to save config:', error);
-      toast.error('Failed to save configuration');
+    } catch {
+      toast.error('Failed to save');
     }
   };
 
   const handleDeleteConfig = async (config: McpConfigFile) => {
-    if (!confirm(`Are you sure you want to delete ${config.name}?`)) {
-      return;
-    }
-
+    if (!confirm(`Delete ${config.name}?`)) return;
     try {
       const success = await window.settingsAPI.deleteFile(config.path);
       if (success) {
-        toast.success('Configuration deleted successfully');
+        toast.success('Deleted');
         if (selectedConfig?.path === config.path) {
           setSelectedConfig(null);
           setEditingContent('');
         }
         loadConfigs();
-      } else {
-        toast.error('Failed to delete configuration');
       }
-    } catch (error) {
-      console.error('Failed to delete config:', error);
-      toast.error('Failed to delete configuration');
+    } catch {
+      toast.error('Failed to delete');
     }
   };
 
   const handleCreateConfig = async () => {
-    if (!projectPath) {
-      toast.error('No project selected');
-      return;
-    }
-
-    if (!newConfigName.trim()) {
-      toast.error('Please enter a configuration name');
-      return;
-    }
-
-    // Check for duplicate names
-    const configFileName = newConfigName.startsWith('.mcp-')
-      ? newConfigName
-      : `.mcp-${newConfigName}.json`;
-
-    const isDuplicate = configs.some((config) => config.name === configFileName);
-    if (isDuplicate) {
-      toast.error(`Configuration "${configFileName}" already exists`);
-      return;
-    }
-
-    if (selectedServers.length === 0) {
-      toast.error('Please select at least one MCP server');
-      return;
-    }
-
+    if (!projectPath || !newConfigName.trim() || selectedServers.length === 0) return;
     try {
       const result = await window.settingsAPI.createMcpConfig(
         projectPath,
         newConfigName,
         selectedServers,
       );
-
       if (result.success) {
-        toast.success('Configuration created successfully');
+        toast.success('Created');
         setIsCreating(false);
         setNewConfigName('');
         setSelectedServers([]);
         loadConfigs();
       } else {
-        toast.error(result.error || 'Failed to create configuration');
+        toast.error(result.error || 'Failed');
       }
-    } catch (error) {
-      console.error('Failed to create config:', error);
-      toast.error('Failed to create configuration');
+    } catch {
+      toast.error('Failed to create');
     }
   };
 
-  const toggleServerSelection = (serverName: string) => {
+  const toggleServer = (name: string) => {
     setSelectedServers((prev) => {
-      const newSelection = prev.includes(serverName)
-        ? prev.filter((s) => s !== serverName)
-        : [...prev, serverName];
-
-      // If editing an existing config, update the JSON content
-      if (selectedConfig && !isCreating) {
-        updateConfigContent(newSelection);
-      }
-
-      return newSelection;
+      const next = prev.includes(name) ? prev.filter((s) => s !== name) : [...prev, name];
+      if (selectedConfig && !isCreating) updateConfigContent(next);
+      return next;
     });
   };
 
   const updateConfigContent = (serverNames: string[]) => {
-    try {
-      // Build new config from selected servers
-      const selectedServerConfigs = availableServers.filter((s) => serverNames.includes(s.name));
-
-      const mcpConfig: {
-        mcpServers: Record<
-          string,
-          { type: string; command: string; args: string[]; env: Record<string, string> }
-        >;
-      } = {
-        mcpServers: {},
-      };
-
-      for (const server of selectedServerConfigs) {
-        mcpConfig.mcpServers[server.name] = {
-          type: server.type,
-          command: server.command,
-          args: server.args,
-          env: server.env,
-        };
-      }
-
-      setEditingContent(JSON.stringify(mcpConfig, null, 2));
-    } catch (error) {
-      console.error('Failed to update config content:', error);
-      toast.error('Failed to update configuration');
+    const configs: Record<string, unknown> = {};
+    for (const s of availableServers.filter((sv) => serverNames.includes(sv.name))) {
+      configs[s.name] = { type: s.type, command: s.command, args: s.args, env: s.env };
     }
+    setEditingContent(JSON.stringify({ mcpServers: configs }, null, 2));
   };
 
-  if (!projectPath) {
-    return (
-      <div className={styles.emptyState}>
-        <div className={styles.emptyStateContent}>
-          <div className={styles.emptyStateIcon}>🔌</div>
-          <h2 className={styles.emptyStateTitle}>No Project Selected</h2>
-          <p className={styles.emptyStateDescription}>
-            Select a project to manage MCP configurations
-          </p>
-          <div className={styles.emptyStateActions}>
-            <button
-              type="button"
-              onClick={() => navigate('/claude-projects')}
-              className={styles.primaryButton}
-            >
-              📁 Browse Claude Projects
-            </button>
-            <button type="button" onClick={() => navigate('/')} className={styles.secondaryButton}>
-              Go to Execute Page
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const displayName = (p: ProjectFolder) =>
+    p.projectPath === '/'
+      ? 'root'
+      : p.projectPath.split('/').filter(Boolean).pop() || p.projectDirName;
 
-  if (loading) {
+  const renderSourcePaths = () => {
+    if (sourcePaths.length === 0) {
+      return <p className={styles.formHint}>No MCP source files found for this project.</p>;
+    }
+
     return (
-      <div className={styles.loadingState}>
-        <div className={styles.spinner}></div>
-        <div className={styles.loadingText}>Loading MCP configurations...</div>
+      <div className={styles.sourcePaths}>
+        <div className={styles.sourcePathsTitle}>Loaded from</div>
+        {sourcePaths.map((targetPath) => (
+          <div key={targetPath} className={styles.sourcePathItem}>
+            {targetPath}
+          </div>
+        ))}
       </div>
     );
-  }
+  };
+
+  // -- Project Picker overlay --
+  const renderProjectPicker = () => (
+    <div className={styles.pickerOverlay} onClick={() => setShowProjectPicker(false)}>
+      <div className={styles.pickerPanel} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.pickerHeader}>
+          <h3>Select Project</h3>
+          <button
+            type="button"
+            className={styles.pickerClose}
+            onClick={() => setShowProjectPicker(false)}
+          >
+            Close
+          </button>
+        </div>
+        {projectsLoading ? (
+          <div className={styles.pickerLoading}>
+            <ProgressBar visible={true} message={progressMessage} />
+          </div>
+        ) : sessionProjects.length === 0 ? (
+          <div className={styles.pickerEmpty}>No session projects found</div>
+        ) : (
+          <div className={styles.pickerList}>
+            {sessionProjects.map((p) => (
+              <button
+                key={p.projectPath}
+                type="button"
+                className={`${styles.pickerItem} ${projectPath === p.projectPath ? styles.pickerItemActive : ''}`}
+                onClick={() => handleSelectProject(p)}
+              >
+                <div className={styles.pickerItemName}>{displayName(p)}</div>
+                <div className={styles.pickerItemPath}>{p.projectPath}</div>
+                {p.sessionCount != null && (
+                  <div className={styles.pickerItemMeta}>{p.sessionCount} sessions</div>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className={styles.container}>
-      {/* Left Panel: Config List */}
       <div className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <h2 className={styles.sidebarTitle}>MCP Configurations</h2>
-          <div className={styles.projectInfo}>
-            <span className={styles.projectIcon}>📂</span>
-            <span className={styles.projectName} title={projectPath}>
-              {projectDirName || projectPath.split('/').filter(Boolean).pop()}
-            </span>
-          </div>
+          {/* Quick project selector */}
           <button
             type="button"
-            onClick={() => setIsCreating(true)}
-            className={styles.newConfigButton}
+            className={styles.projectSelector}
+            onClick={() => setShowProjectPicker(true)}
           >
-            + New Configuration
+            <span className={styles.projectSelectorLabel}>Project</span>
+            <span className={styles.projectSelectorValue}>
+              {projectPath
+                ? projectDirName || projectPath.split('/').filter(Boolean).pop()
+                : 'Select project...'}
+            </span>
           </button>
+          {projectPath && (
+            <button
+              type="button"
+              onClick={() => setIsCreating(true)}
+              className={styles.newConfigButton}
+            >
+              + New Configuration
+            </button>
+          )}
         </div>
-
         <div className={styles.configList}>
-          {configs.length === 0 ? (
+          {!projectPath ? (
+            <p className={styles.noConfigs}>Select a project to view configs</p>
+          ) : loading ? (
+            <p className={styles.noConfigs}>Loading...</p>
+          ) : configs.length === 0 ? (
             <p className={styles.noConfigs}>No configurations found</p>
           ) : (
             configs.map((config) => (
               <div
                 key={config.path}
-                className={`${styles.configItem} ${
-                  selectedConfig?.path === config.path ? styles.selected : ''
-                }`}
+                className={`${styles.configItem} ${selectedConfig?.path === config.path ? styles.selected : ''}`}
               >
                 <button
                   type="button"
                   className={styles.configItemButton}
                   onClick={() => handleSelectConfig(config)}
-                  aria-label={`Select configuration ${config.name}`}
                 >
                   <div className={styles.configName}>{config.name}</div>
                   <div className={styles.configMeta}>
@@ -317,119 +327,59 @@ export function McpConfigsPage() {
         </div>
       </div>
 
-      {/* Right Panel: Editor or Create Form */}
       <div className={styles.mainContent}>
         <div className={styles.contentInner}>
           {isCreating ? (
-            /* Create Form */
             <>
               <div className={styles.contentHeader}>
                 <h2 className={styles.contentTitle}>Create New Configuration</h2>
               </div>
-
               <div className={styles.formGroup}>
-                <div className={styles.formLabel}>Configuration Name</div>
+                <div className={styles.formLabel}>Name</div>
                 <input
                   type="text"
                   value={newConfigName}
                   onChange={(e) => setNewConfigName(e.target.value)}
-                  placeholder="e.g., dev, analysis, ui"
+                  placeholder="e.g., dev, analysis"
                   className={styles.formInput}
                 />
-                <p className={styles.formHint}>
-                  File will be named: .mcp-{newConfigName || 'name'}.json
-                </p>
+                <p className={styles.formHint}>File: .mcp-{newConfigName || 'name'}.json</p>
               </div>
-
               <div className={styles.formGroup}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '12px',
-                  }}
-                >
-                  <div className={styles.formLabel} style={{ margin: 0 }}>
-                    Select MCP Servers ({selectedServers.length} selected)
-                  </div>
-                  <button
-                    type="button"
-                    onClick={loadAvailableServers}
-                    className={styles.refreshServersButton}
-                    title="Refresh server list from configured paths"
-                  >
-                    🔄 Refresh Servers
-                  </button>
-                </div>
-                {sourcePaths.length > 0 && (
-                  <div className={styles.sourcePathsInfo}>
-                    <span className={styles.sourcePathsLabel}>Loading from:</span>
-                    {sourcePaths.map((path) => (
-                      <span key={path} className={styles.sourcePathItem}>
-                        {path}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <div className={styles.formLabel}>MCP Servers ({selectedServers.length})</div>
+                {renderSourcePaths()}
                 <div className={styles.serverList}>
-                  {availableServers.length === 0 ? (
-                    <p className={styles.noServers}>
-                      No MCP servers found. Configure resource paths in Settings.
-                    </p>
-                  ) : (
-                    availableServers.map((server) => (
-                      <div key={server.name} className={styles.serverItem}>
-                        <div className={styles.serverItemLabel}>
-                          <input
-                            type="checkbox"
-                            checked={selectedServers.includes(server.name)}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              toggleServerSelection(server.name);
-                            }}
-                          />
-                          <button
-                            type="button"
-                            className={styles.serverItemContent}
-                            onClick={() => toggleServerSelection(server.name)}
-                          >
-                            <div className={styles.serverName}>{server.name}</div>
-                            <div className={styles.serverCommand}>
-                              {server.command} {server.args.join(' ')}
-                            </div>
-                          </button>
-                        </div>
+                  {availableServers.map((server) => (
+                    <div key={server.name} className={styles.serverItem}>
+                      <div className={styles.serverItemLabel}>
+                        <input
+                          type="checkbox"
+                          checked={selectedServers.includes(server.name)}
+                          onChange={() => toggleServer(server.name)}
+                        />
+                        <button
+                          type="button"
+                          className={styles.serverItemContent}
+                          onClick={() => toggleServer(server.name)}
+                        >
+                          <div className={styles.serverName}>{server.name}</div>
+                          <div className={styles.serverCommand}>
+                            {server.command} {server.args.join(' ')}
+                          </div>
+                        </button>
                       </div>
-                    ))
-                  )}
+                    </div>
+                  ))}
                 </div>
               </div>
-
               <div className={styles.buttonGroup}>
                 <button
                   type="button"
                   onClick={handleCreateConfig}
-                  disabled={
-                    !newConfigName.trim() ||
-                    selectedServers.length === 0 ||
-                    configs.some((config) => {
-                      const configFileName = newConfigName.startsWith('.mcp-')
-                        ? newConfigName
-                        : `.mcp-${newConfigName}.json`;
-                      return config.name === configFileName;
-                    })
-                  }
+                  disabled={!newConfigName.trim() || selectedServers.length === 0}
                   className={styles.saveButton}
                 >
-                  {configs.some((config) => {
-                    const configFileName = newConfigName.startsWith('.mcp-')
-                      ? newConfigName
-                      : `.mcp-${newConfigName}.json`;
-                    return config.name === configFileName;
-                  })
-                    ? 'Name Already Exists'
-                    : 'Create Configuration'}
+                  Create
                 </button>
                 <button
                   type="button"
@@ -445,180 +395,50 @@ export function McpConfigsPage() {
               </div>
             </>
           ) : selectedConfig ? (
-            /* Editor */
             <>
               <div className={styles.contentHeader}>
                 <h2 className={styles.contentTitle}>{selectedConfig.name}</h2>
-                <p className={styles.contentPath}>Path: {selectedConfig.path}</p>
+                <p className={styles.contentPath}>{selectedConfig.path}</p>
               </div>
-
-              {/* Usage Scripts */}
-              <div className={styles.usageSection}>
-                <div className={styles.formLabel}>Usage Scripts</div>
-
-                {/* Skip Permissions Checkbox */}
-                <div className={styles.formGroup} style={{ marginBottom: '16px' }}>
-                  <label
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={skipPermissions}
-                      onChange={(e) => setSkipPermissions(e.target.checked)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <span>Skip permissions (--dangerously-skip-permissions)</span>
-                  </label>
-                  <p className={styles.formHint} style={{ marginTop: '4px', marginLeft: '28px' }}>
-                    ⚠️ <strong>Use with caution:</strong> This bypasses all security checks. Only use
-                    with trusted MCP servers. Recommended: Configure permissions in
-                    .claude/settings.json instead.
-                  </p>
-                </div>
-
-                {/* Interactive Mode */}
-                <div className={styles.scriptVariant}>
-                  <div className={styles.scriptVariantHeader}>
-                    <span className={styles.scriptVariantTitle}>💬 Interactive Mode</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const relativePath = `.claude/${selectedConfig.name}`;
-                        const permissionsFlag = skipPermissions
-                          ? ' --dangerously-skip-permissions'
-                          : '';
-                        const script = `claude --mcp-config ${relativePath} --strict-mcp-config${permissionsFlag}`;
-                        navigator.clipboard.writeText(script);
-                        toast.success('Interactive script copied!');
-                      }}
-                      className={styles.copyScriptButton}
-                    >
-                      📋 Copy
-                    </button>
-                  </div>
-                  <div className={styles.scriptBox}>
-                    <code className={styles.scriptCode}>
-                      claude --mcp-config .claude/{selectedConfig.name} --strict-mcp-config
-                      {skipPermissions && ' --dangerously-skip-permissions'}
-                    </code>
-                  </div>
-                  <div className={styles.scriptHint}>
-                    Starts an interactive session with the selected MCP servers
-                  </div>
-                </div>
-
-                {/* Single Query Mode */}
-                <div className={styles.scriptVariant}>
-                  <div className={styles.scriptVariantHeader}>
-                    <span className={styles.scriptVariantTitle}>⚡ Single Query Mode</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const relativePath = `.claude/${selectedConfig.name}`;
-                        const permissionsFlag = skipPermissions
-                          ? ' --dangerously-skip-permissions'
-                          : '';
-                        const script = `claude -p "your query here" --mcp-config ${relativePath} --strict-mcp-config${permissionsFlag}`;
-                        navigator.clipboard.writeText(script);
-                        toast.success('Single query script copied!');
-                      }}
-                      className={styles.copyScriptButton}
-                    >
-                      📋 Copy
-                    </button>
-                  </div>
-                  <div className={styles.scriptBox}>
-                    <code className={styles.scriptCode}>
-                      claude -p "your query here" --mcp-config .claude/{selectedConfig.name}{' '}
-                      --strict-mcp-config{skipPermissions && ' --dangerously-skip-permissions'}
-                    </code>
-                  </div>
-                  <div className={styles.scriptHint}>Executes a single query and exits</div>
-                </div>
-              </div>
-
-              {/* Server Selection for Editing */}
               <div className={styles.formGroup}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '12px',
-                  }}
-                >
-                  <div className={styles.formLabel} style={{ margin: 0 }}>
-                    Select MCP Servers ({selectedServers.length} selected)
-                  </div>
-                  <button
-                    type="button"
-                    onClick={loadAvailableServers}
-                    className={styles.refreshServersButton}
-                    title="Refresh server list from configured paths"
-                  >
-                    🔄 Refresh Servers
-                  </button>
-                </div>
-                {sourcePaths.length > 0 && (
-                  <div className={styles.sourcePathsInfo}>
-                    <span className={styles.sourcePathsLabel}>Loading from:</span>
-                    {sourcePaths.map((path) => (
-                      <span key={path} className={styles.sourcePathItem}>
-                        {path}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <div className={styles.formLabel}>MCP Servers ({selectedServers.length})</div>
+                {renderSourcePaths()}
                 <div className={styles.serverList}>
-                  {availableServers.length === 0 ? (
-                    <p className={styles.noServers}>
-                      No MCP servers found. Configure resource paths in Settings.
-                    </p>
-                  ) : (
-                    availableServers.map((server) => (
-                      <div key={server.name} className={styles.serverItem}>
-                        <div className={styles.serverItemLabel}>
-                          <input
-                            type="checkbox"
-                            checked={selectedServers.includes(server.name)}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              toggleServerSelection(server.name);
-                            }}
-                          />
-                          <button
-                            type="button"
-                            className={styles.serverItemContent}
-                            onClick={() => toggleServerSelection(server.name)}
-                          >
-                            <div className={styles.serverName}>{server.name}</div>
-                            <div className={styles.serverCommand}>
-                              {server.command} {server.args.join(' ')}
-                            </div>
-                          </button>
-                        </div>
+                  {availableServers.map((server) => (
+                    <div key={server.name} className={styles.serverItem}>
+                      <div className={styles.serverItemLabel}>
+                        <input
+                          type="checkbox"
+                          checked={selectedServers.includes(server.name)}
+                          onChange={() => toggleServer(server.name)}
+                        />
+                        <button
+                          type="button"
+                          className={styles.serverItemContent}
+                          onClick={() => toggleServer(server.name)}
+                        >
+                          <div className={styles.serverName}>{server.name}</div>
+                          <div className={styles.serverCommand}>
+                            {server.command} {server.args.join(' ')}
+                          </div>
+                        </button>
                       </div>
-                    ))
-                  )}
+                    </div>
+                  ))}
                 </div>
               </div>
-
               <div className={styles.formGroup}>
-                <div className={styles.formLabel}>Configuration Content (JSON)</div>
+                <div className={styles.formLabel}>JSON</div>
                 <textarea
                   value={editingContent}
                   onChange={(e) => setEditingContent(e.target.value)}
                   className={styles.formTextarea}
                   spellCheck={false}
                 />
-                <p className={styles.formHint}>
-                  💡 Tip: Use the checkboxes above to add/remove servers, or edit JSON directly.
-                </p>
               </div>
-
               <div className={styles.buttonGroup}>
                 <button type="button" onClick={handleSaveConfig} className={styles.saveButton}>
-                  Save Changes
+                  Save
                 </button>
                 <button
                   type="button"
@@ -630,13 +450,14 @@ export function McpConfigsPage() {
               </div>
             </>
           ) : (
-            /* No Selection */
             <div className={styles.emptyContent}>
-              <p>Select a configuration to edit or create a new one</p>
+              <p>Select a configuration or create a new one</p>
             </div>
           )}
         </div>
       </div>
+
+      {showProjectPicker && renderProjectPicker()}
     </div>
   );
 }
