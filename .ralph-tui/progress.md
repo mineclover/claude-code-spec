@@ -6,6 +6,11 @@ after each iteration and it's included in prompts for context.
 ## Codebase Patterns (Study These First)
 
 *Add reusable patterns discovered during development here.*
+- MCP launch strategy declaration pattern:
+  Declare MCP path/strict behavior inside `commandSpec.segments` with `type: 'mcpLaunch'`
+  and tune strict-only behavior per tool using `strict.allowWithoutConfig` plus
+  config-present inclusion with `strict.includeWhenConfigPresent`, then verify
+  representative combinations via command snapshot tests.
 - Maintenance adapter onboarding pattern:
   Use `defineMaintenanceServiceAdapter`/`defineMaintenanceServiceAdapters` from
   `src/types/maintenance-adapter-sdk.ts` for registrations, then convert to runtime
@@ -138,4 +143,32 @@ after each iteration and it's included in prompts for context.
   - Gotchas encountered
     - Story scope was already implemented in the current branch; this iteration focused
       on acceptance verification and progress logging.
+---
+
+## 2026-03-01 - US-006
+- What was implemented
+  - Verified per-tool MCP launch strategy abstraction already exists in
+    `src/types/cli-tool.ts` (`CLICommandMcpLaunchStrictConfig`) and
+    `src/services/CliCommandComposer.ts` (`resolveMcpLaunchStrategy` /
+    `renderMcpLaunchSegment`), including strict-only control via
+    `strict.allowWithoutConfig`.
+  - Verified `mcp-config` + `strict` combination rules are declared at service
+    definition level in `src/data/cli-tools/claude.ts` via declarative
+    `commandSpec.segments` (`mcpLaunch` + `fallback`).
+  - Verified Claude representative combinations are covered in
+    `src/services/CliCommandComposer.test.ts`:
+    default, bypass, strict-only, strict+mcp-config.
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/types/cli-tool.ts src/services/CliCommandComposer.ts src/data/cli-tools/claude.ts src/services/CliCommandComposer.test.ts`
+    - `npx vitest run src/services/CliCommandComposer.test.ts`
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - `mcpLaunch` segment parameters are sufficient to encode tool-specific strict
+      behavior without imperative command branching.
+  - Gotchas encountered
+    - Story scope was already implemented in the current branch; this iteration
+      focused on acceptance verification and progress logging.
 ---
