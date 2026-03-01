@@ -17,6 +17,9 @@
 .logo {
   padding: 16px;
   border-bottom: 1px solid var(--border-default);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
 }
 
 .logoText {
@@ -24,6 +27,13 @@
   font-weight: 700;
   color: #fff;
   letter-spacing: 0.5px;
+}
+
+.logoVersion {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.3px;
 }
 
 .toolSelector {
@@ -57,16 +67,72 @@
   border-color: var(--accent);
 }
 
+.projectSelector {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  margin: 4px 8px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition-fast);
+  min-width: 0;
+}
+
+.projectSelector:hover {
+  border-color: var(--accent);
+}
+
+.projectSelectorLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dimmed);
+}
+
+.projectSelectorValue {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .nav {
   flex: 1;
   padding: 8px 0;
+  overflow-y: auto;
+}
+
+.navGroup {
+  padding-bottom: 4px;
+}
+
+.navGroup + .navGroup {
+  border-top: 1px solid var(--border-default);
+  padding-top: 4px;
+  margin-top: 4px;
+}
+
+.navGroupLabel {
+  display: block;
+  padding: 6px 16px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dimmed);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
 }
 
 .navItem {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
+  padding: 9px 16px;
   color: var(--text-muted);
   text-decoration: none;
   font-size: var(--text-base);
@@ -93,6 +159,20 @@
   color: var(--accent);
 }
 
+.navSub {
+  padding-left: 28px;
+  font-size: var(--text-sm);
+}
+
+.navSub .navIcon {
+  font-size: var(--text-sm);
+  color: var(--text-dimmed);
+}
+
+.navSub.active .navIcon {
+  color: var(--accent);
+}
+
 .navLabel {
   font-weight: 500;
 }
@@ -105,7 +185,7 @@
 
 .projectLabel {
   display: block;
-  color: var(--text-faint);
+  color: var(--text-dimmed);
   margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;

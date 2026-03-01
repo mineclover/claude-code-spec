@@ -1,9 +1,18 @@
 /**
  * Project Context
- * Manages the currently selected project path via settingsAPI
+ * Manages the currently selected project and the available project folder list.
  */
 
-import React, { createContext, type ReactNode, useCallback, useContext, useState } from 'react';
+import React, {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+import { useToolContext } from './ToolContext';
+import type { ProjectFolder } from '../types/api/sessions';
 
 interface ProjectContextValue {
   projectPath: string | null;
@@ -12,13 +21,21 @@ interface ProjectContextValue {
   setProjectDirName: (name: string | null) => void;
   updateProject: (path: string | null, dirName: string | null) => Promise<void>;
   clearProject: () => void;
+  // Project folder list (for the sidebar picker)
+  projectFolders: ProjectFolder[];
+  isLoadingFolders: boolean;
+  refreshProjectFolders: () => Promise<void>;
 }
 
 const ProjectContext = createContext<ProjectContextValue | undefined>(undefined);
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
+  const { selectedToolId } = useToolContext();
+
   const [projectPath, setProjectPathState] = useState<string | null>(null);
   const [projectDirName, setProjectDirNameState] = useState<string | null>(null);
+  const [projectFolders, setProjectFolders] = useState<ProjectFolder[]>([]);
+  const [isLoadingFolders, setIsLoadingFolders] = useState(false);
 
   const setProjectPath = useCallback((path: string | null) => {
     setProjectPathState(path);
@@ -44,7 +61,20 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setProjectDirName(null);
   }, [setProjectPath, setProjectDirName]);
 
-  React.useEffect(() => {
+  const refreshProjectFolders = useCallback(async () => {
+    setIsLoadingFolders(true);
+    try {
+      const folders = await window.sessionsAPI.listProjectFolders(selectedToolId);
+      setProjectFolders(folders);
+    } catch (error) {
+      console.error('[ProjectContext] Failed to load project folders:', error);
+    } finally {
+      setIsLoadingFolders(false);
+    }
+  }, [selectedToolId]);
+
+  // Restore saved project on mount
+  useEffect(() => {
     const loadFromSettings = async () => {
       try {
         const savedPath = await window.settingsAPI.getCurrentProjectPath();
@@ -58,9 +88,24 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     loadFromSettings();
   }, []);
 
+  // Load project folder list whenever the selected tool changes
+  useEffect(() => {
+    refreshProjectFolders();
+  }, [refreshProjectFolders]);
+
   return (
     <ProjectContext.Provider
-      value={{ projectPath, setProjectPath, projectDirName, setProjectDirName, updateProject, clearProject }}
+      value={{
+        projectPath,
+        setProjectPath,
+        projectDirName,
+        setProjectDirName,
+        updateProject,
+        clearProject,
+        projectFolders,
+        isLoadingFolders,
+        refreshProjectFolders,
+      }}
     >
       {children}
     </ProjectContext.Provider>
