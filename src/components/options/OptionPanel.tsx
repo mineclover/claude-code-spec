@@ -18,7 +18,7 @@ export function OptionPanel({ options, values, onChange }: OptionPanelProps) {
   for (const opt of options) {
     const group = opt.group || 'General';
     if (!groups.has(group)) groups.set(group, []);
-    groups.get(group)!.push(opt);
+    groups.get(group)?.push(opt);
   }
 
   return (

@@ -18,7 +18,10 @@ export class OptionInventoryManager {
   /**
    * Validate option values against schema
    */
-  validateOptions(toolId: string, values: Record<string, unknown>): { valid: boolean; errors: string[] } {
+  validateOptions(
+    toolId: string,
+    values: Record<string, unknown>,
+  ): { valid: boolean; errors: string[] } {
     const options = this.getOptionsForTool(toolId);
     const errors: string[] = [];
 
@@ -41,7 +44,7 @@ export class OptionInventoryManager {
             }
             break;
           case 'select':
-            if (opt.choices && !opt.choices.some(c => c.value === value)) {
+            if (opt.choices && !opt.choices.some((c) => c.value === value)) {
               errors.push(`"${opt.label}" has an invalid selection`);
             }
             break;

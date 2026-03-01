@@ -38,11 +38,13 @@ const UserEventSchema = z.object({
     role: z.literal('user'),
     content: z.union([
       z.string(),
-      z.array(z.object({
-        type: z.literal('tool_result'),
-        tool_use_id: z.string(),
-        content: z.string(),
-      })),
+      z.array(
+        z.object({
+          type: z.literal('tool_result'),
+          tool_use_id: z.string(),
+          content: z.string(),
+        }),
+      ),
     ]),
   }),
   session_id: z.string(),
@@ -58,20 +60,29 @@ const AssistantEventSchema = z.object({
     type: z.literal('message'),
     role: z.literal('assistant'),
     model: z.string(),
-    content: z.array(z.union([
-      z.object({ type: z.literal('text'), text: z.string() }),
-      z.object({ type: z.literal('tool_use'), id: z.string(), name: z.string(), input: z.record(z.unknown()) }),
-    ])),
+    content: z.array(
+      z.union([
+        z.object({ type: z.literal('text'), text: z.string() }),
+        z.object({
+          type: z.literal('tool_use'),
+          id: z.string(),
+          name: z.string(),
+          input: z.record(z.unknown()),
+        }),
+      ]),
+    ),
     stop_reason: z.string().nullable(),
     stop_sequence: z.string().nullable(),
     usage: z.object({
       input_tokens: z.number(),
       cache_creation_input_tokens: z.number().optional(),
       cache_read_input_tokens: z.number().optional(),
-      cache_creation: z.object({
-        ephemeral_5m_input_tokens: z.number(),
-        ephemeral_1h_input_tokens: z.number(),
-      }).optional(),
+      cache_creation: z
+        .object({
+          ephemeral_5m_input_tokens: z.number(),
+          ephemeral_1h_input_tokens: z.number(),
+        })
+        .optional(),
       output_tokens: z.number(),
       service_tier: z.string(),
     }),
@@ -99,24 +110,30 @@ const ResultEventSchema = z.object({
     output_tokens: z.number(),
     server_tool_use: z.object({ web_search_requests: z.number() }).optional(),
     service_tier: z.string(),
-    cache_creation: z.object({
-      ephemeral_1h_input_tokens: z.number(),
-      ephemeral_5m_input_tokens: z.number(),
-    }).optional(),
+    cache_creation: z
+      .object({
+        ephemeral_1h_input_tokens: z.number(),
+        ephemeral_5m_input_tokens: z.number(),
+      })
+      .optional(),
   }),
-  modelUsage: z.record(z.object({
-    inputTokens: z.number(),
-    outputTokens: z.number(),
-    cacheReadInputTokens: z.number(),
-    cacheCreationInputTokens: z.number(),
-    webSearchRequests: z.number(),
-    costUSD: z.number(),
-    contextWindow: z.number(),
-  })),
-  permission_denials: z.array(z.object({
-    tool_name: z.string(),
-    tool_input: z.record(z.unknown()),
-  })),
+  modelUsage: z.record(
+    z.object({
+      inputTokens: z.number(),
+      outputTokens: z.number(),
+      cacheReadInputTokens: z.number(),
+      cacheCreationInputTokens: z.number(),
+      webSearchRequests: z.number(),
+      costUSD: z.number(),
+      contextWindow: z.number(),
+    }),
+  ),
+  permission_denials: z.array(
+    z.object({
+      tool_name: z.string(),
+      tool_input: z.record(z.unknown()),
+    }),
+  ),
   uuid: z.string(),
   isSidechain: z.boolean().optional(),
 });

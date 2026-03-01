@@ -3,6 +3,7 @@
  * Merged: App settings + MCP config management
  */
 
+import type { ActiveHooksResult } from '../active-hooks';
 import type {
   MaintenanceRegistryDocument,
   MaintenanceRegistryService,
@@ -111,6 +112,9 @@ export interface SettingsAPI {
     target: McpDefaultConfigTarget,
     servers: string[],
   ) => Promise<{ success: boolean; path?: string; error?: string }>;
+
+  // Active hooks
+  listActiveHooks: (projectPath?: string) => Promise<ActiveHooksResult>;
 
   // Backup
   createBackup: (projectPath: string) => Promise<SettingsBackup>;

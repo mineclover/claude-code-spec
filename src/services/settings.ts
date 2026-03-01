@@ -4,6 +4,7 @@
  */
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 // ============================================================================
@@ -669,4 +670,126 @@ export const createMcpDefaultConfig = (
       error: error instanceof Error ? error.message : 'Failed to create default MCP config',
     };
   }
+};
+
+// ============================================================================
+// Active Hooks (Claude Code settings.json)
+// ============================================================================
+
+import type {
+  ActiveHookItem,
+  ActiveHooksResult,
+  HookEvent,
+  HookMatcherEntry,
+} from '../types/active-hooks';
+
+const HOOK_EVENTS: HookEvent[] = [
+  'PreToolUse',
+  'PostToolUse',
+  'Stop',
+  'Notification',
+  'SubagentStop',
+];
+
+function parseHooksFromContent(
+  content: string,
+  scope: 'user' | 'project',
+  scopePath: string,
+): { items: ActiveHookItem[]; error?: string } {
+  try {
+    const data = JSON.parse(content);
+    const hooks = data?.hooks;
+    if (!hooks || typeof hooks !== 'object') {
+      return { items: [] };
+    }
+
+    const items: ActiveHookItem[] = [];
+    let idx = 0;
+
+    for (const event of HOOK_EVENTS) {
+      const matchers: unknown = hooks[event];
+      if (!Array.isArray(matchers)) continue;
+
+      for (const matcherEntry of matchers as HookMatcherEntry[]) {
+        const hooksArr = matcherEntry.hooks;
+        if (!Array.isArray(hooksArr)) continue;
+
+        for (const hook of hooksArr) {
+          if (hook.type !== 'command' || !hook.command) continue;
+          items.push({
+            id: `${scope}:${event}:${idx++}`,
+            scope,
+            scopePath,
+            event,
+            matcher: matcherEntry.matcher,
+            command: hook.command,
+            timeout: hook.timeout,
+            background: hook.background,
+          });
+        }
+      }
+    }
+
+    return { items };
+  } catch (error) {
+    return {
+      items: [],
+      error: error instanceof Error ? error.message : 'Failed to parse hooks',
+    };
+  }
+}
+
+/**
+ * Read configured hooks from user (~/.claude/settings.json) and
+ * project (<projectPath>/.claude/settings.json) settings files.
+ */
+export const listActiveHooks = (projectPath?: string): ActiveHooksResult => {
+  const homeDir = os.homedir();
+  const userSettingsPath = path.join(homeDir, '.claude', 'settings.json');
+  const projectSettingsPath = projectPath
+    ? path.join(projectPath, '.claude', 'settings.json')
+    : null;
+
+  const userSettingsExists = fs.existsSync(userSettingsPath);
+  const projectSettingsExists = projectSettingsPath !== null && fs.existsSync(projectSettingsPath);
+
+  const items: ActiveHookItem[] = [];
+  let userError: string | undefined;
+  let projectError: string | undefined;
+
+  if (userSettingsExists) {
+    try {
+      const content = fs.readFileSync(userSettingsPath, 'utf-8');
+      const { items: userItems, error } = parseHooksFromContent(content, 'user', userSettingsPath);
+      items.push(...userItems);
+      userError = error;
+    } catch (error) {
+      userError = error instanceof Error ? error.message : 'Failed to read user settings';
+    }
+  }
+
+  if (projectSettingsExists && projectSettingsPath) {
+    try {
+      const content = fs.readFileSync(projectSettingsPath, 'utf-8');
+      const { items: projectItems, error } = parseHooksFromContent(
+        content,
+        'project',
+        projectSettingsPath,
+      );
+      items.push(...projectItems);
+      projectError = error;
+    } catch (error) {
+      projectError = error instanceof Error ? error.message : 'Failed to read project settings';
+    }
+  }
+
+  return {
+    items,
+    userSettingsPath,
+    projectSettingsPath,
+    userSettingsExists,
+    projectSettingsExists,
+    userError,
+    projectError,
+  };
 };

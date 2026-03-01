@@ -88,6 +88,34 @@ interface CliMaintenanceServiceOptions {
 
 const SKILL_LOCK_PATH = path.join(os.homedir(), '.agents', '.skill-lock.json');
 
+/**
+ * Electron apps launched from Finder / .app bundle do not inherit the user's
+ * login-shell PATH (.zshrc / .bash_profile), so commands like `claude`, `npm`,
+ * `bun`, `npx` etc. are not found even when they are installed.
+ *
+ * Strategy: prepend well-known global-bin directories that are missing from
+ * the current process.env.PATH, then fall back to the existing PATH so the
+ * order is: additions first (highest priority) → original PATH.
+ */
+function buildSpawnEnv(): NodeJS.ProcessEnv {
+  const home = os.homedir();
+  const existingSegments = new Set((process.env.PATH ?? '').split(':').filter(Boolean));
+  const candidates = [
+    `${home}/.local/bin`, // pipx, claude code
+    `${home}/.bun/bin`, // bun global
+    `${home}/.deno/bin`, // deno
+    '/opt/homebrew/bin', // Apple-Silicon Homebrew
+    '/opt/homebrew/sbin',
+    '/usr/local/bin', // Intel Homebrew / traditional npm global
+    '/usr/local/sbin',
+  ];
+  const additions = candidates.filter((p) => !existingSegments.has(p));
+  const enhancedPath = [...additions, ...existingSegments].join(':');
+  return { ...process.env, PATH: enhancedPath };
+}
+
+const SPAWN_ENV = buildSpawnEnv();
+
 function limitText(raw: string, max = 12000): string {
   if (raw.length <= max) return raw;
   return `${raw.slice(0, max)}\n... (truncated)`;
@@ -702,7 +730,7 @@ export class CliMaintenanceService {
   private async executeCommand(spec: CommandSpec): Promise<CommandExecutionResult> {
     return new Promise((resolve) => {
       const child = spawn(spec.command, spec.args, {
-        env: { ...process.env },
+        env: SPAWN_ENV,
       });
 
       let settled = false;
