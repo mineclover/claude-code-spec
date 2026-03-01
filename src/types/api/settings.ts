@@ -23,6 +23,13 @@ export interface McpServer {
   env: Record<string, string>;
 }
 
+export type McpServerSourceScope = 'global' | 'project' | 'projectLocal';
+
+export interface McpServerCandidate extends McpServer {
+  sourcePath: string;
+  sourceScope: McpServerSourceScope;
+}
+
 export type McpDefaultConfigTarget = 'project' | 'claude' | 'codex' | 'gemini';
 
 export interface ProjectSettings {
@@ -91,6 +98,9 @@ export interface SettingsAPI {
   getMcpServers: (
     projectPath?: string,
   ) => Promise<{ servers: McpServer[]; error?: string; sourcePaths: string[] }>;
+  getMcpServerCandidates: (
+    projectPath?: string,
+  ) => Promise<{ candidates: McpServerCandidate[]; error?: string; sourcePaths: string[] }>;
   createMcpConfig: (
     projectPath: string,
     name: string,

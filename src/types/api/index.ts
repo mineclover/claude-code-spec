@@ -3,6 +3,21 @@
  */
 
 export type { ExecuteAPI } from './execute';
-export type { SessionsAPI, SessionLoadProgress, ClaudeProjectInfo, ClaudeSessionInfo, ClaudeSessionEntry, ProjectFolder, LatestSessionMeta } from './sessions';
-export type { SettingsAPI, McpConfigFile, McpServer, ProjectSettings, SettingsBackup } from './settings';
+export type {
+  ClaudeProjectInfo,
+  ClaudeSessionEntry,
+  ClaudeSessionInfo,
+  LatestSessionMeta,
+  ProjectFolder,
+  SessionLoadProgress,
+  SessionsAPI,
+} from './sessions';
+export type {
+  McpConfigFile,
+  McpServer,
+  McpServerCandidate,
+  ProjectSettings,
+  SettingsAPI,
+  SettingsBackup,
+} from './settings';
 export type { ToolsAPI } from './tools';

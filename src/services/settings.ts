@@ -231,6 +231,13 @@ export interface McpServer {
   env: Record<string, string>;
 }
 
+export type McpServerSourceScope = 'global' | 'project' | 'projectLocal';
+
+export interface McpServerCandidate extends McpServer {
+  sourcePath: string;
+  sourceScope: McpServerSourceScope;
+}
+
 export type McpDefaultConfigTarget = 'project' | 'claude' | 'codex' | 'gemini';
 
 interface McpServerListOptions {
@@ -238,8 +245,53 @@ interface McpServerListOptions {
   projectPath?: string;
 }
 
+interface McpSourceCandidate {
+  path: string;
+  sourceScope: McpServerSourceScope;
+  priority: number;
+  order: number;
+}
+
+interface RankedMcpServerCandidate {
+  candidate: McpServerCandidate;
+  priority: number;
+  order: number;
+}
+
 const MCP_FILE_PATTERN = /^\.mcp(?:[-.].+)?\.json$/;
 const PROJECT_MCP_DIRECTORIES = ['.claude', '.codex', '.gemini'] as const;
+const MCP_SOURCE_PRIORITY: Record<McpServerSourceScope, number> = {
+  global: 0,
+  project: 1,
+  projectLocal: 2,
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function normalizeConfigPath(targetPath: string, homeDir?: string): string {
+  const expandedPath =
+    targetPath.startsWith('~') && homeDir ? path.join(homeDir, targetPath.slice(1)) : targetPath;
+  return path.normalize(path.resolve(expandedPath));
+}
+
+function isPathWithinRoot(targetPath: string, rootPath: string): boolean {
+  return targetPath === rootPath || targetPath.startsWith(`${rootPath}${path.sep}`);
+}
+
+function resolveMcpSourceScope(
+  normalizedPath: string,
+  normalizedProjectPath?: string,
+): McpServerSourceScope {
+  if (!normalizedProjectPath || !isPathWithinRoot(normalizedPath, normalizedProjectPath)) {
+    return 'global';
+  }
+
+  return path.basename(normalizedPath).toLowerCase() === '.mcp.local.json'
+    ? 'projectLocal'
+    : 'project';
+}
 
 function listMcpConfigFilesInDirectory(dirPath: string): string[] {
   try {
@@ -283,6 +335,41 @@ function collectProjectMcpCandidates(projectPath: string): string[] {
   }
 
   return Array.from(ordered);
+}
+
+function collectMcpSourceCandidates(
+  options: McpServerListOptions,
+  homeDir?: string,
+): McpSourceCandidate[] {
+  const { additionalPaths, projectPath } = options;
+  const projectCandidates = projectPath ? collectProjectMcpCandidates(projectPath) : [];
+  const rawCandidates = [
+    homeDir ? path.join(homeDir, '.claude.json') : null,
+    ...(additionalPaths ?? []),
+    ...projectCandidates,
+  ].filter((item): item is string => Boolean(item));
+
+  const normalizedProjectPath = projectPath ? path.normalize(path.resolve(projectPath)) : undefined;
+  const seen = new Set<string>();
+  const candidates: McpSourceCandidate[] = [];
+
+  for (const rawPath of rawCandidates) {
+    const normalizedPath = normalizeConfigPath(rawPath, homeDir);
+    if (seen.has(normalizedPath)) {
+      continue;
+    }
+
+    seen.add(normalizedPath);
+    const sourceScope = resolveMcpSourceScope(normalizedPath, normalizedProjectPath);
+    candidates.push({
+      path: normalizedPath,
+      sourceScope,
+      priority: MCP_SOURCE_PRIORITY[sourceScope],
+      order: candidates.length,
+    });
+  }
+
+  return candidates;
 }
 
 function toProjectRelativePath(filePath: string, projectPath: string): string {
@@ -330,12 +417,131 @@ function resolveDefaultMcpConfigPath(projectPath: string, target: McpDefaultConf
   }
 }
 
+function readServersFromConfigPath(configPath: string): { servers: McpServer[]; error?: string } {
+  try {
+    if (!fs.existsSync(configPath) || !fs.statSync(configPath).isFile()) {
+      return { servers: [] };
+    }
+
+    const content = fs.readFileSync(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+    if (!isRecord(parsed) || !isRecord(parsed.mcpServers)) {
+      return { servers: [] };
+    }
+
+    const servers: McpServer[] = Object.entries(parsed.mcpServers).map(([name, rawServer]) => {
+      const serverConfig = isRecord(rawServer) ? rawServer : {};
+      const args = Array.isArray(serverConfig.args)
+        ? serverConfig.args.map((arg) => String(arg))
+        : [];
+      const env = isRecord(serverConfig.env)
+        ? Object.fromEntries(
+            Object.entries(serverConfig.env).filter((entry): entry is [string, string] => {
+              return typeof entry[1] === 'string';
+            }),
+          )
+        : {};
+
+      return {
+        name,
+        type: typeof serverConfig.type === 'string' ? serverConfig.type : 'stdio',
+        command: typeof serverConfig.command === 'string' ? serverConfig.command : '',
+        args,
+        env,
+      };
+    });
+
+    return { servers };
+  } catch (error) {
+    return {
+      servers: [],
+      error: `Failed to read ${configPath}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+}
+
+function shouldReplaceCandidate(
+  current: RankedMcpServerCandidate,
+  incoming: RankedMcpServerCandidate,
+): boolean {
+  if (incoming.priority !== current.priority) {
+    return incoming.priority > current.priority;
+  }
+
+  if (incoming.order !== current.order) {
+    return incoming.order > current.order;
+  }
+
+  return incoming.candidate.sourcePath.localeCompare(current.candidate.sourcePath) > 0;
+}
+
+function stripCandidateSource(candidate: McpServerCandidate): McpServer {
+  return {
+    name: candidate.name,
+    type: candidate.type,
+    command: candidate.command,
+    args: candidate.args,
+    env: candidate.env,
+  };
+}
+
+/**
+ * Aggregate global/project MCP sources into deterministic server candidates.
+ */
+export const getMcpServerCandidates = (
+  options: McpServerListOptions = {},
+): { candidates: McpServerCandidate[]; error?: string; sourcePaths: string[] } => {
+  const homeDir = process.env.HOME || process.env.USERPROFILE;
+  const sourceCandidates = collectMcpSourceCandidates(options, homeDir);
+  const mergedByName = new Map<string, RankedMcpServerCandidate>();
+  const sourcePathsSet = new Set<string>();
+  const errors: string[] = [];
+
+  for (const sourceCandidate of sourceCandidates) {
+    const { servers, error } = readServersFromConfigPath(sourceCandidate.path);
+    if (error) {
+      errors.push(error);
+      continue;
+    }
+
+    if (servers.length > 0) {
+      sourcePathsSet.add(sourceCandidate.path);
+    }
+
+    for (const server of servers) {
+      const incoming: RankedMcpServerCandidate = {
+        candidate: {
+          ...server,
+          sourcePath: sourceCandidate.path,
+          sourceScope: sourceCandidate.sourceScope,
+        },
+        priority: sourceCandidate.priority,
+        order: sourceCandidate.order,
+      };
+      const current = mergedByName.get(server.name);
+      if (!current || shouldReplaceCandidate(current, incoming)) {
+        mergedByName.set(server.name, incoming);
+      }
+    }
+  }
+
+  const candidates = Array.from(mergedByName.values())
+    .map((item) => item.candidate)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  if (candidates.length === 0 && errors.length > 0) {
+    return { candidates: [], error: errors.join('; '), sourcePaths: Array.from(sourcePathsSet) };
+  }
+
+  return { candidates, sourcePaths: Array.from(sourcePathsSet) };
+};
+
 function resolveSelectedServers(
   projectPath: string,
   selectedServerNames: string[],
   options: Pick<McpServerListOptions, 'additionalPaths'> = {},
 ): { selectedServers: McpServer[]; error?: string } {
-  const { servers: availableServers, error } = getMcpServerList({
+  const { candidates, error } = getMcpServerCandidates({
     additionalPaths: options.additionalPaths,
     projectPath,
   });
@@ -344,9 +550,10 @@ function resolveSelectedServers(
     return { selectedServers: [], error };
   }
 
-  const selectedServers = availableServers.filter((server) =>
-    selectedServerNames.includes(server.name),
-  );
+  const selectedServerSet = new Set(selectedServerNames);
+  const selectedServers = candidates
+    .filter((candidate) => selectedServerSet.has(candidate.name))
+    .map(stripCandidateSource);
   if (selectedServers.length === 0) {
     return { selectedServers: [], error: 'No servers selected' };
   }
@@ -377,91 +584,17 @@ export const listMcpConfigs = (projectPath: string): McpConfigFile[] => {
 };
 
 /**
- * Get available MCP servers from user config (~/.claude.json) and additional resource paths
- * @param additionalPaths - Optional additional config file paths to read
+ * Get merged MCP server list for legacy consumers.
  */
 export const getMcpServerList = (
   options: McpServerListOptions = {},
 ): { servers: McpServer[]; error?: string; sourcePaths: string[] } => {
-  const { additionalPaths, projectPath } = options;
-  const allServers: McpServer[] = [];
-  const sourcePathsSet = new Set<string>(); // Track unique source paths
-  const attemptedPaths = new Set<string>();
-  const errors: string[] = [];
-  const serverNames = new Set<string>(); // Track unique server names
-  const homeDir = process.env.HOME || process.env.USERPROFILE;
-
-  const normalizeConfigPath = (targetPath: string): string => {
-    const expandedPath =
-      targetPath.startsWith('~') && homeDir ? path.join(homeDir, targetPath.slice(1)) : targetPath;
-    return path.normalize(path.resolve(expandedPath));
+  const { candidates, error, sourcePaths } = getMcpServerCandidates(options);
+  return {
+    servers: candidates.map(stripCandidateSource),
+    error,
+    sourcePaths,
   };
-
-  const projectCandidates = projectPath ? collectProjectMcpCandidates(projectPath) : [];
-  const sourceCandidates = [
-    homeDir ? path.join(homeDir, '.claude.json') : null,
-    ...projectCandidates,
-    ...(additionalPaths ?? []),
-  ].filter((item): item is string => Boolean(item));
-
-  // Helper function to read servers from a config file
-  const readServersFromPath = (configPath: string): McpServer[] => {
-    const normalizedPath = normalizeConfigPath(configPath);
-    if (attemptedPaths.has(normalizedPath)) {
-      return [];
-    }
-    attemptedPaths.add(normalizedPath);
-
-    try {
-      if (!fs.existsSync(normalizedPath)) {
-        return [];
-      }
-
-      const content = fs.readFileSync(normalizedPath, 'utf-8');
-      const config = JSON.parse(content);
-
-      if (!config.mcpServers || typeof config.mcpServers !== 'object') {
-        return [];
-      }
-
-      const servers: McpServer[] = Object.entries(config.mcpServers).map(
-        ([name, server]: [string, unknown]) => {
-          const serverConfig = server as Partial<McpServer>;
-          return {
-            name,
-            type: serverConfig.type || 'stdio',
-            command: serverConfig.command || '',
-            args: serverConfig.args || [],
-            env: serverConfig.env || {},
-          };
-        },
-      );
-
-      sourcePathsSet.add(normalizedPath);
-      return servers;
-    } catch (error) {
-      errors.push(
-        `Failed to read ${normalizedPath}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-      return [];
-    }
-  };
-
-  for (const candidatePath of sourceCandidates) {
-    const discoveredServers = readServersFromPath(candidatePath);
-    for (const server of discoveredServers) {
-      if (!serverNames.has(server.name)) {
-        allServers.push(server);
-        serverNames.add(server.name);
-      }
-    }
-  }
-
-  if (allServers.length === 0 && errors.length > 0) {
-    return { servers: [], error: errors.join('; '), sourcePaths: Array.from(sourcePathsSet) };
-  }
-
-  return { servers: allServers, sourcePaths: Array.from(sourcePathsSet) };
 };
 
 /**

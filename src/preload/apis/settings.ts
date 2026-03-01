@@ -55,6 +55,8 @@ export function exposeSettingsAPI(): void {
       ipcRenderer.invoke('settings:list-mcp-configs', projectPath),
     getMcpServers: (projectPath?: string) =>
       ipcRenderer.invoke('settings:get-mcp-servers', projectPath),
+    getMcpServerCandidates: (projectPath?: string) =>
+      ipcRenderer.invoke('settings:get-mcp-server-candidates', projectPath),
     createMcpConfig: (projectPath: string, name: string, servers: string[]) =>
       ipcRenderer.invoke('settings:create-mcp-config', projectPath, name, servers),
     createMcpDefaultConfig: (

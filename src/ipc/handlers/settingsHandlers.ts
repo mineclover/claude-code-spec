@@ -10,6 +10,7 @@ import {
   createMcpDefaultConfig,
   deleteSettingsFile,
   findSettingsFiles,
+  getMcpServerCandidates,
   getMcpServerList,
   listMcpConfigs,
   loadBackupFromFile,
@@ -177,6 +178,11 @@ export function registerSettingsHandlers(
   router.handle('get-mcp-servers', async (_event, projectPath?: string) => {
     const additionalPaths = settingsService.getMcpResourcePaths();
     return getMcpServerList({ additionalPaths, projectPath });
+  });
+
+  router.handle('get-mcp-server-candidates', async (_event, projectPath?: string) => {
+    const additionalPaths = settingsService.getMcpResourcePaths();
+    return getMcpServerCandidates({ additionalPaths, projectPath });
   });
 
   router.handle(
