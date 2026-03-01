@@ -18,6 +18,7 @@ after each iteration and it's included in prompts for context.
 - 메타데이터 포맷이 provider마다 다른 힌트 필드는 `resolve*Info` 헬퍼로 `frontmatter > metadata > lockfile > source > fallback` 체인을 고정하고, UI 표시는 `format*` 헬퍼/상수 fallback을 재사용해 문구 드리프트를 방지한다.
 - 파일 이동 기반 상태 전환에 후속 갱신/감사 로그를 결합할 때는 `run*MoveTransaction(apply/rollback)`으로 묶고, `rollbackError`까지 결과에 포함해 상위 계층이 복구 실패를 명시적으로 처리하게 만든다.
 - 업데이트 필요도처럼 외부 최신 버전 조회가 선택적인 도메인은 `resolve*Need` 헬퍼로 `명시 정책 > 상태/버전 비교 유추 > 안전 기본값`을 고정하고, UI/배치 실행/로그 API는 해당 정규화 필드만 소비하게 만든다.
+- provider 전용 페이지를 확장할 때는 `resolve*SectionMatrix`로 섹션 capability를 `명시값 > 유추값(데이터 존재) > 안전 기본값`으로 정규화하고, 화면은 공통 섹션 프레임워크에 `provider/section 메타데이터`만 주입해 카드 UI/노출 규칙을 단일화한다.
 
 ---
 
@@ -123,4 +124,12 @@ after each iteration and it's included in prompts for context.
 - **Learnings:**
   - Patterns discovered: 병행 에디터는 상태 소스를 분리하지 말고 JSON 단일 소스 + form 정규화 뷰 모델 구조로 두면 모드 전환 시 데이터 드리프트 없이 테스트를 단순화할 수 있다.
   - Gotchas encountered: `npm run start` 수동 검증은 현재 샌드박스 환경에서 `listen EPERM: operation not permitted ::1:5173`로 dev server bind가 차단되어 실제 UI 클릭 검증까지 수행할 수 없었다.
+---
+
+## 2026-03-01 - US-014
+- What was implemented: Reference 영역에 provider 전용 관리 개요 페이지(`/references`)를 추가하고, 공통 `ReferenceProviderSectionFramework` 카드 레이아웃으로 `hooks/output styles/skills` 섹션을 표준화했다. 또한 `resolveReferenceSectionMatrix` + `resolveReferenceProviderSections` 정규화 경로(`명시값 > 유추값(섹션 카운트) > 안전 기본값`)를 도입해 provider capability에 따라 섹션 노출을 동적으로 게이트했고, 상세 Reference 페이지는 `?provider=` 초기 필터를 받아 provider 컨텍스트를 유지하도록 확장했다. Skills 페이지도 capability 결과(maintenance/skill-store 데이터 존재)에 따라 관련 섹션을 조건부 렌더링하도록 조정했다.
+- Files changed: `src/lib/referenceProviderSections.ts`, `src/lib/referenceProviderSections.test.ts`, `src/hooks/useReferenceProviderSections.ts`, `src/components/reference/ReferenceProviderSectionFramework.tsx`, `src/components/reference/ReferenceProviderSectionFramework.module.css`, `src/pages/ReferenceProvidersPage.tsx`, `src/pages/ReferenceProvidersPage.module.css`, `src/pages/ReferenceProvidersPage.test.tsx`, `src/App.tsx`, `src/components/layout/Layout.tsx`, `src/hooks/useReferenceAssets.ts`, `src/pages/ReferenceAssetsPage.tsx`, `src/pages/ReferenceHooksPage.tsx`, `src/pages/ReferenceOutputStylesPage.tsx`, `src/pages/ReferenceSkillsPage.tsx`, `src/pages/SkillsPage.tsx`, `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered: provider별 확장 UI는 data fetch 훅과 렌더 프레임워크를 분리하고, 렌더 계층에는 이미 정규화된 `sections[]`만 전달하면 섹션 추가/제거 시 회귀 범위를 줄일 수 있다.
+  - Gotchas encountered: `npm run start` 수동 검증은 샌드박스에서 `listen EPERM: operation not permitted ::1:5173` 오류로 dev server가 기동되지 않아 실제 클릭 검증을 수행할 수 없었다.
 ---

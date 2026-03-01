@@ -11,6 +11,7 @@ interface ReferenceAssetsPageProps {
   assetType: ReferenceAssetType;
   title: string;
   description: string;
+  initialProvider?: ProviderFilter;
 }
 
 const providerFilterOptions: Array<{ value: ProviderFilter; label: string }> = [
@@ -40,7 +41,12 @@ function formatUpdatedAt(timestamp: number): string {
   }
 }
 
-export function ReferenceAssetsPage({ assetType, title, description }: ReferenceAssetsPageProps) {
+export function ReferenceAssetsPage({
+  assetType,
+  title,
+  description,
+  initialProvider = 'all',
+}: ReferenceAssetsPageProps) {
   const {
     provider,
     setProvider,
@@ -80,7 +86,7 @@ export function ReferenceAssetsPage({ assetType, title, description }: Reference
     renameManagerTagGlobally,
     removeManagerTagGlobally,
     clearAllTagsInScope,
-  } = useReferenceAssets({ assetType });
+  } = useReferenceAssets({ assetType, initialProvider });
 
   return (
     <div className={styles.container}>

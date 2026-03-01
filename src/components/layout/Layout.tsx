@@ -13,10 +13,11 @@ interface LayoutProps {
 }
 
 const navItems = [
-  { path: '/', label: 'Execute', icon: '>' },
+  { path: '/', label: 'Execute', icon: '>', end: true },
   { path: '/sessions', label: 'Sessions', icon: '#' },
   { path: '/mcp-configs', label: 'MCP Configs', icon: '@' },
   { path: '/skills', label: 'Skills', icon: '%' },
+  { path: '/references', label: 'References', icon: 'R', end: true },
   { path: '/references/hooks', label: 'Ref Hooks', icon: 'H' },
   { path: '/references/output-styles', label: 'Ref Styles', icon: 'O' },
   { path: '/references/skills', label: 'Ref Skills', icon: 'S' },
@@ -57,7 +58,7 @@ export function Layout({ children }: LayoutProps) {
               key={item.path}
               to={item.path}
               className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
-              end={item.path === '/'}
+              end={item.end === true}
             >
               <span className={styles.navIcon}>{item.icon}</span>
               <span className={styles.navLabel}>{item.label}</span>

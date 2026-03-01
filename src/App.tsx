@@ -11,6 +11,7 @@ import { ExecutePage } from './pages/ExecutePage';
 import { McpConfigsPage } from './pages/McpConfigsPage';
 import { ReferenceHooksPage } from './pages/ReferenceHooksPage';
 import { ReferenceOutputStylesPage } from './pages/ReferenceOutputStylesPage';
+import { ReferenceProvidersPage } from './pages/ReferenceProvidersPage';
 import { ReferenceSkillsPage } from './pages/ReferenceSkillsPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -28,6 +29,7 @@ function App() {
               <Route path="/sessions" element={<SessionsPage />} />
               <Route path="/mcp-configs" element={<McpConfigsPage />} />
               <Route path="/skills" element={<SkillsPage />} />
+              <Route path="/references" element={<ReferenceProvidersPage />} />
               <Route path="/references/hooks" element={<ReferenceHooksPage />} />
               <Route path="/references/output-styles" element={<ReferenceOutputStylesPage />} />
               <Route path="/references/skills" element={<ReferenceSkillsPage />} />

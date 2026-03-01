@@ -70,6 +70,14 @@ export function SkillsPage() {
     },
   });
 
+  const showCliMaintenanceSection =
+    maintenanceTools.length > 0 || isCheckingVersions || isBatchUpdating || updatingToolId !== null;
+  const showInstalledSkillsSection =
+    skillInstallPaths.length > 0 ||
+    installedSkills.length > 0 ||
+    isSkillsLoading ||
+    togglingSkillKey !== null;
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -100,36 +108,48 @@ export function SkillsPage() {
           onEnsureServiceTool={ensureServiceToolViaForm}
         />
 
-        <SkillsCliMaintenanceSection
-          maintenanceTools={maintenanceTools}
-          toolVersions={toolVersions}
-          updateLogs={toolUpdateLogs}
-          selectedToolIds={selectedToolIds}
-          selectedToolCount={selectedToolCount}
-          isCheckingVersions={isCheckingVersions}
-          updatingToolId={updatingToolId}
-          isBatchUpdating={isBatchUpdating}
-          lastBatchSummary={lastBatchSummary}
-          message={toolMessage}
-          onCheckVersions={checkToolVersions}
-          onRunToolUpdate={runToolUpdate}
-          onToggleToolSelection={toggleToolSelection}
-          onSelectToolsNeedingUpdate={selectToolsNeedingUpdate}
-          onClearToolSelection={clearToolSelection}
-          onRunSelectedUpdates={runSelectedToolUpdates}
-          onRefreshLogs={loadToolUpdateLogs}
-        />
+        {showCliMaintenanceSection ? (
+          <SkillsCliMaintenanceSection
+            maintenanceTools={maintenanceTools}
+            toolVersions={toolVersions}
+            updateLogs={toolUpdateLogs}
+            selectedToolIds={selectedToolIds}
+            selectedToolCount={selectedToolCount}
+            isCheckingVersions={isCheckingVersions}
+            updatingToolId={updatingToolId}
+            isBatchUpdating={isBatchUpdating}
+            lastBatchSummary={lastBatchSummary}
+            message={toolMessage}
+            onCheckVersions={checkToolVersions}
+            onRunToolUpdate={runToolUpdate}
+            onToggleToolSelection={toggleToolSelection}
+            onSelectToolsNeedingUpdate={selectToolsNeedingUpdate}
+            onClearToolSelection={clearToolSelection}
+            onRunSelectedUpdates={runSelectedToolUpdates}
+            onRefreshLogs={loadToolUpdateLogs}
+          />
+        ) : (
+          <div className={styles.settingDescription}>
+            No services expose maintenance capability, so CLI maintenance cards are hidden.
+          </div>
+        )}
 
-        <SkillsInstalledSection
-          skillInstallPaths={skillInstallPaths}
-          installedSkills={installedSkills}
-          activationEvents={activationEvents}
-          isSkillsLoading={isSkillsLoading}
-          togglingSkillKey={togglingSkillKey}
-          message={skillsMessage}
-          onRefresh={loadInstalledSkills}
-          onToggleSkillActivation={toggleSkillActivation}
-        />
+        {showInstalledSkillsSection ? (
+          <SkillsInstalledSection
+            skillInstallPaths={skillInstallPaths}
+            installedSkills={installedSkills}
+            activationEvents={activationEvents}
+            isSkillsLoading={isSkillsLoading}
+            togglingSkillKey={togglingSkillKey}
+            message={skillsMessage}
+            onRefresh={loadInstalledSkills}
+            onToggleSkillActivation={toggleSkillActivation}
+          />
+        ) : (
+          <div className={styles.settingDescription}>
+            No services expose skill-store capability, so skills cards are hidden.
+          </div>
+        )}
       </div>
     </div>
   );

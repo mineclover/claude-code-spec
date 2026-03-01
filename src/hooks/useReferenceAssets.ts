@@ -16,6 +16,7 @@ export type FavoriteSortMode = 'nameAsc' | 'pathAsc' | 'updatedDesc';
 
 interface UseReferenceAssetsOptions {
   assetType: ReferenceAssetType;
+  initialProvider?: ProviderFilter;
 }
 
 interface TagInventoryItem {
@@ -151,8 +152,11 @@ function filterAssets(
   });
 }
 
-export function useReferenceAssets({ assetType }: UseReferenceAssetsOptions) {
-  const [provider, setProvider] = useState<ProviderFilter>('all');
+export function useReferenceAssets({
+  assetType,
+  initialProvider = 'all',
+}: UseReferenceAssetsOptions) {
+  const [provider, setProvider] = useState<ProviderFilter>(initialProvider);
   const [searchQuery, setSearchQuery] = useState('');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('favoritesFirst');
@@ -530,6 +534,10 @@ export function useReferenceAssets({ assetType }: UseReferenceAssetsOptions) {
   useEffect(() => {
     loadAssets();
   }, [loadAssets]);
+
+  useEffect(() => {
+    setProvider(initialProvider);
+  }, [initialProvider]);
 
   useEffect(() => {
     loadPreferences();
