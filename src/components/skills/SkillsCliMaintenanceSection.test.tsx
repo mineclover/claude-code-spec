@@ -67,12 +67,13 @@ describe('SkillsCliMaintenanceSection', () => {
     );
 
     expect(screen.getByText('MoAI-ADK')).toBeTruthy();
-    expect(screen.getByText(/Update required/i)).toBeTruthy();
+    // badge shows "Update to <version>" when updateReason is 'outdated' with latestVersion
+    expect(screen.getByText(/Update to|Update required/i)).toBeTruthy();
     expect(screen.getByText('Updated')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Check Versions' }));
     await user.click(screen.getByRole('button', { name: 'Select Needs Update' }));
-    await user.click(screen.getByRole('button', { name: 'Clear Selection' }));
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
     await user.click(screen.getByRole('button', { name: 'Update Selected (1)' }));
     await user.click(screen.getByRole('button', { name: 'Refresh Logs' }));
     await user.click(screen.getByRole('button', { name: 'Update' }));
@@ -141,13 +142,13 @@ describe('SkillsCliMaintenanceSection', () => {
     );
 
     expect(screen.getByText('Install required')).toBeTruthy();
-    expect(screen.getByText(/Last batch summary/i)).toBeTruthy();
+    expect(screen.getByText(/Last batch/i)).toBeTruthy();
     expect(screen.getByText(/FAILED \(exit 1\)/i)).toBeTruthy();
-    const checkButton = screen.getByRole('button', { name: 'Checking...' }) as HTMLButtonElement;
+    const checkButton = screen.getByRole('button', { name: 'Checking…' }) as HTMLButtonElement;
     expect(checkButton.disabled).toBe(true);
-    const batchButton = screen.getByRole('button', {
-      name: 'Updating Selected...',
-    }) as HTMLButtonElement;
+    const updatingButtons = screen.getAllByRole('button', { name: /Updating/i });
+    // batch update button is rendered before per-tool update button
+    const batchButton = updatingButtons[0] as HTMLButtonElement;
     expect(batchButton.disabled).toBe(true);
   });
 });

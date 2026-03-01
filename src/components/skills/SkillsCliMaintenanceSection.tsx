@@ -28,39 +28,31 @@ interface SkillsCliMaintenanceSectionProps {
   onRefreshLogs: () => void | Promise<void>;
 }
 
-function buildToolStatusLabel(info?: CliToolVersionInfo): string {
-  if (!info) {
-    return 'Not checked';
-  }
+function buildStatusLine(info?: CliToolVersionInfo): { label: string; ok: boolean } {
+  if (!info) return { label: 'Not checked', ok: false };
   if (info.status === 'ok') {
-    if (info.version && info.latestVersion) {
-      return `Installed ${info.version} / Latest ${info.latestVersion}`;
-    }
-    return info.version ? `Installed ${info.version}` : 'Installed';
+    const parts: string[] = [];
+    if (info.version) parts.push(info.version);
+    if (info.latestVersion && info.latestVersion !== info.version)
+      parts.push(`→ ${info.latestVersion} available`);
+    return { label: parts.length > 0 ? parts.join('  ') : 'Installed', ok: true };
   }
-  if (info.status === 'missing') {
-    return 'Not installed';
-  }
-  return `Error${info.error ? `: ${info.error}` : ''}`;
+  if (info.status === 'missing') return { label: 'Not installed', ok: false };
+  return { label: `Error${info.error ? `: ${info.error}` : ''}`, ok: false };
 }
 
-function buildUpdateNeedLabel(info?: CliToolVersionInfo): string {
-  if (!info) {
-    return 'Need version check';
-  }
-  if (!info.updateRequired) {
-    return 'Up to date';
-  }
-  if (info.status === 'missing') {
-    return 'Install required';
-  }
-  if (info.updateReason === 'outdated' && info.latestVersion) {
-    return `Update required to ${info.latestVersion}`;
-  }
-  if (info.updateReason === 'version-check-error') {
-    return 'Update recommended (check failed)';
-  }
-  return 'Update required';
+function buildUpdateBadge(info?: CliToolVersionInfo): {
+  label: string;
+  needsUpdate: boolean;
+} {
+  if (!info) return { label: 'Check required', needsUpdate: false };
+  if (!info.updateRequired) return { label: 'Up to date', needsUpdate: false };
+  if (info.status === 'missing') return { label: 'Install required', needsUpdate: true };
+  if (info.updateReason === 'outdated' && info.latestVersion)
+    return { label: `Update to ${info.latestVersion}`, needsUpdate: true };
+  if (info.updateReason === 'version-check-error')
+    return { label: 'Check failed — update recommended', needsUpdate: true };
+  return { label: 'Update required', needsUpdate: true };
 }
 
 function formatUpdateLogStatus(log: CliToolUpdateLogEntry): string {
@@ -91,9 +83,9 @@ export function SkillsCliMaintenanceSection({
     <div className={styles.settingItem}>
       <div className={styles.settingLabel}>CLI Update Planner</div>
       <div className={styles.settingDescription}>
-        Check versions, mark tools that need updates, run selected updates in batch, and inspect
-        execution logs.
+        Check versions, select tools that need updates, and run batch updates.
       </div>
+
       <div className={styles.inlineActions}>
         <button
           type="button"
@@ -101,13 +93,13 @@ export function SkillsCliMaintenanceSection({
           className={styles.browseButton}
           disabled={isCheckingVersions || isBatchUpdating}
         >
-          {isCheckingVersions ? 'Checking...' : 'Check Versions'}
+          {isCheckingVersions ? 'Checking…' : 'Check Versions'}
         </button>
         <button
           type="button"
           onClick={onSelectToolsNeedingUpdate}
           className={styles.browseButton}
-          disabled={isBatchUpdating}
+          disabled={isCheckingVersions || isBatchUpdating}
         >
           Select Needs Update
         </button>
@@ -117,7 +109,7 @@ export function SkillsCliMaintenanceSection({
           className={styles.browseButton}
           disabled={selectedToolCount === 0 || isBatchUpdating}
         >
-          Clear Selection
+          Clear
         </button>
         <button
           type="button"
@@ -125,59 +117,98 @@ export function SkillsCliMaintenanceSection({
           className={styles.saveButton}
           disabled={selectedToolCount === 0 || isBatchUpdating || updatingToolId !== null}
         >
-          {isBatchUpdating ? 'Updating Selected...' : `Update Selected (${selectedToolCount})`}
+          {isBatchUpdating
+            ? 'Updating…'
+            : selectedToolCount > 0
+              ? `Update Selected (${selectedToolCount})`
+              : 'Update Selected'}
         </button>
       </div>
 
       <div className={styles.toolGrid}>
         {maintenanceTools.map((tool) => {
           const info = toolVersions[tool.id];
-          const statusLabel = buildToolStatusLabel(info);
-          const updateNeedLabel = buildUpdateNeedLabel(info);
+          const { label: statusLabel, ok: statusOk } = buildStatusLine(info);
+          const { label: badgeLabel, needsUpdate } = buildUpdateBadge(info);
           const selected = selectedToolIds.includes(tool.id);
+          const isUpdatingThis = updatingToolId === tool.id;
+          const disabled = isBatchUpdating || updatingToolId !== null;
 
           return (
-            <div key={tool.id} className={styles.toolCard}>
+            <div
+              key={tool.id}
+              className={`${styles.toolCard} ${selected ? styles.toolCardSelected : ''}`}
+              onClick={() => !disabled && onToggleToolSelection(tool.id)}
+              tabIndex={disabled ? -1 : 0}
+              onKeyDown={(e) => {
+                if (!disabled && (e.key === ' ' || e.key === 'Enter')) {
+                  e.preventDefault();
+                  onToggleToolSelection(tool.id);
+                }
+              }}
+            >
+              {/* Header row: checkbox + name + update button */}
               <div className={styles.toolCardHeader}>
-                <label className={styles.toolSelectionLabel}>
+                <div className={styles.toolCardMeta}>
                   <input
                     type="checkbox"
+                    className={styles.toolCheckbox}
                     checked={selected}
-                    disabled={isBatchUpdating}
+                    disabled={disabled}
                     onChange={() => onToggleToolSelection(tool.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`Select ${tool.name}`}
                   />
                   <div>
                     <div className={styles.toolName}>{tool.name}</div>
                     <div className={styles.toolId}>{tool.id}</div>
                   </div>
-                </label>
+                </div>
                 <button
                   type="button"
                   className={styles.toggleButton}
-                  onClick={() => onRunToolUpdate(tool.id)}
-                  disabled={updatingToolId !== null || isBatchUpdating}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRunToolUpdate(tool.id);
+                  }}
+                  disabled={disabled}
+                  title="Run update for this tool only"
                 >
-                  {updatingToolId === tool.id ? 'Updating...' : 'Update'}
+                  {isUpdatingThis ? 'Updating…' : 'Update'}
                 </button>
               </div>
-              <div className={styles.toolStatus}>{statusLabel}</div>
+
+              {/* Status line */}
+              <div className={statusOk ? styles.toolStatusOk : styles.toolStatusError}>
+                {statusLabel}
+              </div>
+
+              {/* Update badge */}
               <div
-                className={
-                  info?.updateRequired ? styles.updateRequiredBadge : styles.updateNotRequiredBadge
-                }
+                className={needsUpdate ? styles.updateRequiredBadge : styles.updateNotRequiredBadge}
               >
-                {updateNeedLabel}
+                {badgeLabel}
               </div>
-              <div className={styles.toolCommands}>
-                <div>
-                  <strong>Version:</strong>{' '}
-                  {[tool.versionCommand.command, ...tool.versionCommand.args].join(' ')}
+
+              {/* Commands — collapsed by default */}
+              <details className={styles.toolCommandsDetails}>
+                <summary className={styles.toolCommandsSummary}>Commands</summary>
+                <div className={styles.toolCommands}>
+                  <div>
+                    <strong>Version:</strong>{' '}
+                    {[tool.versionCommand.command, ...tool.versionCommand.args].join(' ')}
+                  </div>
+                  <div>
+                    <strong>Update:</strong>{' '}
+                    {[tool.updateCommand.command, ...tool.updateCommand.args].join(' ')}
+                  </div>
+                  {info?.rawOutput && (
+                    <div>
+                      <strong>Output:</strong> {info.rawOutput}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <strong>Update:</strong>{' '}
-                  {[tool.updateCommand.command, ...tool.updateCommand.args].join(' ')}
-                </div>
-              </div>
+              </details>
             </div>
           );
         })}
@@ -185,11 +216,12 @@ export function SkillsCliMaintenanceSection({
 
       {lastBatchSummary && (
         <div className={styles.updateSummary}>
-          <strong>Last batch summary:</strong> {lastBatchSummary.succeeded}/{lastBatchSummary.total}{' '}
+          <strong>Last batch:</strong> {lastBatchSummary.succeeded}/{lastBatchSummary.total}{' '}
           succeeded, {lastBatchSummary.failed} failed.
         </div>
       )}
 
+      {/* Update logs */}
       <div className={styles.activationEventsSection}>
         <div className={styles.settingLabel}>Recent Update Logs</div>
         <div className={styles.inlineActions}>
