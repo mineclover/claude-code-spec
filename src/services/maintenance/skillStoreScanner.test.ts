@@ -9,6 +9,7 @@ import {
   dedupeAndSortInstalledSkills,
   movePathWithExdevFallback,
   resolveSkillStoreScanRoots,
+  runSkillStoreMoveTransaction,
   scanSkillEntriesFromRoots,
 } from './skillStoreScanner';
 
@@ -129,6 +130,24 @@ describe('skillStoreScanner', () => {
     expect(rename).toHaveBeenCalledWith(fromPath, toPath);
     expect(fs.existsSync(fromPath)).toBe(false);
     expect(fs.existsSync(path.join(toPath, 'SKILL.md'))).toBe(true);
+  });
+
+  it('runs move transactions with rollback on apply failure', async () => {
+    const rollback = vi.fn().mockResolvedValue(undefined);
+
+    const transaction = await runSkillStoreMoveTransaction({
+      apply: async () => {
+        throw new Error('apply failed');
+      },
+      rollback,
+    });
+
+    expect(rollback).toHaveBeenCalledTimes(1);
+    expect(transaction).toMatchObject({
+      ok: false,
+      rolledBack: true,
+      error: 'apply failed',
+    });
   });
 
   it('keeps skill list dedupe and sorting stable for provider extensions', () => {

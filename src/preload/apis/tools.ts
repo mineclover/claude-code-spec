@@ -21,6 +21,8 @@ export function exposeToolsAPI(): void {
     runToolUpdate: (toolId: string) => ipcRenderer.invoke('tools:run-tool-update', toolId),
     getSkillInstallPaths: () => ipcRenderer.invoke('tools:get-skill-install-paths'),
     getInstalledSkills: () => ipcRenderer.invoke('tools:get-installed-skills'),
+    getSkillActivationEvents: (limit?: number) =>
+      ipcRenderer.invoke('tools:get-skill-activation-events', limit),
     listReferenceAssets: (assetType: ReferenceAssetType, provider?: ReferenceProvider) =>
       ipcRenderer.invoke('tools:list-reference-assets', assetType, provider),
     readReferenceAsset: (relativePath: string) =>

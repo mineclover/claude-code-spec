@@ -32,6 +32,7 @@ interface MockApis {
     runToolUpdate: ReturnType<typeof vi.fn>;
     getSkillInstallPaths: ReturnType<typeof vi.fn>;
     getInstalledSkills: ReturnType<typeof vi.fn>;
+    getSkillActivationEvents: ReturnType<typeof vi.fn>;
     setSkillActivation: ReturnType<typeof vi.fn>;
   };
 }
@@ -68,6 +69,7 @@ function setupWindowApis(): MockApis {
     }),
     getSkillInstallPaths: vi.fn().mockResolvedValue([]),
     getInstalledSkills: vi.fn().mockResolvedValue([]),
+    getSkillActivationEvents: vi.fn().mockResolvedValue([]),
     setSkillActivation: vi.fn().mockResolvedValue({}),
   };
 

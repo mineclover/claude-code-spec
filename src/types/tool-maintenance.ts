@@ -66,3 +66,16 @@ export interface InstalledSkillInfo {
   source: string | null;
   updatedAt: number | null;
 }
+
+export interface SkillActivationStateSnapshot {
+  active: boolean;
+  path: string | null;
+}
+
+export interface SkillActivationAuditEvent {
+  provider: SkillProvider;
+  skillId: string;
+  before: SkillActivationStateSnapshot;
+  after: SkillActivationStateSnapshot;
+  timestamp: number;
+}

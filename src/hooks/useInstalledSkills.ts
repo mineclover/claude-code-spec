@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { InstalledSkillInfo, SkillInstallPathInfo } from '../types/tool-maintenance';
+import type {
+  InstalledSkillInfo,
+  SkillActivationAuditEvent,
+  SkillInstallPathInfo,
+} from '../types/tool-maintenance';
 
 type Message = { type: 'success' | 'error'; text: string } | null;
 
 export function useInstalledSkills() {
   const [installedSkills, setInstalledSkills] = useState<InstalledSkillInfo[]>([]);
   const [skillInstallPaths, setSkillInstallPaths] = useState<SkillInstallPathInfo[]>([]);
+  const [activationEvents, setActivationEvents] = useState<SkillActivationAuditEvent[]>([]);
   const [isSkillsLoading, setIsSkillsLoading] = useState(false);
   const [togglingSkillKey, setTogglingSkillKey] = useState<string | null>(null);
   const [skillsMessage, setSkillsMessage] = useState<Message>(null);
@@ -14,12 +19,14 @@ export function useInstalledSkills() {
     setIsSkillsLoading(true);
     setSkillsMessage(null);
     try {
-      const [paths, skills] = await Promise.all([
+      const [paths, skills, events] = await Promise.all([
         window.toolsAPI.getSkillInstallPaths(),
         window.toolsAPI.getInstalledSkills(),
+        window.toolsAPI.getSkillActivationEvents(20),
       ]);
       setSkillInstallPaths(paths);
       setInstalledSkills(skills);
+      setActivationEvents(events);
     } catch (error) {
       console.error('Failed to load installed skills:', error);
       setSkillsMessage({ type: 'error', text: 'Failed to load installed skills.' });
@@ -60,6 +67,7 @@ export function useInstalledSkills() {
   return {
     installedSkills,
     skillInstallPaths,
+    activationEvents,
     isSkillsLoading,
     togglingSkillKey,
     skillsMessage,

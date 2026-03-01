@@ -3,10 +3,12 @@
  * Handles tool registry queries
  */
 
+import path from 'node:path';
 import { shell } from 'electron';
 import { settingsService } from '../../services/appSettings';
 import { CliMaintenanceService } from '../../services/CliMaintenanceService';
 import { createMaintenanceAdapters } from '../../services/maintenance/serviceIntegrations';
+import { FileSkillActivationAuditStore } from '../../services/maintenance/skillActivationAuditLog';
 import { ReferenceAssetService } from '../../services/ReferenceAssetService';
 import { toolRegistry } from '../../services/ToolRegistry';
 import type {
@@ -18,8 +20,13 @@ import type {
 import type { SkillProvider } from '../../types/tool-maintenance';
 import type { IPCRouter } from '../IPCRouter';
 
-const cliMaintenanceService = new CliMaintenanceService(() =>
-  createMaintenanceAdapters({ customServices: settingsService.getMaintenanceServices() }),
+const cliMaintenanceService = new CliMaintenanceService(
+  () => createMaintenanceAdapters({ customServices: settingsService.getMaintenanceServices() }),
+  {
+    activationAuditStore: new FileSkillActivationAuditStore(
+      path.join(path.dirname(settingsService.getSettingsPath()), 'skill-activation-events.json'),
+    ),
+  },
 );
 const referenceAssetService = new ReferenceAssetService();
 
@@ -50,6 +57,10 @@ export function registerToolsHandlers(router: IPCRouter): void {
 
   router.handle('get-installed-skills', async () => {
     return cliMaintenanceService.getInstalledSkills();
+  });
+
+  router.handle('get-skill-activation-events', async (_event, limit?: number) => {
+    return cliMaintenanceService.getSkillActivationEvents(limit);
   });
 
   router.handle(

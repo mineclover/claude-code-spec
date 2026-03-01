@@ -18,6 +18,7 @@ import type {
   CliToolVersionInfo,
   InstalledSkillInfo,
   ManagedCliTool,
+  SkillActivationAuditEvent,
   SkillInstallPathInfo,
   SkillProvider,
 } from '../tool-maintenance';
@@ -30,6 +31,7 @@ export interface ToolsAPI {
   runToolUpdate: (toolId: string) => Promise<CliToolUpdateResult>;
   getSkillInstallPaths: () => Promise<SkillInstallPathInfo[]>;
   getInstalledSkills: () => Promise<InstalledSkillInfo[]>;
+  getSkillActivationEvents: (limit?: number) => Promise<SkillActivationAuditEvent[]>;
   listReferenceAssets: (
     assetType: ReferenceAssetType,
     provider?: ReferenceProvider,

@@ -3,7 +3,11 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { InstalledSkillInfo, SkillInstallPathInfo } from '../../types/tool-maintenance';
+import type {
+  InstalledSkillInfo,
+  SkillActivationAuditEvent,
+  SkillInstallPathInfo,
+} from '../../types/tool-maintenance';
 import { SkillsInstalledSection } from './SkillsInstalledSection';
 
 function createSkillPath(): SkillInstallPathInfo {
@@ -34,6 +38,19 @@ function createInstalledSkill(partial?: Partial<InstalledSkillInfo>): InstalledS
   };
 }
 
+function createActivationEvent(
+  partial?: Partial<SkillActivationAuditEvent>,
+): SkillActivationAuditEvent {
+  return {
+    provider: 'codex',
+    skillId: 'alpha-skill',
+    before: { active: false, path: '/Users/test/.codex/skills-disabled/alpha-skill' },
+    after: { active: true, path: '/Users/test/.codex/skills/alpha-skill' },
+    timestamp: Date.now(),
+    ...partial,
+  };
+}
+
 describe('SkillsInstalledSection', () => {
   it('renders installed skill list and triggers callbacks', async () => {
     const user = userEvent.setup();
@@ -45,6 +62,7 @@ describe('SkillsInstalledSection', () => {
       <SkillsInstalledSection
         skillInstallPaths={[createSkillPath()]}
         installedSkills={[skill]}
+        activationEvents={[createActivationEvent()]}
         isSkillsLoading={false}
         togglingSkillKey={null}
         message={{ type: 'success', text: 'Done' }}
@@ -56,6 +74,8 @@ describe('SkillsInstalledSection', () => {
     expect(screen.getByText('Alpha Skill')).toBeTruthy();
     expect(screen.getByText('Active')).toBeTruthy();
     expect(screen.getByText('Version: 1.0.0')).toBeTruthy();
+    expect(screen.getByText('Recent Activation Events')).toBeTruthy();
+    expect(screen.getByText('inactive -> active')).toBeTruthy();
     expect(screen.getByText('Done')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Refresh' }));
@@ -71,6 +91,7 @@ describe('SkillsInstalledSection', () => {
       <SkillsInstalledSection
         skillInstallPaths={[]}
         installedSkills={[skill]}
+        activationEvents={[]}
         isSkillsLoading={true}
         togglingSkillKey="codex:alpha-skill"
         message={null}
@@ -92,6 +113,7 @@ describe('SkillsInstalledSection', () => {
       <SkillsInstalledSection
         skillInstallPaths={[]}
         installedSkills={[createInstalledSkill({ versionHint: null })]}
+        activationEvents={[]}
         isSkillsLoading={false}
         togglingSkillKey={null}
         message={null}
@@ -108,6 +130,7 @@ describe('SkillsInstalledSection', () => {
       <SkillsInstalledSection
         skillInstallPaths={[]}
         installedSkills={[]}
+        activationEvents={[]}
         isSkillsLoading={false}
         togglingSkillKey={null}
         message={null}
@@ -117,5 +140,6 @@ describe('SkillsInstalledSection', () => {
     );
 
     expect(screen.getByText('No installed skills found.')).toBeTruthy();
+    expect(screen.getByText('No activation events recorded.')).toBeTruthy();
   });
 });

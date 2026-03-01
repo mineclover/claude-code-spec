@@ -25,6 +25,7 @@ export function SkillsPage() {
   const {
     installedSkills,
     skillInstallPaths,
+    activationEvents,
     isSkillsLoading,
     togglingSkillKey,
     skillsMessage,
@@ -88,6 +89,7 @@ export function SkillsPage() {
         <SkillsInstalledSection
           skillInstallPaths={skillInstallPaths}
           installedSkills={installedSkills}
+          activationEvents={activationEvents}
           isSkillsLoading={isSkillsLoading}
           togglingSkillKey={togglingSkillKey}
           message={skillsMessage}

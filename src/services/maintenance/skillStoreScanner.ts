@@ -50,6 +50,13 @@ export interface ResolvedSkillStoreScanRoots extends SkillStoreScanRoots {
   strategyId: string;
 }
 
+export interface SkillStoreMoveTransactionResult {
+  ok: boolean;
+  rolledBack: boolean;
+  error?: string;
+  rollbackError?: string;
+}
+
 function defineProviderSkillStoreScanRootStrategy(
   strategy: ProviderSkillStoreScanRootStrategy,
 ): ProviderSkillStoreScanRootStrategy {
@@ -130,6 +137,16 @@ function compareInstalledSkills(a: InstalledSkillInfo, b: InstalledSkillInfo): n
   return a.id.localeCompare(b.id);
 }
 
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return 'Unknown error';
+}
+
 export function resolveSkillStoreScanRoots(store: SkillStoreAdapter): ResolvedSkillStoreScanRoots {
   const explicit = resolveStrategyById(store.scanStrategy);
   const inferred = inferStrategyByProvider(store.provider);
@@ -159,6 +176,38 @@ export async function movePathWithExdevFallback(
 
   await fileOps.cp(fromPath, toPath, { recursive: true });
   await fileOps.rm(fromPath, { recursive: true, force: true });
+}
+
+export async function runSkillStoreMoveTransaction({
+  apply,
+  rollback,
+}: {
+  apply: () => Promise<void>;
+  rollback: () => Promise<void>;
+}): Promise<SkillStoreMoveTransactionResult> {
+  try {
+    await apply();
+    return {
+      ok: true,
+      rolledBack: false,
+    };
+  } catch (error) {
+    try {
+      await rollback();
+      return {
+        ok: false,
+        rolledBack: true,
+        error: toErrorMessage(error),
+      };
+    } catch (rollbackError) {
+      return {
+        ok: false,
+        rolledBack: true,
+        error: toErrorMessage(error),
+        rollbackError: toErrorMessage(rollbackError),
+      };
+    }
+  }
 }
 
 export async function scanSkillDirectoryEntries(

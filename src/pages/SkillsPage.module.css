@@ -316,3 +316,20 @@
   font-size: var(--text-base);
   font-style: italic;
 }
+
+.activationEventsSection {
+  margin-top: 14px;
+}
+
+.activationEventList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.activationEventRow {
+  padding: 8px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}

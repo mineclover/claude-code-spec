@@ -17,6 +17,7 @@ import type {
   CommandSpec,
   InstalledSkillInfo,
   ManagedCliTool,
+  SkillActivationAuditEvent,
   SkillInstallPathInfo,
   SkillProvider,
 } from '../types/tool-maintenance';
@@ -27,9 +28,15 @@ import {
   toSkillInstallPathInfo,
 } from './maintenance/serviceIntegrations';
 import {
+  NOOP_SKILL_ACTIVATION_AUDIT_STORE,
+  resolveSkillActivationAuditEventLimit,
+  type SkillActivationAuditStore,
+} from './maintenance/skillActivationAuditLog';
+import {
   dedupeAndSortInstalledSkills,
   movePathWithExdevFallback,
   resolveSkillStoreScanRoots,
+  runSkillStoreMoveTransaction,
   SKILL_FILE_NAME,
   scanSkillEntriesFromRoots,
 } from './maintenance/skillStoreScanner';
@@ -46,6 +53,27 @@ interface SkillLockEntryLike {
   source?: string;
   skillFolderHash?: string;
   updatedAt?: string;
+}
+
+interface SkillActivationState {
+  active: boolean;
+  path: string | null;
+}
+
+interface SkillActivationMovePlan {
+  sourcePath: string;
+  targetPath: string;
+  ensureTargetRoot: string;
+}
+
+interface ResolvedSkillActivationState {
+  before: SkillActivationState;
+  existingActivePath: string | null;
+  existingDisabledPath: string | null;
+}
+
+interface CliMaintenanceServiceOptions {
+  activationAuditStore?: SkillActivationAuditStore;
 }
 
 const SKILL_LOCK_PATH = path.join(os.homedir(), '.agents', '.skill-lock.json');
@@ -69,11 +97,14 @@ function ensureNoPathTraversal(skillId: string): string {
 
 export class CliMaintenanceService {
   private readonly resolveAdapters: () => MaintenanceServiceAdapter[];
+  private readonly activationAuditStore: SkillActivationAuditStore;
 
   constructor(
     resolveAdapters: () => MaintenanceServiceAdapter[] = () => createMaintenanceAdapters(),
+    options: CliMaintenanceServiceOptions = {},
   ) {
     this.resolveAdapters = resolveAdapters;
+    this.activationAuditStore = options.activationAuditStore ?? NOOP_SKILL_ACTIVATION_AUDIT_STORE;
   }
 
   private getAdapters(): MaintenanceServiceAdapter[] {
@@ -142,39 +173,177 @@ export class CliMaintenanceService {
     const activeEntries = await scanSkillEntriesFromRoots(roots.installRoots);
     const disabledEntries = await scanSkillEntriesFromRoots(roots.disabledRoots);
 
-    if (active) {
-      const hasActive = activeEntries.has(normalizedSkillId) || (await this.pathExists(activePath));
-      if (!hasActive) {
-        const existingDisabledPath = disabledEntries.get(normalizedSkillId);
-        if (!existingDisabledPath && !(await this.pathExists(disabledPath))) {
-          throw new Error(`Skill not found for activation: ${provider}/${normalizedSkillId}`);
+    const resolvedState = await this.resolveSkillActivationState({
+      provider,
+      skillId: normalizedSkillId,
+      active,
+      activePath,
+      disabledPath,
+      activeEntries,
+      disabledEntries,
+    });
+    const movePlan = this.resolveSkillActivationMovePlan({
+      requestedActive: active,
+      existingActivePath: resolvedState.existingActivePath,
+      existingDisabledPath: resolvedState.existingDisabledPath,
+      activePath,
+      disabledPath,
+      primaryInstallRoot,
+      primaryDisabledRoot,
+    });
+
+    let refreshedSkill: InstalledSkillInfo | null = null;
+    const transaction = await runSkillStoreMoveTransaction({
+      apply: async () => {
+        if (movePlan && movePlan.sourcePath !== movePlan.targetPath) {
+          await fs.mkdir(movePlan.ensureTargetRoot, { recursive: true });
+          await movePathWithExdevFallback(movePlan.sourcePath, movePlan.targetPath);
         }
-        await fs.mkdir(primaryInstallRoot, { recursive: true });
-        const sourcePath = existingDisabledPath ?? disabledPath;
-        if (sourcePath !== activePath) {
-          await movePathWithExdevFallback(sourcePath, activePath);
+
+        refreshedSkill = await this.findInstalledSkill(provider, normalizedSkillId);
+        await this.activationAuditStore.append({
+          provider,
+          skillId: normalizedSkillId,
+          before: resolvedState.before,
+          after: {
+            active: refreshedSkill.active,
+            path: refreshedSkill.path,
+          },
+          timestamp: Date.now(),
+        });
+      },
+      rollback: async () => {
+        if (!movePlan || movePlan.sourcePath === movePlan.targetPath) {
+          return;
         }
+        if (!(await this.pathExists(movePlan.targetPath))) {
+          return;
+        }
+        await fs.mkdir(path.dirname(movePlan.sourcePath), { recursive: true });
+        await movePathWithExdevFallback(movePlan.targetPath, movePlan.sourcePath);
+      },
+    });
+
+    if (!transaction.ok) {
+      if (transaction.rollbackError) {
+        throw new Error(
+          `Skill activation transaction failed (${provider}/${normalizedSkillId}): ${transaction.error ?? 'Unknown error'} (rollback failed: ${transaction.rollbackError})`,
+        );
       }
-    } else {
-      const hasDisabled =
-        disabledEntries.has(normalizedSkillId) || (await this.pathExists(disabledPath));
-      if (!hasDisabled) {
-        const existingActivePath = activeEntries.get(normalizedSkillId);
-        if (!existingActivePath && !(await this.pathExists(activePath))) {
-          throw new Error(`Skill not found for deactivation: ${provider}/${normalizedSkillId}`);
-        }
-        await fs.mkdir(primaryDisabledRoot, { recursive: true });
-        const sourcePath = existingActivePath ?? activePath;
-        if (sourcePath !== disabledPath) {
-          await movePathWithExdevFallback(sourcePath, disabledPath);
-        }
-      }
+      throw new Error(
+        `Skill activation transaction failed (${provider}/${normalizedSkillId}): ${transaction.error ?? 'Unknown error'}`,
+      );
     }
 
-    const all = await this.getInstalledSkills();
-    const found = all.find((item) => item.provider === provider && item.id === normalizedSkillId);
-    if (!found) {
+    if (!refreshedSkill) {
       throw new Error(`Skill state refresh failed: ${provider}/${normalizedSkillId}`);
+    }
+
+    return refreshedSkill;
+  }
+
+  async getSkillActivationEvents(limit = 20): Promise<SkillActivationAuditEvent[]> {
+    const resolvedLimit = resolveSkillActivationAuditEventLimit(limit);
+    return this.activationAuditStore.listRecent(resolvedLimit);
+  }
+
+  private async resolveSkillActivationState({
+    provider,
+    skillId,
+    active,
+    activePath,
+    disabledPath,
+    activeEntries,
+    disabledEntries,
+  }: {
+    provider: SkillProvider;
+    skillId: string;
+    active: boolean;
+    activePath: string;
+    disabledPath: string;
+    activeEntries: Map<string, string>;
+    disabledEntries: Map<string, string>;
+  }): Promise<ResolvedSkillActivationState> {
+    const existingActivePath =
+      activeEntries.get(skillId) ?? ((await this.pathExists(activePath)) ? activePath : null);
+    const existingDisabledPath =
+      disabledEntries.get(skillId) ?? ((await this.pathExists(disabledPath)) ? disabledPath : null);
+
+    if (!existingActivePath && !existingDisabledPath) {
+      if (active) {
+        throw new Error(`Skill not found for activation: ${provider}/${skillId}`);
+      }
+      throw new Error(`Skill not found for deactivation: ${provider}/${skillId}`);
+    }
+
+    if (existingActivePath) {
+      return {
+        before: {
+          active: true,
+          path: existingActivePath,
+        },
+        existingActivePath,
+        existingDisabledPath,
+      };
+    }
+
+    return {
+      before: {
+        active: false,
+        path: existingDisabledPath,
+      },
+      existingActivePath,
+      existingDisabledPath,
+    };
+  }
+
+  private resolveSkillActivationMovePlan({
+    requestedActive,
+    existingActivePath,
+    existingDisabledPath,
+    activePath,
+    disabledPath,
+    primaryInstallRoot,
+    primaryDisabledRoot,
+  }: {
+    requestedActive: boolean;
+    existingActivePath: string | null;
+    existingDisabledPath: string | null;
+    activePath: string;
+    disabledPath: string;
+    primaryInstallRoot: string;
+    primaryDisabledRoot: string;
+  }): SkillActivationMovePlan | null {
+    if (requestedActive) {
+      if (existingActivePath) {
+        return null;
+      }
+      return {
+        sourcePath: existingDisabledPath ?? disabledPath,
+        targetPath: activePath,
+        ensureTargetRoot: primaryInstallRoot,
+      };
+    }
+
+    if (existingDisabledPath) {
+      return null;
+    }
+
+    return {
+      sourcePath: existingActivePath ?? activePath,
+      targetPath: disabledPath,
+      ensureTargetRoot: primaryDisabledRoot,
+    };
+  }
+
+  private async findInstalledSkill(
+    provider: SkillProvider,
+    skillId: string,
+  ): Promise<InstalledSkillInfo> {
+    const all = await this.getInstalledSkills();
+    const found = all.find((item) => item.provider === provider && item.id === skillId);
+    if (!found) {
+      throw new Error(`Skill state refresh failed: ${provider}/${skillId}`);
     }
     return found;
   }

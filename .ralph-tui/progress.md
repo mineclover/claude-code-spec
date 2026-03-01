@@ -15,6 +15,7 @@ after each iteration and it's included in prompts for context.
 - 세션 경로 해석은 `extract*FromEvent`와 `resolve*` 정규화 헬퍼를 분리해 `세션 명시 경로(cwd/projectPath) > 디렉토리명 유추 > 안전 기본값` 우선순위를 고정하고, 런타임 소비는 정규화 결과만 사용한다.
 - provider별 파일시스템 레이아웃 차이가 있는 스캐너는 `resolve*Strategy`(명시값 > provider 유추값 > 안전 기본값)와 `scan/move` 공통 FS 헬퍼를 분리해 symlink/숨김 디렉토리/EXDEV fallback 규칙을 단일 구현으로 고정한다.
 - 메타데이터 포맷이 provider마다 다른 힌트 필드는 `resolve*Info` 헬퍼로 `frontmatter > metadata > lockfile > source > fallback` 체인을 고정하고, UI 표시는 `format*` 헬퍼/상수 fallback을 재사용해 문구 드리프트를 방지한다.
+- 파일 이동 기반 상태 전환에 후속 갱신/감사 로그를 결합할 때는 `run*MoveTransaction(apply/rollback)`으로 묶고, `rollbackError`까지 결과에 포함해 상위 계층이 복구 실패를 명시적으로 처리하게 만든다.
 
 ---
 
@@ -96,4 +97,12 @@ after each iteration and it's included in prompts for context.
 - **Learnings:**
   - Patterns discovered: provider별로 버전 필드 위치가 달라도 resolver 입력을 `(frontmatter, metadata, lock)`로 고정하면 서비스 런타임과 UI 표시 포맷을 동시에 단순화할 수 있다.
   - Gotchas encountered: lockfile `source`는 항상 semver를 담지 않으므로 source fallback은 raw source를 그대로 쓰지 말고 `@`/`#`/query 기반 추출 후에만 버전 힌트로 채택해야 잘못된 표기를 줄일 수 있다.
+---
+
+## 2026-03-01 - US-011
+- What was implemented: 스킬 활성/비활성 전환 경로를 `runSkillStoreMoveTransaction(apply/rollback)` 기반 트랜잭션으로 감싸고, 이동 후 상태 refresh 또는 감사 로그 저장 실패 시 롤백하도록 `CliMaintenanceService.setSkillActivation`을 리팩터링했다. 또한 파일 기반 `FileSkillActivationAuditStore`를 추가해 `provider/skillId/before/after/timestamp` 이벤트를 영속 저장하고, IPC(`tools:get-skill-activation-events`) 및 renderer hook/UI를 통해 최근 activation 이벤트를 조회/표시하도록 연결했다.
+- Files changed: `src/types/tool-maintenance.ts`, `src/services/maintenance/skillActivationAuditLog.ts`, `src/services/maintenance/skillActivationAuditLog.test.ts`, `src/services/maintenance/skillStoreScanner.ts`, `src/services/maintenance/skillStoreScanner.test.ts`, `src/services/CliMaintenanceService.ts`, `src/services/CliMaintenanceService.test.ts`, `src/ipc/handlers/toolsHandlers.ts`, `src/types/api/tools.ts`, `src/preload/apis/tools.ts`, `src/hooks/useInstalledSkills.ts`, `src/pages/SkillsPage.tsx`, `src/components/skills/SkillsInstalledSection.tsx`, `src/components/skills/SkillsInstalledSection.test.tsx`, `src/pages/SkillsPage.module.css`, `src/pages/SkillsPage.test.tsx`, `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered: 트랜잭션 apply 단계에 `상태 refresh + 감사 로그 append`까지 포함하면 로그 저장 실패도 동일 rollback 경로로 흡수할 수 있어 상태/감사 일관성을 유지하기 쉽다.
+  - Gotchas encountered: 디렉토리 이동 롤백은 항상 가능한 것이 아니므로(경로 미존재/2차 실패) transaction result에 `rollbackError`를 노출하고 호출부에서 별도 에러 메시지로 승격해야 디버깅이 가능하다.
 ---
