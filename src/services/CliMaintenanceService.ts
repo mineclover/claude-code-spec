@@ -10,6 +10,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import matter from 'gray-matter';
 import { dedupeByLast } from '../lib/collectionUtils';
+import { resolveSkillVersionInfo } from '../lib/skillVersionResolver';
 import type {
   CliToolUpdateResult,
   CliToolVersionInfo,
@@ -391,20 +392,15 @@ export class CliMaintenanceService {
     const frontmatter = isRecord(parsed.data) ? parsed.data : {};
     const metadata = isRecord(frontmatter.metadata) ? frontmatter.metadata : {};
     const lock = lockMap[skillId];
+    const versionInfo = resolveSkillVersionInfo({
+      frontmatter,
+      metadata,
+      lock,
+    });
 
     const name = this.readString(frontmatter.name) ?? this.readString(metadata.name) ?? skillId;
     const description =
       this.readString(frontmatter.description) ?? this.readString(metadata.description) ?? '';
-    const versionHint =
-      lock?.skillFolderHash ??
-      this.readString(frontmatter.version) ??
-      this.readString(metadata.version) ??
-      null;
-    const source =
-      lock?.source ??
-      this.readString(frontmatter.source) ??
-      this.readString(metadata.source) ??
-      null;
 
     let updatedAt: number | null = null;
     if (lock?.updatedAt) {
@@ -434,8 +430,8 @@ export class CliMaintenanceService {
       disabledRoot: path.dirname(disabledPath),
       activePath,
       disabledPath,
-      versionHint,
-      source,
+      versionHint: versionInfo.versionHint,
+      source: versionInfo.source,
       updatedAt,
     };
   }

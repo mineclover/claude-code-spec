@@ -14,6 +14,7 @@ after each iteration and it's included in prompts for context.
 - 멀티 소스 설정 병합이 필요한 경우에는 `get*Candidates` 집계 API를 먼저 만들고, 소비 API(`get*List`/생성 API)는 후보 결과를 재사용하게 연결해 충돌 규칙을 단일 merge comparator로 고정한다.
 - 세션 경로 해석은 `extract*FromEvent`와 `resolve*` 정규화 헬퍼를 분리해 `세션 명시 경로(cwd/projectPath) > 디렉토리명 유추 > 안전 기본값` 우선순위를 고정하고, 런타임 소비는 정규화 결과만 사용한다.
 - provider별 파일시스템 레이아웃 차이가 있는 스캐너는 `resolve*Strategy`(명시값 > provider 유추값 > 안전 기본값)와 `scan/move` 공통 FS 헬퍼를 분리해 symlink/숨김 디렉토리/EXDEV fallback 규칙을 단일 구현으로 고정한다.
+- 메타데이터 포맷이 provider마다 다른 힌트 필드는 `resolve*Info` 헬퍼로 `frontmatter > metadata > lockfile > source > fallback` 체인을 고정하고, UI 표시는 `format*` 헬퍼/상수 fallback을 재사용해 문구 드리프트를 방지한다.
 
 ---
 
@@ -87,4 +88,12 @@ after each iteration and it's included in prompts for context.
 - **Learnings:**
   - Patterns discovered: provider 확장이 예정된 스캔 로직은 서비스 클래스 내부 분기보다 전략 해석(`resolve*`) + 공통 FS 동작(`scan/move`) 분리 구조가 테스트와 회귀 방지에 유리하다.
   - Gotchas encountered: Node 내장 `fs.promises` 메서드는 직접 spy가 불가능한 경우가 있어(EXDEV 테스트), 파일 연산 의존성 주입 포인트를 열어 테스트에서 모의 구현을 주입해야 안정적으로 검증할 수 있다.
+---
+
+## 2026-03-01 - US-010
+- What was implemented: `resolveSkillVersionInfo`/`formatSkillVersionHint` 헬퍼를 추가해 버전 힌트 해석을 `frontmatter > metadata > lockfile > source > fallback(unknown)` 순서로 정규화했다. `CliMaintenanceService`는 새 resolver 결과만 사용하도록 연결했고, `SkillsInstalledSection`은 공통 formatter를 사용해 버전 정보 부재 시 fallback 문구를 일관되게 표시하도록 정리했다. 또한 provider별 샘플 `SKILL.md` fixture(claude/codex/gemini/agents) 기반 resolver 테스트를 추가해 체인 우선순위를 고정했다.
+- Files changed: `src/lib/skillVersionResolver.ts`, `src/lib/skillVersionResolver.test.ts`, `src/lib/__fixtures__/skill-version-resolver/claude/SKILL.md`, `src/lib/__fixtures__/skill-version-resolver/codex/SKILL.md`, `src/lib/__fixtures__/skill-version-resolver/gemini/SKILL.md`, `src/lib/__fixtures__/skill-version-resolver/agents/SKILL.md`, `src/services/CliMaintenanceService.ts`, `src/components/skills/SkillsInstalledSection.tsx`, `src/components/skills/SkillsInstalledSection.test.tsx`, `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered: provider별로 버전 필드 위치가 달라도 resolver 입력을 `(frontmatter, metadata, lock)`로 고정하면 서비스 런타임과 UI 표시 포맷을 동시에 단순화할 수 있다.
+  - Gotchas encountered: lockfile `source`는 항상 semver를 담지 않으므로 source fallback은 raw source를 그대로 쓰지 말고 `@`/`#`/query 기반 추출 후에만 버전 힌트로 채택해야 잘못된 표기를 줄일 수 있다.
 ---

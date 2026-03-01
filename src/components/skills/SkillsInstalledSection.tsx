@@ -1,3 +1,4 @@
+import { formatSkillVersionHint } from '../../lib/skillVersionResolver';
 import styles from '../../pages/SkillsPage.module.css';
 import type { InstalledSkillInfo, SkillInstallPathInfo } from '../../types/tool-maintenance';
 
@@ -69,7 +70,7 @@ export function SkillsInstalledSection({
                   {skill.active ? 'Active' : 'Inactive'}
                 </div>
                 <div className={styles.skillVersion}>
-                  {skill.versionHint ? `Version: ${skill.versionHint}` : 'Version: unknown'}
+                  {`Version: ${formatSkillVersionHint(skill.versionHint)}`}
                 </div>
                 <button
                   type="button"

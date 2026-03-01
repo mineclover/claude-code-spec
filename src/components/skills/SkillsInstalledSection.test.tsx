@@ -87,6 +87,22 @@ describe('SkillsInstalledSection', () => {
     expect(toggleButton.disabled).toBe(true);
   });
 
+  it('shows consistent version fallback label when version hint is missing', () => {
+    render(
+      <SkillsInstalledSection
+        skillInstallPaths={[]}
+        installedSkills={[createInstalledSkill({ versionHint: null })]}
+        isSkillsLoading={false}
+        togglingSkillKey={null}
+        message={null}
+        onRefresh={vi.fn()}
+        onToggleSkillActivation={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Version: unknown')).toBeTruthy();
+  });
+
   it('shows fallback when no skills are installed', () => {
     render(
       <SkillsInstalledSection
