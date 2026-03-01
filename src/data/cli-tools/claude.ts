@@ -16,30 +16,47 @@ export const claudeToolDefinition: CLIToolDefinition = {
       { type: 'option', key: 'query', flag: '-p' },
       { type: 'static', args: ['--output-format', 'stream-json', '--verbose'] },
       { type: 'option', key: 'model', flag: '--model' },
-      { type: 'option', key: 'mcpConfig', flag: '--mcp-config' },
       {
-        type: 'static',
-        args: ['--strict-mcp-config'],
-        when: {
-          op: 'any',
-          conditions: [
-            { op: 'nonEmpty', key: 'mcpConfig' },
-            { op: 'equals', key: 'strictMcpConfig', value: true },
-          ],
-        },
+        type: 'fallback',
+        segments: [
+          {
+            type: 'conditional',
+            when: { op: 'nonEmpty', key: 'mcpConfig' },
+            segments: [
+              { type: 'option', key: 'mcpConfig', flag: '--mcp-config' },
+              { type: 'static', args: ['--strict-mcp-config'] },
+            ],
+          },
+          {
+            type: 'conditional',
+            when: { op: 'equals', key: 'strictMcpConfig', value: true },
+            segments: [{ type: 'static', args: ['--strict-mcp-config'] }],
+          },
+        ],
       },
       {
-        type: 'mapped',
-        key: 'permissionMode',
-        map: {
-          '': [],
-          plan: ['--permission-mode', 'plan'],
-          'auto-edit': ['--permission-mode', 'auto-edit'],
-          'full-auto': ['--permission-mode', 'full-auto'],
-          bypass: ['--dangerously-skip-permissions'],
-          bypassPermissions: ['--dangerously-skip-permissions'],
-          'dangerously-skip-permissions': ['--dangerously-skip-permissions'],
-        },
+        type: 'fallback',
+        segments: [
+          {
+            type: 'mapped',
+            key: 'permissionMode',
+            map: {
+              '': [],
+              plan: ['--permission-mode', 'plan'],
+              'auto-edit': ['--permission-mode', 'auto-edit'],
+              'full-auto': ['--permission-mode', 'full-auto'],
+            },
+          },
+          {
+            type: 'conditional',
+            when: {
+              op: 'in',
+              key: 'permissionMode',
+              values: ['bypass', 'bypassPermissions', 'dangerously-skip-permissions'],
+            },
+            segments: [{ type: 'static', args: ['--dangerously-skip-permissions'] }],
+          },
+        ],
       },
       { type: 'option', key: 'maxTurns', flag: '--max-turns', valueType: 'number' },
       { type: 'option', key: 'systemPrompt', flag: '--system-prompt' },

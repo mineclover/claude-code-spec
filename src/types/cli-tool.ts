@@ -51,10 +51,24 @@ export interface CLICommandMappedSegment {
   when?: CLICommandCondition;
 }
 
+export interface CLICommandConditionalSegment {
+  type: 'conditional';
+  when: CLICommandCondition;
+  segments: CLICommandSegment[];
+}
+
+export interface CLICommandFallbackSegment {
+  type: 'fallback';
+  when?: CLICommandCondition;
+  segments: CLICommandSegment[];
+}
+
 export type CLICommandSegment =
   | CLICommandStaticSegment
   | CLICommandOptionSegment
-  | CLICommandMappedSegment;
+  | CLICommandMappedSegment
+  | CLICommandConditionalSegment
+  | CLICommandFallbackSegment;
 
 export interface CLICommandSpec {
   executable: string;

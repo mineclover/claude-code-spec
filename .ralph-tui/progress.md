@@ -9,6 +9,7 @@ after each iteration and it's included in prompts for context.
 - capability 선언에 따라 필수 계약 필드를 강제해야 할 때는 `define*` 등록 헬퍼 + conditional type 조합으로 빌드 타임 제약을 두고, 런타임에서는 동일 계약을 `resolveCapabilityMatrix` 결과로 다시 게이트한다.
 - 경로 템플릿(`${ENV}`/`~`) 확장과 skills disabled root 파생 규칙은 `lib` 공통 유틸로 승격해 내장/커스텀 어댑터가 동일 정규화 경로를 재사용하게 만든다.
 - 버전드 설정 도입 시에는 `migrate*ToLatest` 파이프라인과 `run*MigrationTransaction`(apply/rollback) 보호 헬퍼를 함께 두어 `구버전 흡수`와 `실패 시 원복`을 동일 규칙으로 강제한다.
+- 플래그 우선순위 분기가 필요한 CLI 명령 조합은 `fallback` 세그먼트에 우선 브랜치를 앞에서부터 선언하고, 각 브랜치 내부는 `conditional` 그룹으로 묶어 하나의 의미 단위(예: `mcp-config + strict`)를 원자적으로 출력한다.
 
 ---
 
@@ -42,4 +43,12 @@ after each iteration and it's included in prompts for context.
 - **Learnings:**
   - Patterns discovered: 레거시 입력 허용이 필요한 validator는 직접 다형 루트를 검증하기보다 `migration -> latest schema validation` 2단계로 분리하면 오류 경로 표시와 런타임 소비 포맷을 동시에 단순화할 수 있다.
   - Gotchas encountered: settings 로드 시 자동 마이그레이션을 디스크에 즉시 반영할 때 저장 실패 가능성이 있으므로, 메모리 스냅샷 기반 `save-with-rollback` 경로를 같이 두지 않으면 부분 적용 상태가 남을 수 있다.
+---
+
+## 2026-03-01 - US-005
+- What was implemented: CLI command rule catalog에 `conditional` 그룹과 `fallback` 세그먼트를 추가하고, `CliCommandComposer`/`ToolRegistry`를 재귀 조합/검증 구조로 확장했다. `claude` 명령 정의를 새 규칙으로 리팩터링해 `mcpConfig + strictMcpConfig` 우선순위와 permission 모드 분기를 선언형으로 표현했고, 조합 결과를 스냅샷 테스트로 고정했다.
+- Files changed: `src/types/cli-tool.ts`, `src/services/CliCommandComposer.ts`, `src/services/ToolRegistry.ts`, `src/data/cli-tools/claude.ts`, `src/services/CliCommandComposer.test.ts`, `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered: 기존 `option/static/mapped`만으로는 조합 우선순위를 여러 곳에서 중복 조건으로 표현하게 되므로, `fallback(우선순위)` + `conditional(그룹 원자성)` 조합이 규칙 카탈로그 확장성과 가독성을 동시에 확보한다.
+  - Gotchas encountered: `fallback` 후보에 빈 배열을 반환하는 세그먼트가 섞여도 다음 후보로 안전하게 진행되어야 하므로, `first non-empty` 선택 규칙을 컴포저/테스트에 동시에 고정하지 않으면 도구별 플래그 회귀가 발생하기 쉽다.
 ---

@@ -1,5 +1,7 @@
 import type {
   CLICommandCondition,
+  CLICommandConditionalSegment,
+  CLICommandFallbackSegment,
   CLICommandMappedSegment,
   CLICommandOptionSegment,
   CLICommandSegment,
@@ -112,14 +114,54 @@ function renderMappedSegment(
   return mapped ? [...mapped] : [];
 }
 
+function renderConditionalSegment(
+  segment: CLICommandConditionalSegment,
+  options: Record<string, unknown>,
+): string[] {
+  if (!evaluateCondition(segment.when, options)) {
+    return [];
+  }
+
+  const rendered: string[] = [];
+  for (const child of segment.segments) {
+    rendered.push(...renderSegment(child, options));
+  }
+  return rendered;
+}
+
+function renderFallbackSegment(
+  segment: CLICommandFallbackSegment,
+  options: Record<string, unknown>,
+): string[] {
+  if (!evaluateCondition(segment.when, options)) {
+    return [];
+  }
+
+  for (const candidate of segment.segments) {
+    const rendered = renderSegment(candidate, options);
+    if (rendered.length > 0) {
+      return rendered;
+    }
+  }
+
+  return [];
+}
+
 function renderSegment(segment: CLICommandSegment, options: Record<string, unknown>): string[] {
-  if (segment.type === 'static') {
-    return evaluateCondition(segment.when, options) ? [...segment.args] : [];
+  switch (segment.type) {
+    case 'static':
+      return evaluateCondition(segment.when, options) ? [...segment.args] : [];
+    case 'option':
+      return renderOptionSegment(segment, options);
+    case 'mapped':
+      return renderMappedSegment(segment, options);
+    case 'conditional':
+      return renderConditionalSegment(segment, options);
+    case 'fallback':
+      return renderFallbackSegment(segment, options);
+    default:
+      return [];
   }
-  if (segment.type === 'option') {
-    return renderOptionSegment(segment, options);
-  }
-  return renderMappedSegment(segment, options);
 }
 
 export function composeCliCommand(
