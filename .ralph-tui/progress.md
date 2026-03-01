@@ -6,6 +6,11 @@ after each iteration and it's included in prompts for context.
 ## Codebase Patterns (Study These First)
 
 *Add reusable patterns discovered during development here.*
+- Skill activation transaction boundary pattern:
+  Keep activation/deactivation filesystem move and activation audit append inside a
+  single `runSkillStoreMoveTransaction` apply block in
+  `src/services/CliMaintenanceService.ts`, and rollback by moving the directory back
+  when any post-move step fails, so persisted state and audit trail stay consistent.
 - Skill store scanner strategy composition pattern:
   Keep provider-specific root resolution in `resolveSkillStoreScanRoots` through
   `SkillStoreScanRootStrategy` mappings, and centralize shared filesystem rules
@@ -318,4 +323,37 @@ after each iteration and it's included in prompts for context.
   - Gotchas encountered
     - Story scope was already implemented in the current branch; this iteration
       focused on acceptance verification and progress logging.
+---
+
+## 2026-03-01 - US-011
+- What was implemented
+  - Verified activation/deactivation transaction path already exists in
+    `src/services/CliMaintenanceService.ts`:
+    `setSkillActivation` composes move + refresh + audit append in
+    `runSkillStoreMoveTransaction` and restores moved directories on failure.
+  - Verified activation audit payload persistence is implemented with required fields
+    (`provider`, `skillId`, `before`, `after`, `timestamp`) via
+    `SkillActivationAuditStore.append` and `FileSkillActivationAuditStore`
+    (`src/services/maintenance/skillActivationAuditLog.ts`).
+  - Verified UI recent activation event query path is wired end-to-end:
+    IPC `tools:get-skill-activation-events`
+    (`src/ipc/handlers/toolsHandlers.ts`) ->
+    preload `toolsAPI.getSkillActivationEvents`
+    (`src/preload/apis/tools.ts`) ->
+    hook load (`src/hooks/useInstalledSkills.ts`) ->
+    render in `Recent Activation Events`
+    (`src/components/skills/SkillsInstalledSection.tsx`).
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/services/CliMaintenanceService.ts src/services/CliMaintenanceService.test.ts src/services/maintenance/skillActivationAuditLog.ts src/services/maintenance/skillActivationAuditLog.test.ts src/hooks/useInstalledSkills.ts src/components/skills/SkillsInstalledSection.tsx src/components/skills/SkillsInstalledSection.test.tsx src/ipc/handlers/toolsHandlers.ts src/preload/apis/tools.ts src/types/api/tools.ts src/types/tool-maintenance.ts`
+    - `npx vitest run src/services/CliMaintenanceService.test.ts src/services/maintenance/skillActivationAuditLog.test.ts src/components/skills/SkillsInstalledSection.test.tsx`
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - Activation state changes should treat move + state refresh + audit append as one
+      transaction boundary; rollback must reverse the move when refresh/audit fails.
+  - Gotchas encountered
+    - Story scope was already implemented in the current branch; this iteration focused
+      on acceptance verification and progress logging.
 ---
