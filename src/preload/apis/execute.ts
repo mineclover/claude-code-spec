@@ -15,7 +15,11 @@ export function exposeExecuteAPI(): void {
     killExecution: (sessionId: string) => ipcRenderer.invoke('execute:kill', sessionId),
     cleanupExecution: (sessionId: string) => ipcRenderer.invoke('execute:cleanup', sessionId),
     onStream: (callback: (sessionId: string, event: StreamEvent) => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, sessionId: string, streamEvent: StreamEvent) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        sessionId: string,
+        streamEvent: StreamEvent,
+      ) => {
         callback(sessionId, streamEvent);
       };
       ipcRenderer.on('execute:stream', handler);

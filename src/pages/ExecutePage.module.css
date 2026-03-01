@@ -47,6 +47,26 @@
   font-size: var(--text-base);
 }
 
+.skillSelect {
+  padding: 8px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  cursor: pointer;
+}
+
+.skillSelect:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.skillHint {
+  font-size: var(--text-sm);
+  color: var(--text-dimmed);
+}
+
 .queryInput {
   padding: 10px;
   border: 1px solid var(--border-default);

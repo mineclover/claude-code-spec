@@ -56,4 +56,5 @@ export interface ToolsAPI {
     skillId: string,
     active: boolean,
   ) => Promise<InstalledSkillInfo>;
+  readSkillContent: (provider: SkillProvider, skillId: string) => Promise<string | null>;
 }

@@ -3,6 +3,7 @@
  * Handles tool registry queries
  */
 
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { shell } from 'electron';
 import { settingsService } from '../../services/appSettings';
@@ -143,6 +144,23 @@ export function registerToolsHandlers(router: IPCRouter): void {
     'set-skill-activation',
     async (_event, args: { provider: SkillProvider; skillId: string; active: boolean }) => {
       return cliMaintenanceService.setSkillActivation(args.provider, args.skillId, args.active);
+    },
+  );
+
+  router.handle(
+    'get-skill-content',
+    async (_event, args: { provider: SkillProvider; skillId: string }) => {
+      try {
+        const skills = await cliMaintenanceService.getInstalledSkills();
+        const skill = skills.find((s) => s.provider === args.provider && s.id === args.skillId);
+        if (!skill) return null;
+        const skillFilePath = path.join(skill.path, 'SKILL.md');
+        const raw = await fs.readFile(skillFilePath, 'utf-8');
+        // Strip YAML frontmatter (--- ... ---)
+        return raw.replace(/^---\n[\s\S]*?\n---\n?/, '').trimStart();
+      } catch {
+        return null;
+      }
     },
   );
 }

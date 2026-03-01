@@ -41,5 +41,7 @@ export function exposeToolsAPI(): void {
       ipcRenderer.invoke('tools:set-reference-asset-preferences-batch', updates),
     setSkillActivation: (provider, skillId, active) =>
       ipcRenderer.invoke('tools:set-skill-activation', { provider, skillId, active }),
+    readSkillContent: (provider, skillId) =>
+      ipcRenderer.invoke('tools:get-skill-content', { provider, skillId }),
   } as ToolsAPI);
 }

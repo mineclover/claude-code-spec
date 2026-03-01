@@ -10,6 +10,7 @@ import { useProject } from '../contexts/ProjectContext';
 import { useToolContext } from '../contexts/ToolContext';
 import type { McpConfigFile } from '../types/api/settings';
 import type { CLIOptionSchema, CLIToolDefinition } from '../types/cli-tool';
+import type { InstalledSkillInfo } from '../types/tool-maintenance';
 import type { StreamEvent } from '../types/stream-events';
 import styles from './ExecutePage.module.css';
 
@@ -65,6 +66,8 @@ export function ExecutePage() {
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [allSkills, setAllSkills] = useState<InstalledSkillInfo[]>([]);
+  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const cleanupRef = useRef<Array<() => void>>([]);
 
   // Load registered tools and select the one matching sidebar
@@ -74,7 +77,14 @@ export function ExecutePage() {
     });
   }, []);
 
-  // Sync selectedTool with sidebar toolId
+  // Load installed skills (all providers) once
+  useEffect(() => {
+    window.toolsAPI.getInstalledSkills().then((skills) => {
+      setAllSkills(skills);
+    });
+  }, []);
+
+  // Sync selectedTool with sidebar toolId; reset skill selection on tool change
   useEffect(() => {
     const match = tools.find((t) => t.id === selectedToolId);
     if (match) {
@@ -85,6 +95,7 @@ export function ExecutePage() {
       setSelectedTool(tools[0]);
       setOptions(buildDefaultOptions(tools[0]));
     }
+    setSelectedSkillId(null);
   }, [selectedToolId, tools]);
 
   // Load project MCP config files as selectable suggestions for mcpConfig option.
@@ -154,10 +165,22 @@ export function ExecutePage() {
     setIsRunning(true);
 
     try {
+      let finalQuery = query.trim();
+
+      if (selectedSkillId) {
+        const skillContent = await window.toolsAPI.readSkillContent(
+          selectedToolId,
+          selectedSkillId,
+        );
+        if (skillContent) {
+          finalQuery = `${skillContent}\n\n---\n\n${finalQuery}`;
+        }
+      }
+
       const sessionId = await window.executeAPI.execute({
         toolId: selectedTool.id,
         projectPath,
-        query: query.trim(),
+        query: finalQuery,
         options,
       });
       setCurrentSessionId(sessionId);
@@ -165,7 +188,7 @@ export function ExecutePage() {
       setIsRunning(false);
       console.error('[ExecutePage] Failed to start execution:', error);
     }
-  }, [selectedTool, query, projectPath, options]);
+  }, [selectedTool, query, projectPath, options, selectedSkillId, selectedToolId]);
 
   const handleStop = useCallback(() => {
     if (currentSessionId) {
@@ -198,6 +221,11 @@ export function ExecutePage() {
     });
   }, [selectedTool, mcpConfigChoices]);
 
+  const toolSkills = useMemo(
+    () => allSkills.filter((s) => s.provider === selectedToolId && s.active),
+    [allSkills, selectedToolId],
+  );
+
   if (!projectPath) {
     return (
       <div className={styles.emptyState}>
@@ -214,6 +242,28 @@ export function ExecutePage() {
         <div className={styles.section}>
           <label className={styles.sectionLabel}>CLI Tool</label>
           <div className={styles.toolIndicator}>{selectedTool?.name ?? selectedToolId}</div>
+        </div>
+
+        {/* Skill selector */}
+        <div className={styles.section}>
+          <label className={styles.sectionLabel}>Skill</label>
+          <select
+            className={styles.skillSelect}
+            value={selectedSkillId ?? ''}
+            onChange={(e) => setSelectedSkillId(e.target.value || null)}
+          >
+            <option value="">None</option>
+            {toolSkills.map((skill) => (
+              <option key={skill.id} value={skill.id}>
+                {skill.name || skill.id}
+              </option>
+            ))}
+          </select>
+          {toolSkills.length === 0 && (
+            <span className={styles.skillHint}>
+              No active skills for {selectedToolId}
+            </span>
+          )}
         </div>
 
         {/* Dynamic options */}
