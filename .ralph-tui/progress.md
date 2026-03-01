@@ -19,6 +19,7 @@ after each iteration and it's included in prompts for context.
 - 파일 이동 기반 상태 전환에 후속 갱신/감사 로그를 결합할 때는 `run*MoveTransaction(apply/rollback)`으로 묶고, `rollbackError`까지 결과에 포함해 상위 계층이 복구 실패를 명시적으로 처리하게 만든다.
 - 업데이트 필요도처럼 외부 최신 버전 조회가 선택적인 도메인은 `resolve*Need` 헬퍼로 `명시 정책 > 상태/버전 비교 유추 > 안전 기본값`을 고정하고, UI/배치 실행/로그 API는 해당 정규화 필드만 소비하게 만든다.
 - provider 전용 페이지를 확장할 때는 `resolve*SectionMatrix`로 섹션 capability를 `명시값 > 유추값(데이터 존재) > 안전 기본값`으로 정규화하고, 화면은 공통 섹션 프레임워크에 `provider/section 메타데이터`만 주입해 카드 UI/노출 규칙을 단일화한다.
+- 신규 온보딩 가이드는 템플릿 코드 + 실행 가능한 테스트 예제(계약/검증) + 문서 체크리스트를 같은 경로군에 묶어 두면, 문서와 실제 런타임 계약의 드리프트를 줄일 수 있다.
 
 ---
 
@@ -132,4 +133,12 @@ after each iteration and it's included in prompts for context.
 - **Learnings:**
   - Patterns discovered: provider별 확장 UI는 data fetch 훅과 렌더 프레임워크를 분리하고, 렌더 계층에는 이미 정규화된 `sections[]`만 전달하면 섹션 추가/제거 시 회귀 범위를 줄일 수 있다.
   - Gotchas encountered: `npm run start` 수동 검증은 샌드박스에서 `listen EPERM: operation not permitted ::1:5173` 오류로 dev server가 기동되지 않아 실제 클릭 검증을 수행할 수 없었다.
+---
+
+## 2026-03-01 - US-015
+- What was implemented: 신규 서비스 온보딩 키트를 위해 adapter 템플릿 기반 계약/검증 예제 테스트(`adapterTemplate.test.ts`)를 추가했고, docs에 `서비스 추가 표준 절차` 문서를 신설해 코드 템플릿/adapter contract typecheck/registry validation 흐름과 체크리스트를 표준화했다. 또한 Skills 문서 인덱스에서 온보딩 표준 절차로 바로 진입할 수 있게 링크를 추가했다.
+- Files changed: `src/services/maintenance/adapterTemplate.test.ts`, `docs/features/skills/service-onboarding-standard.md`, `docs/features/skills/index.md`, `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered: 온보딩 문서는 추상 가이드보다 실행 가능한 테스트 파일 경로를 함께 고정할 때(템플릿 생성/registry 검증) 신규 기여자가 바로 검증 루프를 실행하기 쉽다.
+  - Gotchas encountered: 기존 reference 문서에 체크리스트가 있어도 `docs/features` 인덱스에 연결되지 않으면 발견성이 낮아, 기능 문서 진입점에 링크를 추가해야 표준 절차가 실제로 사용된다.
 ---

@@ -3,10 +3,10 @@
   "sessionId": "4046228a-df35-4376-a8e6-94d8b329eb90",
   "status": "running",
   "startedAt": "2026-03-01T06:20:59.603Z",
-  "updatedAt": "2026-03-01T08:24:57.276Z",
-  "currentIteration": 13,
+  "updatedAt": "2026-03-01T08:28:51.144Z",
+  "currentIteration": 14,
   "maxIterations": 0,
-  "tasksCompleted": 13,
+  "tasksCompleted": 14,
   "isPaused": false,
   "agentPlugin": "codex",
   "trackerState": {
@@ -95,8 +95,8 @@
       {
         "id": "US-014",
         "title": "Provider 전용 관리 페이지 확장 프레임워크",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-015",
@@ -242,6 +242,16 @@
       "durationMs": 489152,
       "startedAt": "2026-03-01T08:08:10.918Z",
       "endedAt": "2026-03-01T08:16:20.070Z"
+    },
+    {
+      "iteration": 14,
+      "status": "completed",
+      "taskId": "US-014",
+      "taskTitle": "Provider 전용 관리 페이지 확장 프레임워크",
+      "taskCompleted": true,
+      "durationMs": 515963,
+      "startedAt": "2026-03-01T08:16:21.304Z",
+      "endedAt": "2026-03-01T08:24:57.267Z"
     }
   ],
   "skippedTaskIds": [],
