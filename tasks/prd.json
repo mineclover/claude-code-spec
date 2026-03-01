@@ -276,12 +276,13 @@
         "npm run start 후 Skills/Reference 페이지 수동 검증이 완료된다"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-003",
         "US-010"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-015",
@@ -327,6 +328,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-03-01T11:19:03.967Z"
+    "updatedAt": "2026-03-01T11:21:19.970Z"
   }
 }

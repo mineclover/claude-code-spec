@@ -3,10 +3,10 @@
   "sessionId": "dc6c3d22-54f9-4db7-9934-5fa7d5391e08",
   "status": "running",
   "startedAt": "2026-03-01T10:55:37.510Z",
-  "updatedAt": "2026-03-01T11:19:03.968Z",
-  "currentIteration": 11,
+  "updatedAt": "2026-03-01T11:21:19.970Z",
+  "currentIteration": 12,
   "maxIterations": 0,
-  "tasksCompleted": 11,
+  "tasksCompleted": 12,
   "isPaused": false,
   "agentPlugin": "codex",
   "trackerState": {
@@ -124,6 +124,16 @@
       "durationMs": 124514,
       "startedAt": "2026-03-01T11:14:23.831Z",
       "endedAt": "2026-03-01T11:16:28.345Z"
+    },
+    {
+      "iteration": 12,
+      "status": "completed",
+      "taskId": "US-013",
+      "taskTitle": "Registry 설정 UI 폼 모드 추가(JSON 병행)",
+      "taskCompleted": true,
+      "durationMs": 154385,
+      "startedAt": "2026-03-01T11:16:29.582Z",
+      "endedAt": "2026-03-01T11:19:03.967Z"
     }
   ],
   "skippedTaskIds": [],

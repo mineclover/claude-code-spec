@@ -73,6 +73,13 @@ after each iteration and it's included in prompts for context.
   `resolveMaintenanceRegistryFormDocument`/`resolveMaintenanceRegistryFormErrors`
   in `useMaintenanceRegistryEditor`, so form/json edits remain bidirectionally
   synced without duplicating authoritative state.
+- Reference provider section capability resolution pattern:
+  Keep provider landing-page cards driven by `resolveReferenceProviderSections`
+  (`src/lib/referenceProviderSections.ts`) with precedence
+  `explicit capability > inferred section counts > safe defaults`, then render
+  standardized hooks/output styles/skills cards via
+  `ReferenceProviderSectionFramework` so provider-specific section exposure stays
+  declarative.
 
 ---
 
@@ -420,6 +427,36 @@ after each iteration and it's included in prompts for context.
     - The registry editor avoids state divergence by treating JSON text as the only
       mutable source and deriving form document/error projections from parsed+validated
       draft state.
+  - Gotchas encountered
+    - Manual UI validation could not be completed in this environment because
+      Electron Forge (Vite dev server) could not bind to localhost in sandbox.
+---
+
+## 2026-03-01 - US-014
+- What was implemented
+  - Verified provider-specific management page extension points already exist through
+    the common framework component
+    `src/components/reference/ReferenceProviderSectionFramework.tsx`, used by
+    `src/pages/ReferenceProvidersPage.tsx`.
+  - Verified ralph/moai 기준 hooks/output styles/skills 카드 UI 표준화 is implemented in
+    `ReferenceProvidersPage` section metadata + `ReferenceProviderSectionFramework`
+    card rendering.
+  - Verified capability 기반 섹션 동적 노출 is implemented by
+    `resolveReferenceProviderSections` (`explicit capability > inferred counts >
+    safe default`) and consumed by `useReferenceProviderSections`.
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/lib/referenceProviderSections.ts src/lib/referenceProviderSections.test.ts src/hooks/useReferenceProviderSections.ts src/components/reference/ReferenceProviderSectionFramework.tsx src/components/reference/ReferenceProviderSectionFramework.module.css src/pages/ReferenceProvidersPage.tsx src/pages/ReferenceProvidersPage.test.tsx`
+    - `npx vitest run src/lib/referenceProviderSections.test.ts src/pages/ReferenceProvidersPage.test.tsx`
+    - `npm run start` attempted for manual validation, but sandbox runtime blocked
+      dev-server bind with `listen EPERM: operation not permitted ::1:5173`.
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - Provider section exposure should be resolved through a shared matrix resolver
+      and rendered through one card framework component to keep capability-driven UI
+      behavior consistent across providers.
   - Gotchas encountered
     - Manual UI validation could not be completed in this environment because
       Electron Forge (Vite dev server) could not bind to localhost in sandbox.
