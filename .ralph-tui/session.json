@@ -3,10 +3,10 @@
   "sessionId": "4046228a-df35-4376-a8e6-94d8b329eb90",
   "status": "running",
   "startedAt": "2026-03-01T06:20:59.603Z",
-  "updatedAt": "2026-03-01T06:58:15.133Z",
-  "currentIteration": 1,
+  "updatedAt": "2026-03-01T07:03:46.456Z",
+  "currentIteration": 2,
   "maxIterations": 0,
-  "tasksCompleted": 1,
+  "tasksCompleted": 2,
   "isPaused": false,
   "agentPlugin": "codex",
   "trackerState": {
@@ -23,8 +23,8 @@
       {
         "id": "US-002",
         "title": "서비스 어댑터 SDK 인터페이스 패키지화",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-003",
@@ -122,6 +122,16 @@
       "durationMs": 358921,
       "startedAt": "2026-03-01T06:40:21.286Z",
       "endedAt": "2026-03-01T06:46:20.207Z"
+    },
+    {
+      "iteration": 2,
+      "status": "completed",
+      "taskId": "US-002",
+      "taskTitle": "서비스 어댑터 SDK 인터페이스 패키지화",
+      "taskCompleted": true,
+      "durationMs": 713678,
+      "startedAt": "2026-03-01T06:46:21.454Z",
+      "endedAt": "2026-03-01T06:58:15.132Z"
     }
   ],
   "skippedTaskIds": [],

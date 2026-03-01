@@ -8,6 +8,11 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { resolveCapabilityMatrix } from '../../lib/capabilityMatrix';
 import { dedupeByLast } from '../../lib/collectionUtils';
+import {
+  defaultDisabledRoot,
+  normalizeDir,
+  resolvePathTemplate,
+} from '../../lib/pathTemplateUtils';
 import type { CapabilityMatrixDeclaration } from '../../types/capability-matrix';
 import {
   defineMaintenanceServiceAdapter,
@@ -88,30 +93,6 @@ function readString(value: unknown): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
-function resolvePathTemplate(input: string, env: NodeJS.ProcessEnv): string {
-  let resolved = input;
-  resolved = resolved.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_token, variableName) => {
-    const value = env[variableName];
-    return typeof value === 'string' ? value : '';
-  });
-
-  if (resolved === '~') {
-    return os.homedir();
-  }
-  if (resolved.startsWith('~/')) {
-    return path.join(os.homedir(), resolved.slice(2));
-  }
-  return resolved;
-}
-
-function normalizeDir(input: string, env: NodeJS.ProcessEnv): string {
-  const trimmed = input.trim();
-  if (!trimmed) {
-    return trimmed;
-  }
-  return resolvePathTemplate(trimmed, env);
-}
-
 function normalizeCommandSpec(raw: unknown, env: NodeJS.ProcessEnv): CommandSpec | null {
   if (!isRecord(raw)) {
     return null;
@@ -132,14 +113,6 @@ function normalizeCommandSpec(raw: unknown, env: NodeJS.ProcessEnv): CommandSpec
     command: resolvePathTemplate(command, env),
     args,
   };
-}
-
-function defaultDisabledRoot(installRoot: string): string {
-  const base = path.basename(installRoot);
-  if (base.endsWith('skills')) {
-    return path.join(path.dirname(installRoot), `${base}-disabled`);
-  }
-  return `${installRoot}-disabled`;
 }
 
 function createRuntimeAdapter({

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createCustomMaintenanceAdapters,
   createDefaultMaintenanceAdapters,
+  createMaintenanceAdapters,
 } from './serviceIntegrations';
 
 describe('serviceIntegrations capability matrix', () => {
@@ -112,5 +113,48 @@ describe('serviceIntegrations capability matrix', () => {
     const claude = adapters.find((adapter) => adapter.id === 'claude');
     expect(claude?.getExecution?.()?.toolId).toBe('claude');
     expect(claude?.getMcp?.()?.defaultTargets).toEqual(['claude', 'project']);
+  });
+
+  it('registers required built-in providers through the shared adapter SDK contracts', () => {
+    const adapters = createDefaultMaintenanceAdapters();
+    const adapterIds = adapters.map((adapter) => adapter.id);
+
+    expect(adapterIds).toEqual(
+      expect.arrayContaining(['claude', 'codex', 'gemini', 'ralph', 'moai', 'skills']),
+    );
+
+    const skillsCli = adapters.find((adapter) => adapter.id === 'skills');
+    expect(skillsCli?.capability.maintenance.enabled).toBe(true);
+    expect(skillsCli?.getManagedTools?.()[0]?.id).toBe('skills');
+
+    const moai = adapters.find((adapter) => adapter.id === 'moai');
+    expect(moai?.capability.execution.enabled).toBe(true);
+    expect(moai?.getExecution?.()?.toolId).toBe('moai');
+  });
+
+  it('dedupes built-ins with custom adapters by keeping the last registration', () => {
+    const adapters = createMaintenanceAdapters({
+      customServices: [
+        {
+          id: 'skills',
+          name: 'skills CLI Custom',
+          capability: {
+            maintenance: { enabled: true },
+          },
+          tools: [
+            {
+              id: 'skills',
+              name: 'skills CLI Custom',
+              versionCommand: { command: 'skills-custom', args: ['--version'] },
+              updateCommand: { command: 'skills-custom', args: ['update'] },
+            },
+          ],
+        },
+      ],
+    });
+
+    const skillsAdapter = adapters.find((adapter) => adapter.id === 'skills');
+    expect(skillsAdapter?.displayName).toBe('skills CLI Custom');
+    expect(skillsAdapter?.getManagedTools?.()[0]?.versionCommand.command).toBe('skills-custom');
   });
 });
