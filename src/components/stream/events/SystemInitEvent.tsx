@@ -1,5 +1,5 @@
-import type { SystemInitEvent as SystemInitEventType } from '../../../types/stream-events';
 import type React from 'react';
+import type { SystemInitEvent as SystemInitEventType } from '../../../types/stream-events';
 import { EventBox } from '../common/EventBox';
 import styles from './SystemInitEvent.module.css';
 

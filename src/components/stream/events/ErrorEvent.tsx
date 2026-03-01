@@ -1,5 +1,5 @@
-import type { ErrorEvent as ErrorEventType } from '../../../types/stream-events';
 import type React from 'react';
+import type { ErrorEvent as ErrorEventType } from '../../../types/stream-events';
 import { EventBox } from '../common/EventBox';
 import styles from './ErrorEvent.module.css';
 

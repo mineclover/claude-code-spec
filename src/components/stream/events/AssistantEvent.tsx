@@ -1,6 +1,6 @@
-import type { AssistantEvent as AssistantEventType } from '../../../types/stream-events';
 import type React from 'react';
 import { extractTextFromMessage, extractToolUsesFromMessage } from '../../../lib/messageUtils';
+import type { AssistantEvent as AssistantEventType } from '../../../types/stream-events';
 import { EventBox } from '../common/EventBox';
 import { TokenUsage } from '../common/TokenUsage';
 import { ToolUse } from '../common/ToolUse';

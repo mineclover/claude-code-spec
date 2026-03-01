@@ -1,6 +1,6 @@
-import type { StreamEvent } from '../../types/stream-events';
 import type React from 'react';
 import { useEffect, useRef } from 'react';
+import type { StreamEvent } from '../../types/stream-events';
 import { StreamEventRenderer } from './StreamEventRenderer';
 import styles from './StreamOutput.module.css';
 

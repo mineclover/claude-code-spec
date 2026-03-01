@@ -1,5 +1,5 @@
-import type { UserEvent as UserEventType } from '../../../types/stream-events';
 import type React from 'react';
+import type { UserEvent as UserEventType } from '../../../types/stream-events';
 import { EventBox } from '../common/EventBox';
 import styles from './UserEvent.module.css';
 
