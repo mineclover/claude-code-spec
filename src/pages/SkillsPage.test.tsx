@@ -106,6 +106,7 @@ describe('SkillsPage registry flows', () => {
     const user = userEvent.setup();
     render(<SkillsPage />);
 
+    await user.click(await screen.findByRole('button', { name: 'JSON Editor' }));
     const editor = await screen.findByTestId('json-editor');
     await user.clear(editor);
     fireEvent.change(editor, { target: { value: '{' } });
@@ -139,21 +140,49 @@ describe('SkillsPage registry flows', () => {
     expect(firstCallArg?.services?.[0]?.id).toBe('new-cli');
   });
 
+  it('keeps form editor and json editor synchronized in both directions', async () => {
+    const user = userEvent.setup();
+    render(<SkillsPage />);
+
+    await user.click(await screen.findByRole('button', { name: 'Add Service' }));
+    const idInput = await screen.findByLabelText('Service ID');
+    fireEvent.change(idInput, { target: { value: 'from-form' } });
+
+    await user.click(screen.getByRole('button', { name: 'JSON Editor' }));
+    const editor = await screen.findByTestId('json-editor');
+    expect((editor as HTMLTextAreaElement).value).toContain('"id": "from-form"');
+
+    fireEvent.change(editor, {
+      target: {
+        value:
+          '{"schemaVersion":2,"services":[{"id":"from-json","tools":[{"id":"from-json","name":"From Json","versionCommand":{"command":"from-json"},"updateCommand":{"command":"npm","args":["install","-g","from-json@latest"]}}]}]}',
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Form Editor' }));
+    const syncedInput = await screen.findByLabelText('Service ID');
+    expect((syncedInput as HTMLInputElement).value).toBe('from-json');
+  });
+
   it('shows schema validation error when service has no adapter contracts', async () => {
     const user = userEvent.setup();
     render(<SkillsPage />);
 
+    await user.click(await screen.findByRole('button', { name: 'JSON Editor' }));
     const editor = await screen.findByTestId('json-editor');
     await user.clear(editor);
     fireEvent.change(editor, {
       target: { value: '{"schemaVersion":2,"services":[{"id":"broken"}]}' },
     });
 
+    await user.click(screen.getByRole('button', { name: 'Form Editor' }));
     await waitFor(() => {
       expect(screen.getByText(/Draft invalid/i)).toBeTruthy();
     });
     expect(
-      screen.getByText(/At least one of `tools`, `skillStore`, `execution`, or `mcp` is required/i),
+      screen.getByText(
+        /root\.services\[0\]: At least one of `tools`, `skillStore`, `execution`, or `mcp` is required/i,
+      ),
     ).toBeTruthy();
     const saveButton = screen.getByRole('button', { name: 'Save Registry' }) as HTMLButtonElement;
     expect(saveButton.disabled).toBe(true);

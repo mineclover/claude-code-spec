@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  resolveMaintenanceRegistryFormDocument,
+  resolveMaintenanceRegistryFormErrors,
+} from '../lib/maintenanceRegistryForm';
 import { createEmptyMaintenanceRegistry } from '../lib/maintenanceRegistryMigration';
 import type {
   MaintenanceRegistryDocument,
   MaintenanceRegistryService,
+  MaintenanceRegistryTool,
 } from '../types/maintenance-registry';
 import { useMaintenanceRegistryDraft } from './useMaintenanceRegistryDraft';
 
@@ -144,6 +149,47 @@ function buildInvalidRegistryError(errors: string[]): Error {
   return new Error(`Invalid registry JSON:\n${errorLines.join('\n')}${suffix}`);
 }
 
+function createServiceIdCandidate(services: MaintenanceRegistryService[]): string {
+  const existingIds = new Set(services.map((service) => service.id).filter(Boolean));
+  if (!existingIds.has('new-service')) {
+    return 'new-service';
+  }
+
+  let suffix = 1;
+  while (existingIds.has(`new-service-${suffix}`)) {
+    suffix += 1;
+  }
+  return `new-service-${suffix}`;
+}
+
+function createDefaultToolTemplate(serviceId: string): MaintenanceRegistryTool {
+  const normalizedServiceId = serviceId.trim() || 'new-service';
+  return {
+    id: normalizedServiceId,
+    name: normalizedServiceId,
+    versionCommand: { command: normalizedServiceId, args: ['--version'] },
+    updateCommand: {
+      command: 'npm',
+      args: ['install', '-g', `${normalizedServiceId}@latest`],
+    },
+  };
+}
+
+function createDefaultServiceTemplate(
+  services: MaintenanceRegistryService[],
+): MaintenanceRegistryService {
+  const serviceId = createServiceIdCandidate(services);
+  return {
+    id: serviceId,
+    name: serviceId,
+    enabled: true,
+    capability: {
+      maintenance: { enabled: true },
+    },
+    tools: [createDefaultToolTemplate(serviceId)],
+  };
+}
+
 export function useMaintenanceRegistryEditor({
   onRegistrySaved,
 }: UseMaintenanceRegistryEditorOptions = {}) {
@@ -154,9 +200,41 @@ export function useMaintenanceRegistryEditor({
   const [message, setMessage] = useState<Message>(null);
 
   const draft = useMaintenanceRegistryDraft(maintenanceRegistryJson);
+  const formDocument = useMemo(
+    () =>
+      resolveMaintenanceRegistryFormDocument({
+        explicitValue: draft.validation?.value,
+        inferredValue: draft.parsed.value,
+      }),
+    [draft.parsed.value, draft.validation?.value],
+  );
+  const formErrors = useMemo(() => {
+    const resolved = resolveMaintenanceRegistryFormErrors(draft.validation?.issues ?? []);
+    if (draft.parsed.error) {
+      resolved.global.push(draft.parsed.error);
+    }
+    return resolved;
+  }, [draft.parsed.error, draft.validation?.issues]);
+  const canEditForm = !draft.parsed.error;
   const visibleErrors = useMemo(
     () => Array.from(new Set(draft.status.errors.slice(0, 6))),
     [draft.status.errors],
+  );
+
+  const applyFormDocumentChange = useCallback(
+    (mutator: (registry: MaintenanceRegistryDocument) => MaintenanceRegistryDocument) => {
+      if (!canEditForm) {
+        setMessage({
+          type: 'error',
+          text: draft.parsed.error ?? 'Fix JSON parse errors first to use form mode.',
+        });
+        return;
+      }
+      const nextRegistry = mutator(formDocument);
+      setMaintenanceRegistryJson(JSON.stringify(nextRegistry, null, 2));
+      setMessage(null);
+    },
+    [canEditForm, draft.parsed.error, formDocument],
   );
 
   const loadRegistry = useCallback(async () => {
@@ -177,19 +255,13 @@ export function useMaintenanceRegistryEditor({
 
   const appendTemplate = useCallback(
     (template: MaintenanceRegistryService) => {
-      if (draft.parsed.error) {
-        setMessage({ type: 'error', text: draft.parsed.error });
+      if (!canEditForm) {
+        setMessage({ type: 'error', text: draft.parsed.error ?? 'Invalid JSON draft.' });
         return;
       }
-      const registry = draft.validation?.value;
-      if (!registry) {
-        setMessage({ type: 'error', text: 'Registry root must be a versioned document.' });
-        return;
-      }
-
       const next: MaintenanceRegistryDocument = {
-        ...registry,
-        services: [...registry.services, template],
+        ...formDocument,
+        services: [...formDocument.services, template],
       };
       setMaintenanceRegistryJson(JSON.stringify(next, null, 2));
       setMessage({
@@ -197,7 +269,7 @@ export function useMaintenanceRegistryEditor({
         text: `Template inserted: ${template.id}`,
       });
     },
-    [draft.parsed.error, draft.validation?.value],
+    [canEditForm, draft.parsed.error, formDocument],
   );
 
   const formatRegistry = useCallback(() => {
@@ -220,6 +292,70 @@ export function useMaintenanceRegistryEditor({
   const clearRegistry = useCallback(() => {
     setMaintenanceRegistryJson(DEFAULT_MAINTENANCE_REGISTRY_JSON);
   }, []);
+
+  const addServiceViaForm = useCallback(() => {
+    applyFormDocumentChange((registry) => ({
+      ...registry,
+      services: [...registry.services, createDefaultServiceTemplate(registry.services)],
+    }));
+  }, [applyFormDocumentChange]);
+
+  const updateServiceViaForm = useCallback(
+    (serviceIndex: number, nextService: MaintenanceRegistryService) => {
+      applyFormDocumentChange((registry) => {
+        if (serviceIndex < 0 || serviceIndex >= registry.services.length) {
+          return registry;
+        }
+        const nextServices = registry.services.map((service, index) =>
+          index === serviceIndex ? nextService : service,
+        );
+        return {
+          ...registry,
+          services: nextServices,
+        };
+      });
+    },
+    [applyFormDocumentChange],
+  );
+
+  const removeServiceViaForm = useCallback(
+    (serviceIndex: number) => {
+      applyFormDocumentChange((registry) => ({
+        ...registry,
+        services: registry.services.filter((_, index) => index !== serviceIndex),
+      }));
+    },
+    [applyFormDocumentChange],
+  );
+
+  const ensureServiceToolViaForm = useCallback(
+    (serviceIndex: number) => {
+      applyFormDocumentChange((registry) => {
+        const currentService = registry.services[serviceIndex];
+        if (!currentService) {
+          return registry;
+        }
+        if (Array.isArray(currentService.tools) && currentService.tools.length > 0) {
+          return registry;
+        }
+        const nextServices = registry.services.map((service, index) => {
+          if (index !== serviceIndex) {
+            return service;
+          }
+          const serviceId = service.id?.trim() || `service-${serviceIndex + 1}`;
+          return {
+            ...service,
+            tools: [createDefaultToolTemplate(serviceId)],
+          };
+        });
+        return {
+          ...registry,
+          services: nextServices,
+        };
+      });
+    },
+    [applyFormDocumentChange],
+  );
 
   const saveRegistry = useCallback(async () => {
     setIsSaving(true);
@@ -253,10 +389,17 @@ export function useMaintenanceRegistryEditor({
     isSaving,
     message,
     draft,
+    formDocument,
+    formErrors,
+    canEditForm,
     visibleErrors,
     templateActions: TEMPLATE_ACTIONS,
     loadRegistry,
     appendTemplate,
+    addServiceViaForm,
+    updateServiceViaForm,
+    removeServiceViaForm,
+    ensureServiceToolViaForm,
     formatRegistry,
     useExampleRegistry,
     clearRegistry,

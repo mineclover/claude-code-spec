@@ -6,6 +6,7 @@ after each iteration and it's included in prompts for context.
 ## Codebase Patterns (Study These First)
 
 - 신규 스키마 필드를 점진적으로 도입할 때는 `resolve*` 헬퍼를 만들어 `명시값 > 유추값 > 안전 기본값` 순으로 정규화하고, 런타임 소비 지점에서 해당 정규화 결과만 사용한다.
+- JSON/Form 병행 편집 UI는 `resolve*FormDocument`(명시 검증값 > 유추 파싱값 > 안전 기본값)와 `resolve*FormErrors`(issue path → 서비스/필드 버킷)로 정규화한 뒤 화면은 해당 결과만 소비하게 하면 동기화/오류표시 드리프트를 줄일 수 있다.
 - capability 선언에 따라 필수 계약 필드를 강제해야 할 때는 `define*` 등록 헬퍼 + conditional type 조합으로 빌드 타임 제약을 두고, 런타임에서는 동일 계약을 `resolveCapabilityMatrix` 결과로 다시 게이트한다.
 - 경로 템플릿(`${ENV}`/`~`) 확장과 skills disabled root 파생 규칙은 `lib` 공통 유틸로 승격해 내장/커스텀 어댑터가 동일 정규화 경로를 재사용하게 만든다.
 - 버전드 설정 도입 시에는 `migrate*ToLatest` 파이프라인과 `run*MigrationTransaction`(apply/rollback) 보호 헬퍼를 함께 두어 `구버전 흡수`와 `실패 시 원복`을 동일 규칙으로 강제한다.
@@ -114,4 +115,12 @@ after each iteration and it's included in prompts for context.
 - **Learnings:**
   - Patterns discovered: 배치 업데이트처럼 롤백이 어려운 작업은 실행 성공/실패 자체와 로그 저장을 분리하고, 로그 append 실패는 결과를 깨지 않도록 격리해야 운영 복원력이 높다.
   - Gotchas encountered: 최신 버전 조회 커맨드를 도구별로 항상 제공할 수 없으므로(비 npm/커스텀 CLI), 업데이트 필요도는 semver 비교 실패/최신 조회 실패를 포함한 안전 기본값 경로를 반드시 가져야 UI 오판을 줄일 수 있다.
+---
+
+## 2026-03-01 - US-013
+- What was implemented: Registry 섹션에 `Form Editor / JSON Editor` 모드 토글을 추가하고, 서비스 카드형 폼(add/edit/delete)으로 `id/name/enabled/tool command`를 편집할 수 있게 확장했다. 폼 변경은 JSON draft를 즉시 갱신하고(JSON 동기화), JSON 변경은 `resolveMaintenanceRegistryFormDocument`를 통해 폼 모델로 역동기화되도록 연결했다. 또한 schema issue path를 `resolveMaintenanceRegistryFormErrors`로 서비스/필드 단위로 매핑해 폼 카드 루트/필드 아래에 오류를 표시하도록 반영했다.
+- Files changed: `src/lib/maintenanceRegistryForm.ts`, `src/lib/maintenanceRegistryForm.test.ts`, `src/hooks/useMaintenanceRegistryEditor.ts`, `src/components/skills/SkillsRegistrySection.tsx`, `src/components/skills/SkillsRegistrySection.test.tsx`, `src/pages/SkillsPage.tsx`, `src/pages/SkillsPage.test.tsx`, `src/pages/SkillsPage.module.css`, `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered: 병행 에디터는 상태 소스를 분리하지 말고 JSON 단일 소스 + form 정규화 뷰 모델 구조로 두면 모드 전환 시 데이터 드리프트 없이 테스트를 단순화할 수 있다.
+  - Gotchas encountered: `npm run start` 수동 검증은 현재 샌드박스 환경에서 `listen EPERM: operation not permitted ::1:5173`로 dev server bind가 차단되어 실제 UI 클릭 검증까지 수행할 수 없었다.
 ---

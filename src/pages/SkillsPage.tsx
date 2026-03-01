@@ -48,10 +48,17 @@ export function SkillsPage() {
     isSaving: isMaintenanceRegistrySaving,
     message: maintenanceRegistryMessage,
     draft: registryDraft,
+    formDocument: registryFormDocument,
+    formErrors: registryFormErrors,
+    canEditForm: canEditRegistryForm,
     visibleErrors: visibleRegistryErrors,
     templateActions,
     loadRegistry: loadMaintenanceRegistry,
     appendTemplate,
+    addServiceViaForm,
+    updateServiceViaForm,
+    removeServiceViaForm,
+    ensureServiceToolViaForm,
     formatRegistry: formatMaintenanceRegistry,
     useExampleRegistry,
     clearRegistry,
@@ -74,6 +81,9 @@ export function SkillsPage() {
           maintenanceRegistryJson={maintenanceRegistryJson}
           setMaintenanceRegistryJson={setMaintenanceRegistryJson}
           draft={registryDraft}
+          formDocument={registryFormDocument}
+          formErrors={registryFormErrors}
+          canEditForm={canEditRegistryForm}
           visibleErrors={visibleRegistryErrors}
           isSaving={isMaintenanceRegistrySaving}
           message={maintenanceRegistryMessage}
@@ -84,6 +94,10 @@ export function SkillsPage() {
           onUseExample={useExampleRegistry}
           onClear={clearRegistry}
           onAppendTemplate={appendTemplate}
+          onAddService={addServiceViaForm}
+          onUpdateService={updateServiceViaForm}
+          onDeleteService={removeServiceViaForm}
+          onEnsureServiceTool={ensureServiceToolViaForm}
         />
 
         <SkillsCliMaintenanceSection
