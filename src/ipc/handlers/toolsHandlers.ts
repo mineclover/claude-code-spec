@@ -9,6 +9,7 @@ import { settingsService } from '../../services/appSettings';
 import { CliMaintenanceService } from '../../services/CliMaintenanceService';
 import { createMaintenanceAdapters } from '../../services/maintenance/serviceIntegrations';
 import { FileSkillActivationAuditStore } from '../../services/maintenance/skillActivationAuditLog';
+import { FileToolUpdateAuditStore } from '../../services/maintenance/toolUpdateAuditLog';
 import { ReferenceAssetService } from '../../services/ReferenceAssetService';
 import { toolRegistry } from '../../services/ToolRegistry';
 import type {
@@ -25,6 +26,9 @@ const cliMaintenanceService = new CliMaintenanceService(
   {
     activationAuditStore: new FileSkillActivationAuditStore(
       path.join(path.dirname(settingsService.getSettingsPath()), 'skill-activation-events.json'),
+    ),
+    updateAuditStore: new FileToolUpdateAuditStore(
+      path.join(path.dirname(settingsService.getSettingsPath()), 'tool-update-events.json'),
     ),
   },
 );
@@ -50,6 +54,17 @@ export function registerToolsHandlers(router: IPCRouter): void {
   router.handle('run-tool-update', async (_event, toolId: string) => {
     return cliMaintenanceService.runToolUpdate(toolId);
   });
+
+  router.handle('run-tool-updates', async (_event, toolIds: string[]) => {
+    return cliMaintenanceService.runToolUpdates(toolIds);
+  });
+
+  router.handle(
+    'get-tool-update-logs',
+    async (_event, args?: { limit?: number; toolId?: string }) => {
+      return cliMaintenanceService.getToolUpdateLogs(args?.limit, args?.toolId);
+    },
+  );
 
   router.handle('get-skill-install-paths', async () => {
     return cliMaintenanceService.getSkillInstallPaths();

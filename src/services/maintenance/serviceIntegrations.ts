@@ -463,6 +463,10 @@ export function createDefaultMaintenanceAdapters(
           name: 'Claude Code',
           description: 'Anthropic Claude Code CLI',
           versionCommand: { command: 'claude', args: ['--version'] },
+          latestVersionCommand: {
+            command: 'npm',
+            args: ['view', '@anthropic-ai/claude-code', 'version'],
+          },
           updateCommand: {
             command: 'npm',
             args: ['install', '-g', '@anthropic-ai/claude-code@latest'],
@@ -498,6 +502,10 @@ export function createDefaultMaintenanceAdapters(
           name: 'OpenAI Codex',
           description: 'OpenAI Codex CLI',
           versionCommand: { command: 'codex', args: ['--version'] },
+          latestVersionCommand: {
+            command: 'npm',
+            args: ['view', '@openai/codex', 'version'],
+          },
           updateCommand: { command: 'npm', args: ['install', '-g', '@openai/codex@latest'] },
           docsUrl: 'https://github.com/openai/codex',
         },
@@ -530,6 +538,10 @@ export function createDefaultMaintenanceAdapters(
           name: 'Gemini CLI',
           description: 'Google Gemini CLI',
           versionCommand: { command: 'gemini', args: ['--version'] },
+          latestVersionCommand: {
+            command: 'npm',
+            args: ['view', '@google/gemini-cli', 'version'],
+          },
           updateCommand: {
             command: 'npm',
             args: ['install', '-g', '@google/gemini-cli@latest'],
@@ -575,6 +587,10 @@ export function createDefaultMaintenanceAdapters(
           name: 'ralph-tui',
           description: 'ralph-tui CLI',
           versionCommand: { command: 'ralph-tui', args: ['--version'] },
+          latestVersionCommand: {
+            command: 'npm',
+            args: ['view', 'ralph-tui', 'version'],
+          },
           updateCommand: { command: 'bun', args: ['update', '-g', 'ralph-tui', '--latest'] },
         },
       ],
@@ -594,6 +610,10 @@ export function createDefaultMaintenanceAdapters(
           name: 'skills CLI',
           description: 'skills.sh CLI',
           versionCommand: { command: 'npx', args: ['--yes', 'skills', '--version'] },
+          latestVersionCommand: {
+            command: 'npm',
+            args: ['view', 'skills', 'version'],
+          },
           updateCommand: { command: 'npx', args: ['--yes', 'skills', 'update'] },
           docsUrl: 'https://skills.sh',
         },

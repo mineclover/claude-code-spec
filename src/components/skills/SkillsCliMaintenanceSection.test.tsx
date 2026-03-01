@@ -21,6 +21,9 @@ function createVersionInfo(partial?: Partial<CliToolVersionInfo>): CliToolVersio
     toolId: 'moai',
     status: 'ok',
     version: '1.2.3',
+    latestVersion: '1.2.3',
+    updateRequired: false,
+    updateReason: 'up-to-date',
     command: ['moai', 'version'],
     rawOutput: '1.2.3',
     checkedAt: Date.now(),
@@ -29,51 +32,122 @@ function createVersionInfo(partial?: Partial<CliToolVersionInfo>): CliToolVersio
 }
 
 describe('SkillsCliMaintenanceSection', () => {
-  it('renders tool card and triggers check/update callbacks', async () => {
+  it('renders planner controls and triggers callbacks', async () => {
     const user = userEvent.setup();
     const onCheckVersions = vi.fn();
     const onRunToolUpdate = vi.fn();
+    const onToggleToolSelection = vi.fn();
+    const onSelectToolsNeedingUpdate = vi.fn();
+    const onClearToolSelection = vi.fn();
+    const onRunSelectedUpdates = vi.fn();
+    const onRefreshLogs = vi.fn();
 
     render(
       <SkillsCliMaintenanceSection
         maintenanceTools={[createTool()]}
-        toolVersions={{ moai: createVersionInfo() }}
+        toolVersions={{
+          moai: createVersionInfo({ updateRequired: true, updateReason: 'outdated' }),
+        }}
+        updateLogs={[]}
+        selectedToolIds={['moai']}
+        selectedToolCount={1}
         isCheckingVersions={false}
         updatingToolId={null}
+        isBatchUpdating={false}
+        lastBatchSummary={null}
         message={{ type: 'success', text: 'Updated' }}
         onCheckVersions={onCheckVersions}
         onRunToolUpdate={onRunToolUpdate}
+        onToggleToolSelection={onToggleToolSelection}
+        onSelectToolsNeedingUpdate={onSelectToolsNeedingUpdate}
+        onClearToolSelection={onClearToolSelection}
+        onRunSelectedUpdates={onRunSelectedUpdates}
+        onRefreshLogs={onRefreshLogs}
       />,
     );
 
     expect(screen.getByText('MoAI-ADK')).toBeTruthy();
-    expect(screen.getByText('1.2.3')).toBeTruthy();
+    expect(screen.getByText(/Update required/i)).toBeTruthy();
     expect(screen.getByText('Updated')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Check Versions' }));
+    await user.click(screen.getByRole('button', { name: 'Select Needs Update' }));
+    await user.click(screen.getByRole('button', { name: 'Clear Selection' }));
+    await user.click(screen.getByRole('button', { name: 'Update Selected (1)' }));
+    await user.click(screen.getByRole('button', { name: 'Refresh Logs' }));
     await user.click(screen.getByRole('button', { name: 'Update' }));
+    await user.click(screen.getByRole('checkbox'));
 
     expect(onCheckVersions).toHaveBeenCalledTimes(1);
+    expect(onSelectToolsNeedingUpdate).toHaveBeenCalledTimes(1);
+    expect(onClearToolSelection).toHaveBeenCalledTimes(1);
+    expect(onRunSelectedUpdates).toHaveBeenCalledTimes(1);
+    expect(onRefreshLogs).toHaveBeenCalledTimes(1);
     expect(onRunToolUpdate).toHaveBeenCalledWith('moai');
+    expect(onToggleToolSelection).toHaveBeenCalledWith('moai');
   });
 
-  it('shows missing status and updating state', () => {
+  it('shows summary and log rows', () => {
     render(
       <SkillsCliMaintenanceSection
         maintenanceTools={[createTool()]}
-        toolVersions={{ moai: createVersionInfo({ status: 'missing', version: null }) }}
+        toolVersions={{
+          moai: createVersionInfo({
+            status: 'missing',
+            version: null,
+            latestVersion: null,
+            updateRequired: true,
+            updateReason: 'missing',
+          }),
+        }}
+        updateLogs={[
+          {
+            logId: 'log-1',
+            batchId: 'batch-1',
+            toolId: 'moai',
+            success: false,
+            command: ['moai', 'update'],
+            exitCode: 1,
+            stdout: '',
+            stderr: 'failed',
+            startedAt: 100,
+            completedAt: 200,
+          },
+        ]}
+        selectedToolIds={[]}
+        selectedToolCount={0}
         isCheckingVersions={true}
         updatingToolId="moai"
+        isBatchUpdating={true}
+        lastBatchSummary={{
+          batchId: 'batch-1',
+          requestedToolIds: ['moai'],
+          startedAt: 100,
+          completedAt: 200,
+          total: 1,
+          succeeded: 0,
+          failed: 1,
+          results: [],
+        }}
         message={null}
         onCheckVersions={vi.fn()}
         onRunToolUpdate={vi.fn()}
+        onToggleToolSelection={vi.fn()}
+        onSelectToolsNeedingUpdate={vi.fn()}
+        onClearToolSelection={vi.fn()}
+        onRunSelectedUpdates={vi.fn()}
+        onRefreshLogs={vi.fn()}
       />,
     );
 
-    expect(screen.getByText('Not installed')).toBeTruthy();
+    expect(screen.getByText('Install required')).toBeTruthy();
+    expect(screen.getByText(/Last batch summary/i)).toBeTruthy();
+    expect(screen.getByText(/FAILED \(exit 1\)/i)).toBeTruthy();
     const checkButton = screen.getByRole('button', { name: 'Checking...' }) as HTMLButtonElement;
     expect(checkButton.disabled).toBe(true);
-    const updateButton = screen.getByRole('button', { name: 'Updating...' }) as HTMLButtonElement;
-    expect(updateButton.disabled).toBe(true);
+    const batchButton = screen.getByRole('button', {
+      name: 'Updating Selected...',
+    }) as HTMLButtonElement;
+    expect(batchButton.disabled).toBe(true);
   });
 });

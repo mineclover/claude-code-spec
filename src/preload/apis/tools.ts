@@ -19,6 +19,9 @@ export function exposeToolsAPI(): void {
     checkToolVersions: (toolIds?: string[]) =>
       ipcRenderer.invoke('tools:check-tool-versions', toolIds),
     runToolUpdate: (toolId: string) => ipcRenderer.invoke('tools:run-tool-update', toolId),
+    runToolUpdates: (toolIds: string[]) => ipcRenderer.invoke('tools:run-tool-updates', toolIds),
+    getToolUpdateLogs: (limit?: number, toolId?: string) =>
+      ipcRenderer.invoke('tools:get-tool-update-logs', { limit, toolId }),
     getSkillInstallPaths: () => ipcRenderer.invoke('tools:get-skill-install-paths'),
     getInstalledSkills: () => ipcRenderer.invoke('tools:get-installed-skills'),
     getSkillActivationEvents: (limit?: number) =>

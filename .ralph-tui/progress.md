@@ -16,6 +16,7 @@ after each iteration and it's included in prompts for context.
 - provider별 파일시스템 레이아웃 차이가 있는 스캐너는 `resolve*Strategy`(명시값 > provider 유추값 > 안전 기본값)와 `scan/move` 공통 FS 헬퍼를 분리해 symlink/숨김 디렉토리/EXDEV fallback 규칙을 단일 구현으로 고정한다.
 - 메타데이터 포맷이 provider마다 다른 힌트 필드는 `resolve*Info` 헬퍼로 `frontmatter > metadata > lockfile > source > fallback` 체인을 고정하고, UI 표시는 `format*` 헬퍼/상수 fallback을 재사용해 문구 드리프트를 방지한다.
 - 파일 이동 기반 상태 전환에 후속 갱신/감사 로그를 결합할 때는 `run*MoveTransaction(apply/rollback)`으로 묶고, `rollbackError`까지 결과에 포함해 상위 계층이 복구 실패를 명시적으로 처리하게 만든다.
+- 업데이트 필요도처럼 외부 최신 버전 조회가 선택적인 도메인은 `resolve*Need` 헬퍼로 `명시 정책 > 상태/버전 비교 유추 > 안전 기본값`을 고정하고, UI/배치 실행/로그 API는 해당 정규화 필드만 소비하게 만든다.
 
 ---
 
@@ -105,4 +106,12 @@ after each iteration and it's included in prompts for context.
 - **Learnings:**
   - Patterns discovered: 트랜잭션 apply 단계에 `상태 refresh + 감사 로그 append`까지 포함하면 로그 저장 실패도 동일 rollback 경로로 흡수할 수 있어 상태/감사 일관성을 유지하기 쉽다.
   - Gotchas encountered: 디렉토리 이동 롤백은 항상 가능한 것이 아니므로(경로 미존재/2차 실패) transaction result에 `rollbackError`를 노출하고 호출부에서 별도 에러 메시지로 승격해야 디버깅이 가능하다.
+---
+
+## 2026-03-01 - US-012
+- What was implemented: CLI 버전 체크에 `latestVersion/updateRequired/updateReason` 필드를 추가해 업데이트 필요도를 명시적으로 계산하고, 선택된 도구만 순차 배치 업데이트하는 `runToolUpdates` + 성공/실패 요약을 도입했다. 또한 `FileToolUpdateAuditStore` 기반 실행 로그 저장/조회 API(`runToolUpdates`, `getToolUpdateLogs`)를 IPC/preload/renderer까지 연결하고, Skills 페이지를 업데이트 플래너 UI(선택/배치 실행/요약/로그 조회)로 확장했다.
+- Files changed: `src/types/tool-maintenance.ts`, `src/types/api/tools.ts`, `src/services/maintenance/toolUpdateAuditLog.ts`, `src/services/maintenance/toolUpdateAuditLog.test.ts`, `src/services/CliMaintenanceService.ts`, `src/services/CliMaintenanceService.test.ts`, `src/services/maintenance/serviceIntegrations.ts`, `src/ipc/handlers/toolsHandlers.ts`, `src/preload/apis/tools.ts`, `src/hooks/useCliMaintenance.ts`, `src/components/skills/SkillsCliMaintenanceSection.tsx`, `src/components/skills/SkillsCliMaintenanceSection.test.tsx`, `src/pages/SkillsPage.tsx`, `src/pages/SkillsPage.test.tsx`, `src/pages/SkillsPage.module.css`, `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered: 배치 업데이트처럼 롤백이 어려운 작업은 실행 성공/실패 자체와 로그 저장을 분리하고, 로그 append 실패는 결과를 깨지 않도록 격리해야 운영 복원력이 높다.
+  - Gotchas encountered: 최신 버전 조회 커맨드를 도구별로 항상 제공할 수 없으므로(비 npm/커스텀 CLI), 업데이트 필요도는 semver 비교 실패/최신 조회 실패를 포함한 안전 기본값 경로를 반드시 가져야 UI 오판을 줄일 수 있다.
 ---

@@ -5,6 +5,7 @@
  */
 
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -12,6 +13,9 @@ import matter from 'gray-matter';
 import { dedupeByLast } from '../lib/collectionUtils';
 import { resolveSkillVersionInfo } from '../lib/skillVersionResolver';
 import type {
+  CliToolBatchUpdateSummary,
+  CliToolUpdateLogEntry,
+  CliToolUpdateReason,
   CliToolUpdateResult,
   CliToolVersionInfo,
   CommandSpec,
@@ -40,6 +44,11 @@ import {
   SKILL_FILE_NAME,
   scanSkillEntriesFromRoots,
 } from './maintenance/skillStoreScanner';
+import {
+  NOOP_TOOL_UPDATE_AUDIT_STORE,
+  resolveToolUpdateLogLimit,
+  type ToolUpdateAuditStore,
+} from './maintenance/toolUpdateAuditLog';
 
 interface CommandExecutionResult {
   exitCode: number | null;
@@ -74,6 +83,7 @@ interface ResolvedSkillActivationState {
 
 interface CliMaintenanceServiceOptions {
   activationAuditStore?: SkillActivationAuditStore;
+  updateAuditStore?: ToolUpdateAuditStore;
 }
 
 const SKILL_LOCK_PATH = path.join(os.homedir(), '.agents', '.skill-lock.json');
@@ -98,6 +108,7 @@ function ensureNoPathTraversal(skillId: string): string {
 export class CliMaintenanceService {
   private readonly resolveAdapters: () => MaintenanceServiceAdapter[];
   private readonly activationAuditStore: SkillActivationAuditStore;
+  private readonly updateAuditStore: ToolUpdateAuditStore;
 
   constructor(
     resolveAdapters: () => MaintenanceServiceAdapter[] = () => createMaintenanceAdapters(),
@@ -105,6 +116,7 @@ export class CliMaintenanceService {
   ) {
     this.resolveAdapters = resolveAdapters;
     this.activationAuditStore = options.activationAuditStore ?? NOOP_SKILL_ACTIVATION_AUDIT_STORE;
+    this.updateAuditStore = options.updateAuditStore ?? NOOP_TOOL_UPDATE_AUDIT_STORE;
   }
 
   private getAdapters(): MaintenanceServiceAdapter[] {
@@ -128,20 +140,35 @@ export class CliMaintenanceService {
 
   async runToolUpdate(toolId: string): Promise<CliToolUpdateResult> {
     const tool = this.getManagedTool(toolId);
+    return this.runToolUpdateWithLogging(tool, null);
+  }
+
+  async runToolUpdates(toolIds: string[]): Promise<CliToolBatchUpdateSummary> {
+    const normalizedToolIds = Array.from(new Set(toolIds.map((toolId) => toolId.trim()))).filter(
+      (toolId) => toolId.length > 0,
+    );
+    const tools = normalizedToolIds.map((toolId) => this.getManagedTool(toolId));
+    const batchId = randomUUID();
     const startedAt = Date.now();
-    const result = await this.executeCommand(tool.updateCommand);
+    const results: CliToolUpdateResult[] = [];
+
+    for (const tool of tools) {
+      results.push(await this.runToolUpdateWithLogging(tool, batchId));
+    }
+
     const completedAt = Date.now();
+    const succeeded = results.filter((result) => result.success).length;
+    const failed = results.length - succeeded;
 
     return {
-      toolId: tool.id,
-      success: result.exitCode === 0 && !result.error,
-      command: [tool.updateCommand.command, ...tool.updateCommand.args],
-      exitCode: result.exitCode,
-      stdout: result.stdout,
-      stderr: result.stderr,
+      batchId,
+      requestedToolIds: tools.map((tool) => tool.id),
       startedAt,
       completedAt,
-      error: result.error,
+      total: results.length,
+      succeeded,
+      failed,
+      results,
     };
   }
 
@@ -245,6 +272,14 @@ export class CliMaintenanceService {
   async getSkillActivationEvents(limit = 20): Promise<SkillActivationAuditEvent[]> {
     const resolvedLimit = resolveSkillActivationAuditEventLimit(limit);
     return this.activationAuditStore.listRecent(resolvedLimit);
+  }
+
+  async getToolUpdateLogs(limit = 20, toolId?: string): Promise<CliToolUpdateLogEntry[]> {
+    const resolvedLimit = resolveToolUpdateLogLimit(limit);
+    return this.updateAuditStore.listRecent({
+      limit: resolvedLimit,
+      toolId,
+    });
   }
 
   private async resolveSkillActivationState({
@@ -363,6 +398,53 @@ export class CliMaintenanceService {
     return tool;
   }
 
+  private async runToolUpdateWithLogging(
+    tool: ManagedCliTool,
+    batchId: string | null,
+  ): Promise<CliToolUpdateResult> {
+    const startedAt = Date.now();
+    const result = await this.executeCommand(tool.updateCommand);
+    const completedAt = Date.now();
+    const updateResult: CliToolUpdateResult = {
+      toolId: tool.id,
+      success: result.exitCode === 0 && !result.error,
+      command: [tool.updateCommand.command, ...tool.updateCommand.args],
+      exitCode: result.exitCode,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      startedAt,
+      completedAt,
+      error: result.error,
+    };
+
+    await this.appendToolUpdateLog(updateResult, batchId);
+    return updateResult;
+  }
+
+  private async appendToolUpdateLog(
+    result: CliToolUpdateResult,
+    batchId: string | null,
+  ): Promise<void> {
+    const entry: CliToolUpdateLogEntry = {
+      logId: randomUUID(),
+      batchId,
+      toolId: result.toolId,
+      success: result.success,
+      command: [...result.command],
+      exitCode: result.exitCode,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      startedAt: result.startedAt,
+      completedAt: result.completedAt,
+      error: result.error,
+    };
+    try {
+      await this.updateAuditStore.append(entry);
+    } catch (error) {
+      console.error('Failed to persist tool update log:', error);
+    }
+  }
+
   private getSkillStores(): SkillStoreAdapter[] {
     const stores = this.getAdapters()
       .filter((adapter) => adapter.capability.skills.enabled)
@@ -395,13 +477,29 @@ export class CliMaintenanceService {
     const rawOutput = [result.stdout, result.stderr].filter(Boolean).join('\n').trim();
     const version = this.extractVersion(rawOutput);
     const checkedAt = Date.now();
+    const status = result.error
+      ? result.spawnErrorCode === 'ENOENT'
+        ? 'missing'
+        : 'error'
+      : result.exitCode === 0
+        ? 'ok'
+        : 'error';
+    const latestVersion = await this.resolveLatestVersion(tool, status);
+    const updateNeed = this.resolveToolUpdateNeed({
+      tool,
+      status,
+      version,
+      latestVersion,
+    });
 
     if (result.error) {
-      const status = result.spawnErrorCode === 'ENOENT' ? 'missing' : 'error';
       return {
         toolId: tool.id,
         status,
         version: null,
+        latestVersion,
+        updateRequired: updateNeed.updateRequired,
+        updateReason: updateNeed.updateReason,
         command,
         rawOutput,
         checkedAt,
@@ -411,12 +509,180 @@ export class CliMaintenanceService {
 
     return {
       toolId: tool.id,
-      status: result.exitCode === 0 ? 'ok' : 'error',
+      status,
       version,
+      latestVersion,
+      updateRequired: updateNeed.updateRequired,
+      updateReason: updateNeed.updateReason,
       command,
       rawOutput,
       checkedAt,
       error: result.exitCode === 0 ? undefined : `Command exited with code ${result.exitCode}`,
+    };
+  }
+
+  private async resolveLatestVersion(
+    tool: ManagedCliTool,
+    versionStatus: CliToolVersionInfo['status'],
+  ): Promise<string | null> {
+    if (!tool.latestVersionCommand || versionStatus === 'missing') {
+      return null;
+    }
+
+    const result = await this.executeCommand(tool.latestVersionCommand);
+    if (result.error || result.exitCode !== 0) {
+      return null;
+    }
+
+    const rawOutput = [result.stdout, result.stderr].filter(Boolean).join('\n').trim();
+    return this.extractVersion(rawOutput);
+  }
+
+  private resolveToolUpdateNeed({
+    tool,
+    status,
+    version,
+    latestVersion,
+  }: {
+    tool: ManagedCliTool;
+    status: CliToolVersionInfo['status'];
+    version: string | null;
+    latestVersion: string | null;
+  }): {
+    updateRequired: boolean;
+    updateReason: CliToolUpdateReason;
+  } {
+    const explicitUpdateRequired = tool.updatePolicy?.explicitUpdateRequired;
+    if (typeof explicitUpdateRequired === 'boolean') {
+      return {
+        updateRequired: explicitUpdateRequired,
+        updateReason: explicitUpdateRequired ? 'explicit-required' : 'explicit-not-required',
+      };
+    }
+
+    if (status === 'missing') {
+      return {
+        updateRequired: true,
+        updateReason: 'missing',
+      };
+    }
+
+    if (status === 'error') {
+      return {
+        updateRequired: true,
+        updateReason: 'version-check-error',
+      };
+    }
+
+    if (version && latestVersion) {
+      const comparison = this.compareSemver(version, latestVersion);
+      if (comparison === null) {
+        return {
+          updateRequired: true,
+          updateReason: 'invalid-version',
+        };
+      }
+      return {
+        updateRequired: comparison < 0,
+        updateReason: comparison < 0 ? 'outdated' : 'up-to-date',
+      };
+    }
+
+    if (version && !latestVersion) {
+      return {
+        updateRequired: true,
+        updateReason: 'latest-version-unavailable',
+      };
+    }
+
+    return {
+      updateRequired: true,
+      updateReason: 'fallback-required',
+    };
+  }
+
+  private compareSemver(currentVersion: string, latestVersion: string): number | null {
+    const current = this.parseSemver(currentVersion);
+    const latest = this.parseSemver(latestVersion);
+    if (!current || !latest) {
+      return null;
+    }
+
+    if (current.major !== latest.major) {
+      return current.major < latest.major ? -1 : 1;
+    }
+    if (current.minor !== latest.minor) {
+      return current.minor < latest.minor ? -1 : 1;
+    }
+    if (current.patch !== latest.patch) {
+      return current.patch < latest.patch ? -1 : 1;
+    }
+
+    if (!current.prerelease && !latest.prerelease) {
+      return 0;
+    }
+    if (!current.prerelease) {
+      return 1;
+    }
+    if (!latest.prerelease) {
+      return -1;
+    }
+
+    const currentParts = current.prerelease.split('.');
+    const latestParts = latest.prerelease.split('.');
+    const totalParts = Math.max(currentParts.length, latestParts.length);
+
+    for (let index = 0; index < totalParts; index += 1) {
+      const currentPart = currentParts[index];
+      const latestPart = latestParts[index];
+      if (currentPart === undefined) {
+        return -1;
+      }
+      if (latestPart === undefined) {
+        return 1;
+      }
+      if (currentPart === latestPart) {
+        continue;
+      }
+
+      const currentNumber = Number(currentPart);
+      const latestNumber = Number(latestPart);
+      const currentNumeric = Number.isInteger(currentNumber) && /^\d+$/.test(currentPart);
+      const latestNumeric = Number.isInteger(latestNumber) && /^\d+$/.test(latestPart);
+
+      if (currentNumeric && latestNumeric) {
+        return currentNumber < latestNumber ? -1 : 1;
+      }
+      if (currentNumeric && !latestNumeric) {
+        return -1;
+      }
+      if (!currentNumeric && latestNumeric) {
+        return 1;
+      }
+      return currentPart < latestPart ? -1 : 1;
+    }
+
+    return 0;
+  }
+
+  private parseSemver(version: string): {
+    major: number;
+    minor: number;
+    patch: number;
+    prerelease: string | null;
+  } | null {
+    const match = version
+      .trim()
+      .match(/^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/);
+    if (!match) {
+      return null;
+    }
+
+    return {
+      major: Number(match[1]),
+      minor: Number(match[2]),
+      patch: Number(match[3]),
+      prerelease: match[4] ?? null,
     };
   }
 

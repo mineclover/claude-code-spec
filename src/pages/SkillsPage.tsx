@@ -15,12 +15,22 @@ export function SkillsPage() {
   const {
     maintenanceTools,
     toolVersions,
+    toolUpdateLogs,
+    selectedToolIds,
+    selectedToolCount,
     isCheckingVersions,
     updatingToolId,
+    isBatchUpdating,
+    lastBatchSummary,
     toolMessage,
     loadMaintenanceTools,
     checkToolVersions,
+    loadToolUpdateLogs,
+    toggleToolSelection,
+    clearToolSelection,
+    selectToolsNeedingUpdate,
     runToolUpdate,
+    runSelectedToolUpdates,
   } = useCliMaintenance();
   const {
     installedSkills,
@@ -79,11 +89,21 @@ export function SkillsPage() {
         <SkillsCliMaintenanceSection
           maintenanceTools={maintenanceTools}
           toolVersions={toolVersions}
+          updateLogs={toolUpdateLogs}
+          selectedToolIds={selectedToolIds}
+          selectedToolCount={selectedToolCount}
           isCheckingVersions={isCheckingVersions}
           updatingToolId={updatingToolId}
+          isBatchUpdating={isBatchUpdating}
+          lastBatchSummary={lastBatchSummary}
           message={toolMessage}
           onCheckVersions={checkToolVersions}
           onRunToolUpdate={runToolUpdate}
+          onToggleToolSelection={toggleToolSelection}
+          onSelectToolsNeedingUpdate={selectToolsNeedingUpdate}
+          onClearToolSelection={clearToolSelection}
+          onRunSelectedUpdates={runSelectedToolUpdates}
+          onRefreshLogs={loadToolUpdateLogs}
         />
 
         <SkillsInstalledSection

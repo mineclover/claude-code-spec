@@ -30,6 +30,8 @@ interface MockApis {
     getMaintenanceTools: ReturnType<typeof vi.fn>;
     checkToolVersions: ReturnType<typeof vi.fn>;
     runToolUpdate: ReturnType<typeof vi.fn>;
+    runToolUpdates: ReturnType<typeof vi.fn>;
+    getToolUpdateLogs: ReturnType<typeof vi.fn>;
     getSkillInstallPaths: ReturnType<typeof vi.fn>;
     getInstalledSkills: ReturnType<typeof vi.fn>;
     getSkillActivationEvents: ReturnType<typeof vi.fn>;
@@ -67,6 +69,17 @@ function setupWindowApis(): MockApis {
       startedAt: Date.now(),
       completedAt: Date.now(),
     }),
+    runToolUpdates: vi.fn().mockResolvedValue({
+      batchId: 'batch-1',
+      requestedToolIds: ['moai'],
+      startedAt: Date.now(),
+      completedAt: Date.now(),
+      total: 1,
+      succeeded: 1,
+      failed: 0,
+      results: [],
+    }),
+    getToolUpdateLogs: vi.fn().mockResolvedValue([]),
     getSkillInstallPaths: vi.fn().mockResolvedValue([]),
     getInstalledSkills: vi.fn().mockResolvedValue([]),
     getSkillActivationEvents: vi.fn().mockResolvedValue([]),

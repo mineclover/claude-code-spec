@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CapabilityMatrix } from '../types/capability-matrix';
 import type {
+  CliToolUpdateLogEntry,
   InstalledSkillInfo,
   SkillActivationAuditEvent,
   SkillProvider,
@@ -30,12 +31,16 @@ function createCapability(flags: {
   };
 }
 
-function createTool(id: string): ToolAdapter {
+function createTool(
+  id: string,
+  options?: { latestVersionCommand?: ToolAdapter['latestVersionCommand'] },
+): ToolAdapter {
   return {
     id,
     name: id,
     description: `${id} CLI`,
     versionCommand: { command: id, args: ['--version'] },
+    latestVersionCommand: options?.latestVersionCommand,
     updateCommand: { command: 'npm', args: ['install', '-g', `${id}@latest`] },
   };
 }
@@ -141,9 +146,50 @@ describe('CliMaintenanceService', () => {
       toolId: 'codex',
       status: 'ok',
       version: '1.2.3',
+      latestVersion: null,
+      updateRequired: true,
+      updateReason: 'latest-version-unavailable',
       command: ['codex', '--version'],
     });
     expect(result[0]?.checkedAt).toEqual(expect.any(Number));
+  });
+
+  it('marks tool as update-required when latest version is newer', async () => {
+    const tool = createTool('codex', {
+      latestVersionCommand: { command: 'npm', args: ['view', '@openai/codex', 'version'] },
+    });
+    const service = new CliMaintenanceService(() => [
+      createAdapter({
+        id: 'codex',
+        capability: createCapability({ maintenance: true }),
+        tools: [tool],
+      }),
+    ]);
+
+    const executeCommand = vi
+      .fn()
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: 'codex 1.2.3',
+        stderr: '',
+      })
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: '1.3.0',
+        stderr: '',
+      });
+    (service as unknown as { executeCommand: typeof executeCommand }).executeCommand =
+      executeCommand;
+
+    const result = await service.checkToolVersions(['codex']);
+
+    expect(result[0]).toMatchObject({
+      toolId: 'codex',
+      version: '1.2.3',
+      latestVersion: '1.3.0',
+      updateRequired: true,
+      updateReason: 'outdated',
+    });
   });
 
   it('runs tool updates without regression', async () => {
@@ -176,6 +222,83 @@ describe('CliMaintenanceService', () => {
       stderr: '',
     });
     expect(result.startedAt).toBeLessThanOrEqual(result.completedAt);
+  });
+
+  it('runs selected tool batch updates and exposes update logs', async () => {
+    const codexTool = createTool('codex');
+    const moaiTool = createTool('moai');
+    const storedLogs: CliToolUpdateLogEntry[] = [];
+    const updateAuditStore = {
+      append: vi.fn(async (entry: CliToolUpdateLogEntry) => {
+        storedLogs.unshift(entry);
+      }),
+      listRecent: vi.fn(async (query?: { limit?: number; toolId?: string }) => {
+        const limit = query?.limit ?? 20;
+        const toolId = query?.toolId;
+        const filtered = toolId
+          ? storedLogs.filter((entry) => entry.toolId === toolId)
+          : storedLogs;
+        return filtered.slice(0, limit);
+      }),
+    };
+
+    const service = new CliMaintenanceService(
+      () => [
+        createAdapter({
+          id: 'codex',
+          capability: createCapability({ maintenance: true }),
+          tools: [codexTool],
+        }),
+        createAdapter({
+          id: 'moai',
+          capability: createCapability({ maintenance: true }),
+          tools: [moaiTool],
+        }),
+      ],
+      { updateAuditStore },
+    );
+
+    const executeCommand = vi
+      .fn()
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: 'codex updated',
+        stderr: '',
+      })
+      .mockResolvedValueOnce({
+        exitCode: 1,
+        stdout: '',
+        stderr: 'moai failed',
+      });
+    (service as unknown as { executeCommand: typeof executeCommand }).executeCommand =
+      executeCommand;
+
+    const summary = await service.runToolUpdates(['codex', 'moai']);
+
+    expect(summary).toMatchObject({
+      requestedToolIds: ['codex', 'moai'],
+      total: 2,
+      succeeded: 1,
+      failed: 1,
+    });
+    expect(summary.batchId).toEqual(expect.any(String));
+
+    const logs = await service.getToolUpdateLogs(10);
+    expect(logs).toHaveLength(2);
+    expect(logs[0]).toMatchObject({
+      toolId: 'moai',
+      success: false,
+      exitCode: 1,
+      stderr: 'moai failed',
+      batchId: summary.batchId,
+    });
+    expect(logs[1]).toMatchObject({
+      toolId: 'codex',
+      success: true,
+      exitCode: 0,
+      stdout: 'codex updated',
+      batchId: summary.batchId,
+    });
   });
 
   it('lists installed skills with provider/id dedupe and stable sorting', async () => {

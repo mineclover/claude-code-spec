@@ -14,6 +14,8 @@ import type {
   ReferenceProvider,
 } from '../reference-assets';
 import type {
+  CliToolBatchUpdateSummary,
+  CliToolUpdateLogEntry,
   CliToolUpdateResult,
   CliToolVersionInfo,
   InstalledSkillInfo,
@@ -29,6 +31,8 @@ export interface ToolsAPI {
   getMaintenanceTools: () => Promise<ManagedCliTool[]>;
   checkToolVersions: (toolIds?: string[]) => Promise<CliToolVersionInfo[]>;
   runToolUpdate: (toolId: string) => Promise<CliToolUpdateResult>;
+  runToolUpdates: (toolIds: string[]) => Promise<CliToolBatchUpdateSummary>;
+  getToolUpdateLogs: (limit?: number, toolId?: string) => Promise<CliToolUpdateLogEntry[]>;
   getSkillInstallPaths: () => Promise<SkillInstallPathInfo[]>;
   getInstalledSkills: () => Promise<InstalledSkillInfo[]>;
   getSkillActivationEvents: (limit?: number) => Promise<SkillActivationAuditEvent[]>;

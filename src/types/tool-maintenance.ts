@@ -7,21 +7,40 @@ export interface CommandSpec {
   args: string[];
 }
 
+export interface CliToolUpdatePolicy {
+  explicitUpdateRequired?: boolean;
+}
+
 export interface ManagedCliTool {
   id: string;
   name: string;
   description: string;
   versionCommand: CommandSpec;
+  latestVersionCommand?: CommandSpec;
   updateCommand: CommandSpec;
+  updatePolicy?: CliToolUpdatePolicy;
   docsUrl?: string;
 }
 
 export type CliVersionStatus = 'ok' | 'missing' | 'error';
+export type CliToolUpdateReason =
+  | 'explicit-required'
+  | 'explicit-not-required'
+  | 'missing'
+  | 'outdated'
+  | 'up-to-date'
+  | 'version-check-error'
+  | 'invalid-version'
+  | 'latest-version-unavailable'
+  | 'fallback-required';
 
 export interface CliToolVersionInfo {
   toolId: string;
   status: CliVersionStatus;
   version: string | null;
+  latestVersion: string | null;
+  updateRequired: boolean;
+  updateReason: CliToolUpdateReason;
   command: string[];
   rawOutput: string;
   checkedAt: number;
@@ -38,6 +57,22 @@ export interface CliToolUpdateResult {
   startedAt: number;
   completedAt: number;
   error?: string;
+}
+
+export interface CliToolBatchUpdateSummary {
+  batchId: string;
+  requestedToolIds: string[];
+  startedAt: number;
+  completedAt: number;
+  total: number;
+  succeeded: number;
+  failed: number;
+  results: CliToolUpdateResult[];
+}
+
+export interface CliToolUpdateLogEntry extends CliToolUpdateResult {
+  logId: string;
+  batchId: string | null;
 }
 
 export const KNOWN_SKILL_PROVIDERS = ['claude', 'codex', 'gemini', 'agents'] as const;
