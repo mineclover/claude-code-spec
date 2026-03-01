@@ -47,11 +47,11 @@
   },
   "devDependencies": {
     "@types/node": "^22.18.12",
-    "@vitest/ui": "^4.0.9",
+    "@vitest/ui": "^4.0.18",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.9.2",
-    "vitest": "^4.0.9",
+    "vitest": "^4.0.18",
     "zod": "^3.25.76"
   }
 }
