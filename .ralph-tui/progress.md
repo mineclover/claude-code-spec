@@ -67,6 +67,12 @@ after each iteration and it's included in prompts for context.
   together (`Promise.all([checkToolVersions(...), loadToolUpdateLogs()])`) after
   both single-tool and batch updates so update-required badges, batch summary,
   and log panels stay consistent with the latest execution result.
+- Registry editor single-source-of-truth pattern:
+  Keep registry state as canonical JSON (`maintenanceRegistryJson`) and derive
+  form state/errors via `useMaintenanceRegistryDraft` +
+  `resolveMaintenanceRegistryFormDocument`/`resolveMaintenanceRegistryFormErrors`
+  in `useMaintenanceRegistryEditor`, so form/json edits remain bidirectionally
+  synced without duplicating authoritative state.
 
 ---
 
@@ -387,4 +393,34 @@ after each iteration and it's included in prompts for context.
   - Gotchas encountered
     - Story scope was already implemented in the current branch; this iteration focused
       on acceptance verification and progress logging.
+---
+
+## 2026-03-01 - US-013
+- What was implemented
+  - Verified form-based registry editor for service add/update/delete already exists in
+    `src/components/skills/SkillsRegistrySection.tsx` and is wired through
+    `src/hooks/useMaintenanceRegistryEditor.ts` (`addServiceViaForm`,
+    `updateServiceViaForm`, `removeServiceViaForm`, `ensureServiceToolViaForm`).
+  - Verified bidirectional form/JSON sync is implemented with canonical
+    `maintenanceRegistryJson` state and form mutations writing back JSON via
+    `setMaintenanceRegistryJson(JSON.stringify(...))`, while JSON editor updates
+    immediately re-drive form state through `useMaintenanceRegistryDraft`.
+  - Verified schema issue -> form field mapping exists in
+    `src/lib/maintenanceRegistryForm.ts` (`resolveMaintenanceRegistryFormErrors`) and
+    field-level rendering in `SkillsRegistrySection` (`getServiceFieldErrors`).
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/components/skills/SkillsRegistrySection.tsx src/components/skills/SkillsRegistrySection.test.tsx src/hooks/useMaintenanceRegistryEditor.ts src/hooks/useMaintenanceRegistryDraft.ts src/lib/maintenanceRegistryForm.ts src/lib/maintenanceRegistryForm.test.ts src/pages/SkillsPage.tsx src/pages/SkillsPage.test.tsx`
+    - `npx vitest run src/components/skills/SkillsRegistrySection.test.tsx src/hooks/useMaintenanceRegistryDraft.test.ts src/lib/maintenanceRegistryForm.test.ts src/pages/SkillsPage.test.tsx src/lib/maintenanceRegistryValidation.test.ts`
+    - `npm run start` attempted for manual validation, but sandbox runtime blocked dev-server bind with `listen EPERM: operation not permitted ::1:5173`.
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - The registry editor avoids state divergence by treating JSON text as the only
+      mutable source and deriving form document/error projections from parsed+validated
+      draft state.
+  - Gotchas encountered
+    - Manual UI validation could not be completed in this environment because
+      Electron Forge (Vite dev server) could not bind to localhost in sandbox.
 ---
