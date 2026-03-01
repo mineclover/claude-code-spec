@@ -32,6 +32,13 @@ after each iteration and it's included in prompts for context.
   `fallback` + `conditional` segment nesting (plus `mcpLaunch` strategy flags) in
   `src/services/CliCommandComposer.ts` and `src/data/cli-tools/claude.ts` so new
   option combinations can be added without hardcoded branching.
+- MCP source aggregation precedence pattern:
+  Build MCP source candidates in stable order (global home config -> configured
+  additional paths -> project root/tool directories), then resolve duplicate
+  server names by deterministic ranking (`sourceScope` priority
+  `global < project < projectLocal`, then later discovery order, then
+  lexicographic `sourcePath` tie-break) via `getMcpServerCandidates` in
+  `src/services/settings.ts`.
 
 ---
 
@@ -168,6 +175,37 @@ after each iteration and it's included in prompts for context.
   - Patterns discovered
     - `mcpLaunch` segment parameters are sufficient to encode tool-specific strict
       behavior without imperative command branching.
+  - Gotchas encountered
+    - Story scope was already implemented in the current branch; this iteration
+      focused on acceptance verification and progress logging.
+---
+
+## 2026-03-01 - US-007
+- What was implemented
+  - Verified global/project MCP source aggregation API is already implemented in
+    `src/services/settings.ts` via `getMcpServerCandidates`, including merged
+    candidate metadata (`sourcePath`, `sourceScope`) for reuse across CLIs.
+  - Verified tool config generation (`createMcpConfig`,
+    `createMcpDefaultConfig`) reuses the shared aggregated candidate path via
+    `resolveSelectedServers`.
+  - Verified deterministic duplicate-server merge behavior in
+    `shouldReplaceCandidate`:
+    `sourceScope` priority (`global < project < projectLocal`) ->
+    discovery order -> lexicographic source path.
+  - Verified API exposure path for candidates:
+    `src/ipc/handlers/settingsHandlers.ts` (`settings:get-mcp-server-candidates`),
+    `src/preload/apis/settings.ts`, and `src/types/api/settings.ts`.
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/services/settings.ts src/services/settings.test.ts src/ipc/handlers/settingsHandlers.ts src/preload/apis/settings.ts src/types/api/settings.ts`
+    - `npx vitest run src/services/settings.test.ts`
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - Candidate selection is centralized by `resolveSelectedServers`, which
+      prevents divergence between profile-based and tool-default MCP config
+      generation paths.
   - Gotchas encountered
     - Story scope was already implemented in the current branch; this iteration
       focused on acceptance verification and progress logging.

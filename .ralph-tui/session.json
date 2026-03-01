@@ -3,10 +3,10 @@
   "sessionId": "dc6c3d22-54f9-4db7-9934-5fa7d5391e08",
   "status": "running",
   "startedAt": "2026-03-01T10:55:37.510Z",
-  "updatedAt": "2026-03-01T11:03:55.805Z",
-  "currentIteration": 4,
+  "updatedAt": "2026-03-01T11:06:08.417Z",
+  "currentIteration": 5,
   "maxIterations": 0,
-  "tasksCompleted": 4,
+  "tasksCompleted": 5,
   "isPaused": false,
   "agentPlugin": "codex",
   "trackerState": {
@@ -54,6 +54,16 @@
       "durationMs": 104891,
       "startedAt": "2026-03-01T11:00:45.643Z",
       "endedAt": "2026-03-01T11:02:30.534Z"
+    },
+    {
+      "iteration": 5,
+      "status": "completed",
+      "taskId": "US-006",
+      "taskTitle": "CLI별 MCP Launch Strategy 추상화",
+      "taskCompleted": true,
+      "durationMs": 84109,
+      "startedAt": "2026-03-01T11:02:31.693Z",
+      "endedAt": "2026-03-01T11:03:55.802Z"
     }
   ],
   "skippedTaskIds": [],
