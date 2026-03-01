@@ -51,6 +51,12 @@ after each iteration and it's included in prompts for context.
   `extractSessionPathFromEvent`, then normalize selection with
   `resolveSessionPath` (`explicit > inferred > safe default`) while keeping
   `inferProjectPathFromDashDirName` as legacy fallback only.
+- Skill version hint resolver chain pattern:
+  Normalize provider metadata drift by resolving version hints through a fixed
+  priority chain in `resolveSkillVersionInfo`:
+  frontmatter version -> metadata version -> lockfile hash -> source-derived ref
+  -> `SKILL_VERSION_HINT_FALLBACK`, and keep UI rendering aligned with
+  `formatSkillVersionHint` so missing values consistently display `unknown`.
 
 ---
 
@@ -281,6 +287,34 @@ after each iteration and it's included in prompts for context.
     - Provider onboarding for skill scanning should be done by adding strategy/provider
       mappings, while keeping directory traversal/move/dedupe rules in shared scanner
       utilities to avoid behavior drift.
+  - Gotchas encountered
+    - Story scope was already implemented in the current branch; this iteration
+      focused on acceptance verification and progress logging.
+---
+
+## 2026-03-01 - US-010
+- What was implemented
+  - Verified skill version resolver chain already exists in
+    `src/lib/skillVersionResolver.ts` with sequential precedence:
+    `frontmatter.version -> metadata.version -> lock.skillFolderHash -> source-derived hint -> unknown`.
+  - Verified consistent fallback display path:
+    resolver fallback and UI formatter both use `SKILL_VERSION_HINT_FALLBACK`
+    (`unknown`) via `formatSkillVersionHint`, consumed in
+    `src/components/skills/SkillsInstalledSection.tsx`.
+  - Verified provider fixture coverage exists in
+    `src/lib/skillVersionResolver.test.ts` and
+    `src/lib/__fixtures__/skill-version-resolver/{claude,codex,gemini,agents}/SKILL.md`.
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/lib/skillVersionResolver.ts src/lib/skillVersionResolver.test.ts src/lib/__fixtures__/skill-version-resolver/claude/SKILL.md src/lib/__fixtures__/skill-version-resolver/codex/SKILL.md src/lib/__fixtures__/skill-version-resolver/gemini/SKILL.md src/lib/__fixtures__/skill-version-resolver/agents/SKILL.md src/components/skills/SkillsInstalledSection.tsx src/components/skills/SkillsInstalledSection.test.tsx src/services/CliMaintenanceService.ts`
+    - `npx vitest run src/lib/skillVersionResolver.test.ts src/components/skills/SkillsInstalledSection.test.tsx src/services/CliMaintenanceService.test.ts`
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - Version hint extraction should remain centralized in one resolver chain and
+      tested with cross-provider fixture frontmatter shapes instead of provider-specific
+      branching in services/UI.
   - Gotchas encountered
     - Story scope was already implemented in the current branch; this iteration
       focused on acceptance verification and progress logging.
