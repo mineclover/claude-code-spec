@@ -17,22 +17,17 @@ export const claudeToolDefinition: CLIToolDefinition = {
       { type: 'static', args: ['--output-format', 'stream-json', '--verbose'] },
       { type: 'option', key: 'model', flag: '--model' },
       {
-        type: 'fallback',
-        segments: [
-          {
-            type: 'conditional',
-            when: { op: 'nonEmpty', key: 'mcpConfig' },
-            segments: [
-              { type: 'option', key: 'mcpConfig', flag: '--mcp-config' },
-              { type: 'static', args: ['--strict-mcp-config'] },
-            ],
-          },
-          {
-            type: 'conditional',
-            when: { op: 'equals', key: 'strictMcpConfig', value: true },
-            segments: [{ type: 'static', args: ['--strict-mcp-config'] }],
-          },
-        ],
+        type: 'mcpLaunch',
+        config: {
+          key: 'mcpConfig',
+          flag: '--mcp-config',
+        },
+        strict: {
+          key: 'strictMcpConfig',
+          flag: '--strict-mcp-config',
+          includeWhenConfigPresent: true,
+          allowWithoutConfig: true,
+        },
       },
       {
         type: 'fallback',

@@ -51,6 +51,25 @@ export interface CLICommandMappedSegment {
   when?: CLICommandCondition;
 }
 
+export interface CLICommandMcpLaunchPathConfig {
+  key?: string;
+  flag?: string;
+}
+
+export interface CLICommandMcpLaunchStrictConfig {
+  key?: string;
+  flag?: string;
+  includeWhenConfigPresent?: boolean;
+  allowWithoutConfig?: boolean;
+}
+
+export interface CLICommandMcpLaunchSegment {
+  type: 'mcpLaunch';
+  config?: CLICommandMcpLaunchPathConfig;
+  strict?: CLICommandMcpLaunchStrictConfig;
+  when?: CLICommandCondition;
+}
+
 export interface CLICommandConditionalSegment {
   type: 'conditional';
   when: CLICommandCondition;
@@ -67,6 +86,7 @@ export type CLICommandSegment =
   | CLICommandStaticSegment
   | CLICommandOptionSegment
   | CLICommandMappedSegment
+  | CLICommandMcpLaunchSegment
   | CLICommandConditionalSegment
   | CLICommandFallbackSegment;
 

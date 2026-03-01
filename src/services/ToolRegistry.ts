@@ -51,6 +51,40 @@ export class ToolRegistry {
       return;
     }
 
+    if (segment.type === 'mcpLaunch') {
+      if (segment.config?.key !== undefined && !isNonEmptyString(segment.config.key)) {
+        this.invalid(path, toolId, '.config.key must be a non-empty string when provided');
+      }
+
+      if (segment.config?.flag !== undefined && !isNonEmptyString(segment.config.flag)) {
+        this.invalid(path, toolId, '.config.flag must be a non-empty string when provided');
+      }
+
+      if (segment.strict?.key !== undefined && !isNonEmptyString(segment.strict.key)) {
+        this.invalid(path, toolId, '.strict.key must be a non-empty string when provided');
+      }
+
+      if (segment.strict?.flag !== undefined && !isNonEmptyString(segment.strict.flag)) {
+        this.invalid(path, toolId, '.strict.flag must be a non-empty string when provided');
+      }
+
+      if (
+        segment.strict?.includeWhenConfigPresent !== undefined &&
+        typeof segment.strict.includeWhenConfigPresent !== 'boolean'
+      ) {
+        this.invalid(path, toolId, '.strict.includeWhenConfigPresent must be a boolean');
+      }
+
+      if (
+        segment.strict?.allowWithoutConfig !== undefined &&
+        typeof segment.strict.allowWithoutConfig !== 'boolean'
+      ) {
+        this.invalid(path, toolId, '.strict.allowWithoutConfig must be a boolean');
+      }
+
+      return;
+    }
+
     if (!Array.isArray(segment.segments) || segment.segments.length === 0) {
       this.invalid(path, toolId, '.segments must be a non-empty array');
     }

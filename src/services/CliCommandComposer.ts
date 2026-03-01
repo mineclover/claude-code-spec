@@ -3,10 +3,30 @@ import type {
   CLICommandConditionalSegment,
   CLICommandFallbackSegment,
   CLICommandMappedSegment,
+  CLICommandMcpLaunchSegment,
   CLICommandOptionSegment,
   CLICommandSegment,
+  CLIOptionSchema,
   CLIToolDefinition,
 } from '../types/cli-tool';
+
+interface ResolvedMcpLaunchStrictConfig {
+  key: string;
+  flag: string;
+  includeWhenConfigPresent: boolean;
+  allowWithoutConfig: boolean;
+}
+
+interface ResolvedMcpLaunchStrategy {
+  configKey: string;
+  configFlag: string;
+  strict: ResolvedMcpLaunchStrictConfig | null;
+}
+
+const SAFE_MCP_CONFIG_KEY = 'mcpConfig';
+const SAFE_MCP_CONFIG_FLAG = '--mcp-config';
+const SAFE_STRICT_MCP_KEY = 'strictMcpConfig';
+const SAFE_STRICT_MCP_FLAG = '--strict-mcp-config';
 
 function evaluateCondition(
   condition: CLICommandCondition | undefined,
@@ -53,6 +73,117 @@ function mergeDefaultOptions(
   }
 
   return merged;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function findOptionByKey(tool: CLIToolDefinition, key: string): CLIOptionSchema | undefined {
+  return tool.options.find((option) => option.key === key);
+}
+
+function findFirstExistingOption(
+  tool: CLIToolDefinition,
+  candidateKeys: string[],
+): CLIOptionSchema | undefined {
+  for (const key of candidateKeys) {
+    const option = findOptionByKey(tool, key);
+    if (option) {
+      return option;
+    }
+  }
+  return undefined;
+}
+
+function inferFlagFromOption(option: CLIOptionSchema | undefined): string | undefined {
+  if (!option || !isNonEmptyString(option.cliFlag)) {
+    return undefined;
+  }
+
+  const candidates = option.cliFlag
+    .split('|')
+    .map((token) => token.trim())
+    .filter((token) => token.startsWith('-'));
+
+  return candidates[0];
+}
+
+function resolveMcpLaunchStrategy(
+  segment: CLICommandMcpLaunchSegment,
+  tool: CLIToolDefinition,
+  options: Record<string, unknown>,
+): ResolvedMcpLaunchStrategy {
+  const explicitConfigKey = isNonEmptyString(segment.config?.key)
+    ? segment.config.key.trim()
+    : null;
+  const inferredConfigOption =
+    findFirstExistingOption(tool, [SAFE_MCP_CONFIG_KEY]) ??
+    (options[SAFE_MCP_CONFIG_KEY] !== undefined
+      ? { key: SAFE_MCP_CONFIG_KEY, label: '', type: 'string' }
+      : undefined);
+  const configKey = explicitConfigKey ?? inferredConfigOption?.key ?? SAFE_MCP_CONFIG_KEY;
+
+  const explicitConfigFlag = isNonEmptyString(segment.config?.flag)
+    ? segment.config.flag.trim()
+    : null;
+  const inferredConfigFlag = inferFlagFromOption(findOptionByKey(tool, configKey));
+  const configFlag = explicitConfigFlag ?? inferredConfigFlag ?? SAFE_MCP_CONFIG_FLAG;
+
+  if (!segment.strict) {
+    return {
+      configKey,
+      configFlag,
+      strict: null,
+    };
+  }
+
+  const explicitStrictKey = isNonEmptyString(segment.strict.key) ? segment.strict.key.trim() : null;
+  const inferredStrictOption =
+    findFirstExistingOption(tool, [SAFE_STRICT_MCP_KEY]) ??
+    (options[SAFE_STRICT_MCP_KEY] !== undefined
+      ? { key: SAFE_STRICT_MCP_KEY, label: '', type: 'boolean' }
+      : undefined);
+  const strictKey = explicitStrictKey ?? inferredStrictOption?.key ?? SAFE_STRICT_MCP_KEY;
+
+  const explicitStrictFlag = isNonEmptyString(segment.strict.flag)
+    ? segment.strict.flag.trim()
+    : null;
+  const inferredStrictFlag = inferFlagFromOption(findOptionByKey(tool, strictKey));
+  const strictFlag = explicitStrictFlag ?? inferredStrictFlag ?? SAFE_STRICT_MCP_FLAG;
+
+  const includeWhenConfigPresent =
+    typeof segment.strict.includeWhenConfigPresent === 'boolean'
+      ? segment.strict.includeWhenConfigPresent
+      : inferredStrictOption !== undefined;
+  const allowWithoutConfig =
+    typeof segment.strict.allowWithoutConfig === 'boolean'
+      ? segment.strict.allowWithoutConfig
+      : false;
+
+  return {
+    configKey,
+    configFlag,
+    strict: {
+      key: strictKey,
+      flag: strictFlag,
+      includeWhenConfigPresent,
+      allowWithoutConfig,
+    },
+  };
+}
+
+function normalizeMcpPath(value: unknown): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeBoolean(value: unknown): boolean {
+  return value === true || value === 'true';
 }
 
 function renderOptionSegment(
@@ -114,9 +245,41 @@ function renderMappedSegment(
   return mapped ? [...mapped] : [];
 }
 
+function renderMcpLaunchSegment(
+  segment: CLICommandMcpLaunchSegment,
+  options: Record<string, unknown>,
+  tool: CLIToolDefinition,
+): string[] {
+  if (!evaluateCondition(segment.when, options)) {
+    return [];
+  }
+
+  const strategy = resolveMcpLaunchStrategy(segment, tool, options);
+  const configPath = normalizeMcpPath(options[strategy.configKey]);
+  const strictRequested = strategy.strict ? normalizeBoolean(options[strategy.strict.key]) : false;
+
+  if (configPath) {
+    const rendered = [strategy.configFlag, configPath];
+    if (strategy.strict) {
+      const includeStrict = strategy.strict.includeWhenConfigPresent || strictRequested;
+      if (includeStrict) {
+        rendered.push(strategy.strict.flag);
+      }
+    }
+    return rendered;
+  }
+
+  if (strategy.strict && strictRequested && strategy.strict.allowWithoutConfig) {
+    return [strategy.strict.flag];
+  }
+
+  return [];
+}
+
 function renderConditionalSegment(
   segment: CLICommandConditionalSegment,
   options: Record<string, unknown>,
+  tool: CLIToolDefinition,
 ): string[] {
   if (!evaluateCondition(segment.when, options)) {
     return [];
@@ -124,7 +287,7 @@ function renderConditionalSegment(
 
   const rendered: string[] = [];
   for (const child of segment.segments) {
-    rendered.push(...renderSegment(child, options));
+    rendered.push(...renderSegment(child, options, tool));
   }
   return rendered;
 }
@@ -132,13 +295,14 @@ function renderConditionalSegment(
 function renderFallbackSegment(
   segment: CLICommandFallbackSegment,
   options: Record<string, unknown>,
+  tool: CLIToolDefinition,
 ): string[] {
   if (!evaluateCondition(segment.when, options)) {
     return [];
   }
 
   for (const candidate of segment.segments) {
-    const rendered = renderSegment(candidate, options);
+    const rendered = renderSegment(candidate, options, tool);
     if (rendered.length > 0) {
       return rendered;
     }
@@ -147,7 +311,11 @@ function renderFallbackSegment(
   return [];
 }
 
-function renderSegment(segment: CLICommandSegment, options: Record<string, unknown>): string[] {
+function renderSegment(
+  segment: CLICommandSegment,
+  options: Record<string, unknown>,
+  tool: CLIToolDefinition,
+): string[] {
   switch (segment.type) {
     case 'static':
       return evaluateCondition(segment.when, options) ? [...segment.args] : [];
@@ -155,10 +323,12 @@ function renderSegment(segment: CLICommandSegment, options: Record<string, unkno
       return renderOptionSegment(segment, options);
     case 'mapped':
       return renderMappedSegment(segment, options);
+    case 'mcpLaunch':
+      return renderMcpLaunchSegment(segment, options, tool);
     case 'conditional':
-      return renderConditionalSegment(segment, options);
+      return renderConditionalSegment(segment, options, tool);
     case 'fallback':
-      return renderFallbackSegment(segment, options);
+      return renderFallbackSegment(segment, options, tool);
     default:
       return [];
   }
@@ -172,7 +342,7 @@ export function composeCliCommand(
   const composed: string[] = [tool.commandSpec.executable];
 
   for (const segment of tool.commandSpec.segments) {
-    composed.push(...renderSegment(segment, options));
+    composed.push(...renderSegment(segment, options, tool));
   }
 
   return composed;

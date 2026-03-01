@@ -10,6 +10,7 @@ after each iteration and it's included in prompts for context.
 - 경로 템플릿(`${ENV}`/`~`) 확장과 skills disabled root 파생 규칙은 `lib` 공통 유틸로 승격해 내장/커스텀 어댑터가 동일 정규화 경로를 재사용하게 만든다.
 - 버전드 설정 도입 시에는 `migrate*ToLatest` 파이프라인과 `run*MigrationTransaction`(apply/rollback) 보호 헬퍼를 함께 두어 `구버전 흡수`와 `실패 시 원복`을 동일 규칙으로 강제한다.
 - 플래그 우선순위 분기가 필요한 CLI 명령 조합은 `fallback` 세그먼트에 우선 브랜치를 앞에서부터 선언하고, 각 브랜치 내부는 `conditional` 그룹으로 묶어 하나의 의미 단위(예: `mcp-config + strict`)를 원자적으로 출력한다.
+- 도구별 MCP 플래그 정책은 전용 `mcpLaunch` 세그먼트로 승격하고, `resolveMcpLaunchStrategy`에서 `명시값 > 유추값 > 안전 기본값` 정규화 후 런타임에서 strict-only 허용 여부(`allowWithoutConfig`)를 게이트한다.
 
 ---
 
@@ -51,4 +52,12 @@ after each iteration and it's included in prompts for context.
 - **Learnings:**
   - Patterns discovered: 기존 `option/static/mapped`만으로는 조합 우선순위를 여러 곳에서 중복 조건으로 표현하게 되므로, `fallback(우선순위)` + `conditional(그룹 원자성)` 조합이 규칙 카탈로그 확장성과 가독성을 동시에 확보한다.
   - Gotchas encountered: `fallback` 후보에 빈 배열을 반환하는 세그먼트가 섞여도 다음 후보로 안전하게 진행되어야 하므로, `first non-empty` 선택 규칙을 컴포저/테스트에 동시에 고정하지 않으면 도구별 플래그 회귀가 발생하기 쉽다.
+---
+
+## 2026-03-01 - US-006
+- What was implemented: CLI command spec에 `mcpLaunch` 세그먼트를 추가해 도구별 MCP launch 전략(`mcp-config`/`strict` 조합)을 선언형으로 분리했다. `CliCommandComposer`에는 `resolveMcpLaunchStrategy` 정규화 경로를 도입해 strict-only 허용 여부를 도구별로 제어하고, `ToolRegistry` 검증과 `claude` 정의/테스트를 새 전략으로 이관했다.
+- Files changed: `src/types/cli-tool.ts`, `src/services/CliCommandComposer.ts`, `src/services/ToolRegistry.ts`, `src/data/cli-tools/claude.ts`, `src/services/CliCommandComposer.test.ts`, `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered: 조합 규칙을 세그먼트 타입(`mcpLaunch`)으로 올리면 개별 CLI 정의는 정책만 선언하고, 런타임 합성기는 공통 게이트(`allowWithoutConfig`)만 유지해 도구별 분기를 확장하기 쉬워진다.
+  - Gotchas encountered: `mcp-config` 경로가 있을 때 strict를 항상 포함할지 여부와 strict-only 허용 여부는 서로 다른 규칙이므로, 단일 boolean으로 합치면 조합 회귀가 생겨 별도 필드로 분리해야 안전하다.
 ---

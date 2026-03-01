@@ -35,6 +35,60 @@ const ruleCatalogTool: CLIToolDefinition = {
   },
 };
 
+const strictAllowedMcpTool: CLIToolDefinition = {
+  id: 'mcp-strict-allowed',
+  name: 'MCP Strict Allowed',
+  description: 'Test-only tool for strict-only MCP launch',
+  interpreterType: 'claude',
+  options: [
+    { key: 'mcpConfig', label: 'MCP Config', type: 'string', cliFlag: '--mcp-config' },
+    {
+      key: 'strictMcpConfig',
+      label: 'Strict MCP Config',
+      type: 'boolean',
+      cliFlag: '--strict-mcp-config',
+    },
+  ],
+  commandSpec: {
+    executable: 'mcp-cli',
+    segments: [
+      {
+        type: 'mcpLaunch',
+        strict: {
+          allowWithoutConfig: true,
+        },
+      },
+    ],
+  },
+};
+
+const strictBlockedMcpTool: CLIToolDefinition = {
+  id: 'mcp-strict-blocked',
+  name: 'MCP Strict Blocked',
+  description: 'Test-only tool for strict-only MCP launch disablement',
+  interpreterType: 'claude',
+  options: [
+    { key: 'mcpConfig', label: 'MCP Config', type: 'string', cliFlag: '--mcp-config' },
+    {
+      key: 'strictMcpConfig',
+      label: 'Strict MCP Config',
+      type: 'boolean',
+      cliFlag: '--strict-mcp-config',
+    },
+  ],
+  commandSpec: {
+    executable: 'mcp-cli',
+    segments: [
+      {
+        type: 'mcpLaunch',
+        strict: {
+          allowWithoutConfig: false,
+        },
+      },
+    ],
+  },
+};
+
 describe('CliCommandComposer', () => {
   it('supports conditional-group and fallback catalog rules', () => {
     const snapshots = [
@@ -105,6 +159,20 @@ describe('CliCommandComposer', () => {
         },
       ]
     `);
+  });
+
+  it('controls strict-only MCP launch behavior per tool strategy', () => {
+    expect(composeCliCommand(strictAllowedMcpTool, { strictMcpConfig: true }).join(' ')).toBe(
+      'mcp-cli --strict-mcp-config',
+    );
+
+    expect(composeCliCommand(strictBlockedMcpTool, { strictMcpConfig: true }).join(' ')).toBe(
+      'mcp-cli',
+    );
+
+    expect(composeCliCommand(strictBlockedMcpTool, { mcpConfig: '.mcp.json' }).join(' ')).toBe(
+      'mcp-cli --mcp-config .mcp.json --strict-mcp-config',
+    );
   });
 
   it('returns stdin only for non-empty string values', () => {
