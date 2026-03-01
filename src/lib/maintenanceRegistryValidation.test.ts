@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { validateMaintenanceServicesPayload } from './maintenanceRegistryValidation';
+import {
+  validateMaintenanceRegistryPayload,
+  validateMaintenanceServicesPayload,
+} from './maintenanceRegistryValidation';
 
 describe('validateMaintenanceServicesPayload', () => {
   it('accepts valid maintenance registry payload', () => {
@@ -126,5 +129,70 @@ describe('validateMaintenanceServicesPayload', () => {
     expect(
       result.issues.some((issue) => issue.path.join('.') === '0.capability.maintenance.enabled'),
     ).toBe(true);
+  });
+});
+
+describe('validateMaintenanceRegistryPayload', () => {
+  it('accepts latest versioned registry payload', () => {
+    const payload = {
+      schemaVersion: 2,
+      services: [
+        {
+          id: 'moai',
+          tools: [
+            {
+              id: 'moai',
+              name: 'MoAI-ADK',
+              versionCommand: { command: 'moai', args: ['version'] },
+              updateCommand: { command: 'moai', args: ['update', '--binary', '--yes'] },
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = validateMaintenanceRegistryPayload(payload);
+
+    expect(result.valid).toBe(true);
+    expect(result.migrated).toBe(false);
+    expect(result.value?.schemaVersion).toBe(2);
+    expect(result.value?.services).toHaveLength(1);
+  });
+
+  it('migrates legacy array root payload to latest versioned document', () => {
+    const payload = [
+      {
+        id: 'legacy',
+        tools: [
+          {
+            id: 'legacy',
+            name: 'Legacy CLI',
+            versionCommand: { command: 'legacy', args: ['--version'] },
+            updateCommand: { command: 'npm', args: ['install', '-g', 'legacy@latest'] },
+          },
+        ],
+      },
+    ];
+
+    const result = validateMaintenanceRegistryPayload(payload);
+
+    expect(result.valid).toBe(true);
+    expect(result.migrated).toBe(true);
+    expect(result.value?.schemaVersion).toBe(2);
+    expect(result.value?.services[0]?.id).toBe('legacy');
+  });
+
+  it('rejects unsupported future schema version', () => {
+    const payload = {
+      schemaVersion: 999,
+      services: [],
+    };
+
+    const result = validateMaintenanceRegistryPayload(payload);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((line) => line.includes('Unsupported registry schemaVersion'))).toBe(
+      true,
+    );
   });
 });

@@ -19,7 +19,10 @@ import {
   validateMcpJson,
   writeSettingsFile,
 } from '../../services/settings';
-import type { MaintenanceRegistryService } from '../../types/maintenance-registry';
+import type {
+  MaintenanceRegistryDocument,
+  MaintenanceRegistryService,
+} from '../../types/maintenance-registry';
 import type { IPCRouter } from '../IPCRouter';
 
 export function registerSettingsHandlers(
@@ -64,6 +67,18 @@ export function registerSettingsHandlers(
     settingsService.clearCurrentProject();
     return { success: true };
   });
+
+  router.handle('get-maintenance-registry', async () => {
+    return settingsService.getMaintenanceRegistry();
+  });
+
+  router.handle(
+    'set-maintenance-registry',
+    async (_event, registry: MaintenanceRegistryDocument) => {
+      settingsService.setMaintenanceRegistry(registry);
+      return { success: true };
+    },
+  );
 
   router.handle('get-maintenance-services', async () => {
     return settingsService.getMaintenanceServices();

@@ -3,7 +3,10 @@
  * Merged: App settings + MCP config management
  */
 
-import type { MaintenanceRegistryService } from '../maintenance-registry';
+import type {
+  MaintenanceRegistryDocument,
+  MaintenanceRegistryService,
+} from '../maintenance-registry';
 
 export interface McpConfigFile {
   name: string;
@@ -57,6 +60,8 @@ export interface SettingsAPI {
   getCurrentProjectDirName: () => Promise<string | undefined>;
   setCurrentProject: (projectPath: string, projectDirName: string) => Promise<{ success: boolean }>;
   clearCurrentProject: () => Promise<{ success: boolean }>;
+  getMaintenanceRegistry: () => Promise<MaintenanceRegistryDocument>;
+  setMaintenanceRegistry: (registry: MaintenanceRegistryDocument) => Promise<{ success: boolean }>;
   getMaintenanceServices: () => Promise<MaintenanceRegistryService[]>;
   setMaintenanceServices: (services: MaintenanceRegistryService[]) => Promise<{ success: boolean }>;
 

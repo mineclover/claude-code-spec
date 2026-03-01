@@ -47,3 +47,12 @@ export interface MaintenanceRegistryService {
   execution?: MaintenanceRegistryExecution;
   mcp?: MaintenanceRegistryMcp;
 }
+
+export const MAINTENANCE_REGISTRY_SCHEMA_VERSION = 2 as const;
+
+export type MaintenanceRegistrySchemaVersion = typeof MAINTENANCE_REGISTRY_SCHEMA_VERSION;
+
+export interface MaintenanceRegistryDocument {
+  schemaVersion: MaintenanceRegistrySchemaVersion;
+  services: MaintenanceRegistryService[];
+}

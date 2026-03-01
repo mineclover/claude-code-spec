@@ -1,9 +1,10 @@
 import type { Diagnostic } from '@codemirror/lint';
 import { useMemo } from 'react';
 import { createJsonAstPathLocator } from '../lib/jsonAstPathLocator';
+import { createEmptyMaintenanceRegistry } from '../lib/maintenanceRegistryMigration';
 import {
-  type MaintenanceRegistryValidationResult,
-  validateMaintenanceServicesPayload,
+  type MaintenanceRegistryDocumentValidationResult,
+  validateMaintenanceRegistryPayload,
 } from '../lib/maintenanceRegistryValidation';
 
 export interface JsonDraftResult {
@@ -19,7 +20,7 @@ export interface MaintenanceRegistryDraftStatus {
 
 export interface MaintenanceRegistryDraft {
   parsed: JsonDraftResult;
-  validation: MaintenanceRegistryValidationResult | null;
+  validation: MaintenanceRegistryDocumentValidationResult | null;
   status: MaintenanceRegistryDraftStatus;
   diagnostics: readonly Diagnostic[];
 }
@@ -27,7 +28,7 @@ export interface MaintenanceRegistryDraft {
 export function parseJsonDraft(raw: string): JsonDraftResult {
   const trimmed = raw.trim();
   if (!trimmed) {
-    return { value: [] };
+    return { value: createEmptyMaintenanceRegistry() };
   }
 
   try {
@@ -37,6 +38,20 @@ export function parseJsonDraft(raw: string): JsonDraftResult {
       error: `JSON parse error: ${error instanceof Error ? error.message : 'Unknown parse error'}`,
     };
   }
+}
+
+function inferServiceCount(value: unknown): number {
+  if (Array.isArray(value)) {
+    return value.length;
+  }
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    Array.isArray((value as { services?: unknown }).services)
+  ) {
+    return (value as { services: unknown[] }).services.length;
+  }
+  return 0;
 }
 
 export function buildMaintenanceRegistryDraft(raw: string): MaintenanceRegistryDraft {
@@ -55,14 +70,14 @@ export function buildMaintenanceRegistryDraft(raw: string): MaintenanceRegistryD
     };
   }
 
-  const validation = validateMaintenanceServicesPayload(parsed.value);
+  const validation = validateMaintenanceRegistryPayload(parsed.value);
   if (validation.valid) {
     return {
       parsed,
       validation,
       status: {
         valid: true,
-        serviceCount: validation.value?.length ?? 0,
+        serviceCount: validation.value?.services.length ?? 0,
         errors: [],
       },
       diagnostics: [],
@@ -86,7 +101,7 @@ export function buildMaintenanceRegistryDraft(raw: string): MaintenanceRegistryD
     validation,
     status: {
       valid: false,
-      serviceCount: Array.isArray(parsed.value) ? parsed.value.length : 0,
+      serviceCount: inferServiceCount(parsed.value),
       errors: validation.errors,
     },
     diagnostics,

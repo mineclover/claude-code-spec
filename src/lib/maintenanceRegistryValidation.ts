@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { MCP_CONFIG_TARGETS } from '../types/maintenance-adapter-sdk';
-import type { MaintenanceRegistryService } from '../types/maintenance-registry';
+import {
+  MAINTENANCE_REGISTRY_SCHEMA_VERSION,
+  type MaintenanceRegistryDocument,
+  type MaintenanceRegistryService,
+} from '../types/maintenance-registry';
+import { migrateMaintenanceRegistryToLatest } from './maintenanceRegistryMigration';
 
 const nonEmptyString = z.string().trim().min(1, 'Must be a non-empty string');
 
@@ -79,8 +84,16 @@ const serviceSchema = z
   });
 
 const maintenanceServicesSchema = z.array(serviceSchema);
+const maintenanceRegistrySchema = z
+  .object({
+    schemaVersion: z.literal(MAINTENANCE_REGISTRY_SCHEMA_VERSION),
+    services: maintenanceServicesSchema,
+  })
+  .strict();
 
-function formatIssuePath(path: (string | number)[]): string {
+type PathSegment = string | number;
+
+function formatIssuePath(path: PathSegment[]): string {
   if (path.length === 0) return 'root';
   let output = 'root';
   for (const segment of path) {
@@ -93,22 +106,38 @@ function formatIssuePath(path: (string | number)[]): string {
   return output;
 }
 
-export interface MaintenanceRegistryValidationResult {
+function toValidationIssues(
+  issues: Array<{ path: PathSegment[]; message: string }>,
+): MaintenanceRegistryValidationIssue[] {
+  return issues.map((issue) => ({
+    path: issue.path,
+    message: issue.message,
+    formatted: `${formatIssuePath(issue.path)}: ${issue.message}`,
+  }));
+}
+
+export interface MaintenanceRegistryValidationResult<TValue = MaintenanceRegistryService[]> {
   valid: boolean;
-  value?: MaintenanceRegistryService[];
+  value?: TValue;
   issues: MaintenanceRegistryValidationIssue[];
   errors: string[];
 }
 
 export interface MaintenanceRegistryValidationIssue {
-  path: (string | number)[];
+  path: PathSegment[];
   message: string;
   formatted: string;
 }
 
+export interface MaintenanceRegistryDocumentValidationResult
+  extends MaintenanceRegistryValidationResult<MaintenanceRegistryDocument> {
+  migrated: boolean;
+  fromVersion?: number;
+}
+
 export function validateMaintenanceServicesPayload(
   input: unknown,
-): MaintenanceRegistryValidationResult {
+): MaintenanceRegistryValidationResult<MaintenanceRegistryService[]> {
   const parsed = maintenanceServicesSchema.safeParse(input);
   if (parsed.success) {
     return {
@@ -119,18 +148,48 @@ export function validateMaintenanceServicesPayload(
     };
   }
 
-  const issues: MaintenanceRegistryValidationIssue[] = parsed.error.issues.map((issue) => {
-    const formatted = `${formatIssuePath(issue.path)}: ${issue.message}`;
-    return {
-      path: issue.path,
-      message: issue.message,
-      formatted,
-    };
-  });
+  const issues = toValidationIssues(parsed.error.issues);
 
   return {
     valid: false,
     issues,
     errors: issues.map((issue) => issue.formatted),
+  };
+}
+
+export function validateMaintenanceRegistryPayload(
+  input: unknown,
+): MaintenanceRegistryDocumentValidationResult {
+  const migration = migrateMaintenanceRegistryToLatest(input);
+  if (!migration.valid || !migration.value) {
+    const issues = toValidationIssues(migration.issues);
+    return {
+      valid: false,
+      issues,
+      errors: issues.map((issue) => issue.formatted),
+      migrated: migration.migrated,
+      fromVersion: migration.fromVersion,
+    };
+  }
+
+  const parsed = maintenanceRegistrySchema.safeParse(migration.value);
+  if (parsed.success) {
+    return {
+      valid: true,
+      value: parsed.data as MaintenanceRegistryDocument,
+      issues: [],
+      errors: [],
+      migrated: migration.migrated,
+      fromVersion: migration.fromVersion,
+    };
+  }
+
+  const issues = toValidationIssues(parsed.error.issues);
+  return {
+    valid: false,
+    issues,
+    errors: issues.map((issue) => issue.formatted),
+    migrated: migration.migrated,
+    fromVersion: migration.fromVersion,
   };
 }

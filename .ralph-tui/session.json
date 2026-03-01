@@ -3,10 +3,10 @@
   "sessionId": "4046228a-df35-4376-a8e6-94d8b329eb90",
   "status": "running",
   "startedAt": "2026-03-01T06:20:59.603Z",
-  "updatedAt": "2026-03-01T07:03:46.456Z",
-  "currentIteration": 2,
+  "updatedAt": "2026-03-01T07:15:37.267Z",
+  "currentIteration": 3,
   "maxIterations": 0,
-  "tasksCompleted": 2,
+  "tasksCompleted": 3,
   "isPaused": false,
   "agentPlugin": "codex",
   "trackerState": {
@@ -29,8 +29,8 @@
       {
         "id": "US-003",
         "title": "내장 서비스 어댑터 SDK 마이그레이션",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-004",
@@ -132,6 +132,16 @@
       "durationMs": 713678,
       "startedAt": "2026-03-01T06:46:21.454Z",
       "endedAt": "2026-03-01T06:58:15.132Z"
+    },
+    {
+      "iteration": 3,
+      "status": "completed",
+      "taskId": "US-003",
+      "taskTitle": "내장 서비스 어댑터 SDK 마이그레이션",
+      "taskCompleted": true,
+      "durationMs": 330170,
+      "startedAt": "2026-03-01T06:58:16.285Z",
+      "endedAt": "2026-03-01T07:03:46.455Z"
     }
   ],
   "skippedTaskIds": [],

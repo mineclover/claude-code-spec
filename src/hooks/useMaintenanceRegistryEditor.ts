@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { MaintenanceRegistryService } from '../types/maintenance-registry';
+import { createEmptyMaintenanceRegistry } from '../lib/maintenanceRegistryMigration';
+import type {
+  MaintenanceRegistryDocument,
+  MaintenanceRegistryService,
+} from '../types/maintenance-registry';
 import { useMaintenanceRegistryDraft } from './useMaintenanceRegistryDraft';
 
 type Message = { type: 'success' | 'error'; text: string } | null;
@@ -14,52 +18,55 @@ interface UseMaintenanceRegistryEditorOptions {
   onRegistrySaved?: () => Promise<void> | void;
 }
 
-const DEFAULT_MAINTENANCE_REGISTRY_JSON = '[]';
+const DEFAULT_MAINTENANCE_REGISTRY_JSON = JSON.stringify(createEmptyMaintenanceRegistry(), null, 2);
 const MAINTENANCE_REGISTRY_EXAMPLE_JSON = JSON.stringify(
-  [
-    {
-      id: 'acme',
-      name: 'Acme CLI',
-      enabled: true,
-      capability: {
-        maintenance: { enabled: true },
-        skills: { enabled: true },
-      },
-      tools: [
-        {
-          id: 'acme-cli',
-          name: 'Acme CLI',
-          description: 'Example third-party CLI',
-          versionCommand: { command: 'acme', args: ['--version'] },
-          updateCommand: { command: 'npm', args: ['install', '-g', 'acme-cli@latest'] },
-          docsUrl: 'https://example.com/acme',
+  {
+    ...createEmptyMaintenanceRegistry(),
+    services: [
+      {
+        id: 'acme',
+        name: 'Acme CLI',
+        enabled: true,
+        capability: {
+          maintenance: { enabled: true },
+          skills: { enabled: true },
         },
-      ],
-      skillStore: {
-        provider: 'acme',
-        installRoot: '~/.acme/skills',
-      },
-    },
-    {
-      id: 'moai',
-      name: 'MoAI-ADK',
-      enabled: true,
-      capability: {
-        maintenance: { enabled: true },
-        execution: { enabled: true },
-      },
-      tools: [
-        {
-          id: 'moai',
-          name: 'MoAI-ADK',
-          description: 'Self-updating binary CLI example',
-          versionCommand: { command: 'moai', args: ['version'] },
-          updateCommand: { command: 'moai', args: ['update', '--binary', '--yes'] },
-          docsUrl: 'https://github.com/modu-ai/moai-adk',
+        tools: [
+          {
+            id: 'acme-cli',
+            name: 'Acme CLI',
+            description: 'Example third-party CLI',
+            versionCommand: { command: 'acme', args: ['--version'] },
+            updateCommand: { command: 'npm', args: ['install', '-g', 'acme-cli@latest'] },
+            docsUrl: 'https://example.com/acme',
+          },
+        ],
+        skillStore: {
+          provider: 'acme',
+          installRoot: '~/.acme/skills',
         },
-      ],
-    },
-  ],
+      },
+      {
+        id: 'moai',
+        name: 'MoAI-ADK',
+        enabled: true,
+        capability: {
+          maintenance: { enabled: true },
+          execution: { enabled: true },
+        },
+        tools: [
+          {
+            id: 'moai',
+            name: 'MoAI-ADK',
+            description: 'Self-updating binary CLI example',
+            versionCommand: { command: 'moai', args: ['version'] },
+            updateCommand: { command: 'moai', args: ['update', '--binary', '--yes'] },
+            docsUrl: 'https://github.com/modu-ai/moai-adk',
+          },
+        ],
+      },
+    ],
+  },
   null,
   2,
 );
@@ -155,10 +162,9 @@ export function useMaintenanceRegistryEditor({
   const loadRegistry = useCallback(async () => {
     setMessage(null);
     try {
-      const services = await window.settingsAPI.getMaintenanceServices();
-      setMaintenanceRegistryJson(
-        services.length > 0 ? JSON.stringify(services, null, 2) : DEFAULT_MAINTENANCE_REGISTRY_JSON,
-      );
+      const registry = await window.settingsAPI.getMaintenanceRegistry();
+      const normalizedRegistry = registry ?? createEmptyMaintenanceRegistry();
+      setMaintenanceRegistryJson(JSON.stringify(normalizedRegistry, null, 2));
     } catch (error) {
       console.error('Failed to load maintenance registry:', error);
       setMessage({ type: 'error', text: 'Failed to load registry config.' });
@@ -175,19 +181,23 @@ export function useMaintenanceRegistryEditor({
         setMessage({ type: 'error', text: draft.parsed.error });
         return;
       }
-      if (!Array.isArray(draft.parsed.value)) {
-        setMessage({ type: 'error', text: 'Registry root must be an array.' });
+      const registry = draft.validation?.value;
+      if (!registry) {
+        setMessage({ type: 'error', text: 'Registry root must be a versioned document.' });
         return;
       }
 
-      const next = [...draft.parsed.value, template];
+      const next: MaintenanceRegistryDocument = {
+        ...registry,
+        services: [...registry.services, template],
+      };
       setMaintenanceRegistryJson(JSON.stringify(next, null, 2));
       setMessage({
         type: 'success',
         text: `Template inserted: ${template.id}`,
       });
     },
-    [draft.parsed.error, draft.parsed.value],
+    [draft.parsed.error, draft.validation?.value],
   );
 
   const formatRegistry = useCallback(() => {
@@ -195,9 +205,13 @@ export function useMaintenanceRegistryEditor({
       setMessage({ type: 'error', text: draft.parsed.error });
       return;
     }
-    setMaintenanceRegistryJson(JSON.stringify(draft.parsed.value, null, 2));
+    if (!draft.validation?.value) {
+      setMessage({ type: 'error', text: 'Registry root must be a versioned document.' });
+      return;
+    }
+    setMaintenanceRegistryJson(JSON.stringify(draft.validation.value, null, 2));
     setMessage({ type: 'success', text: 'Registry JSON formatted.' });
-  }, [draft.parsed.error, draft.parsed.value]);
+  }, [draft.parsed.error, draft.validation?.value]);
 
   const useExampleRegistry = useCallback(() => {
     setMaintenanceRegistryJson(MAINTENANCE_REGISTRY_EXAMPLE_JSON);
@@ -220,7 +234,9 @@ export function useMaintenanceRegistryEditor({
         throw buildInvalidRegistryError(draft.status.errors);
       }
 
-      await window.settingsAPI.setMaintenanceServices(validation.value ?? []);
+      await window.settingsAPI.setMaintenanceRegistry(
+        validation.value ?? createEmptyMaintenanceRegistry(),
+      );
       setMessage({ type: 'success', text: 'Registry saved.' });
       await onRegistrySaved?.();
     } catch (error) {

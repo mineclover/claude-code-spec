@@ -6,7 +6,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { SettingsAPI, SettingsBackup } from '../../types/api';
 import type { McpDefaultConfigTarget } from '../../types/api/settings';
-import type { MaintenanceRegistryService } from '../../types/maintenance-registry';
+import type {
+  MaintenanceRegistryDocument,
+  MaintenanceRegistryService,
+} from '../../types/maintenance-registry';
 
 export function exposeSettingsAPI(): void {
   contextBridge.exposeInMainWorld('settingsAPI', {
@@ -21,6 +24,9 @@ export function exposeSettingsAPI(): void {
     setCurrentProject: (projectPath: string, projectDirName: string) =>
       ipcRenderer.invoke('settings:set-current-project', projectPath, projectDirName),
     clearCurrentProject: () => ipcRenderer.invoke('settings:clear-current-project'),
+    getMaintenanceRegistry: () => ipcRenderer.invoke('settings:get-maintenance-registry'),
+    setMaintenanceRegistry: (registry: MaintenanceRegistryDocument) =>
+      ipcRenderer.invoke('settings:set-maintenance-registry', registry),
     getMaintenanceServices: () => ipcRenderer.invoke('settings:get-maintenance-services'),
     setMaintenanceServices: (services: MaintenanceRegistryService[]) =>
       ipcRenderer.invoke('settings:set-maintenance-services', services),

@@ -23,8 +23,8 @@ vi.mock('../components/common/JsonCodeEditor', () => ({
 
 interface MockApis {
   settingsAPI: {
-    getMaintenanceServices: ReturnType<typeof vi.fn>;
-    setMaintenanceServices: ReturnType<typeof vi.fn>;
+    getMaintenanceRegistry: ReturnType<typeof vi.fn>;
+    setMaintenanceRegistry: ReturnType<typeof vi.fn>;
   };
   toolsAPI: {
     getMaintenanceTools: ReturnType<typeof vi.fn>;
@@ -38,8 +38,11 @@ interface MockApis {
 
 function setupWindowApis(): MockApis {
   const settingsAPI = {
-    getMaintenanceServices: vi.fn().mockResolvedValue([]),
-    setMaintenanceServices: vi.fn().mockResolvedValue({ success: true }),
+    getMaintenanceRegistry: vi.fn().mockResolvedValue({
+      schemaVersion: 2,
+      services: [],
+    }),
+    setMaintenanceRegistry: vi.fn().mockResolvedValue({ success: true }),
   };
 
   const toolsAPI = {
@@ -113,11 +116,12 @@ describe('SkillsPage registry flows', () => {
     await user.click(screen.getByRole('button', { name: 'Save Registry' }));
 
     await waitFor(() => {
-      expect(apis.settingsAPI.setMaintenanceServices).toHaveBeenCalledTimes(1);
+      expect(apis.settingsAPI.setMaintenanceRegistry).toHaveBeenCalledTimes(1);
     });
-    const firstCallArg = apis.settingsAPI.setMaintenanceServices.mock.calls[0][0];
-    expect(Array.isArray(firstCallArg)).toBe(true);
-    expect(firstCallArg[0]?.id).toBe('new-cli');
+    const firstCallArg = apis.settingsAPI.setMaintenanceRegistry.mock.calls[0][0];
+    expect(firstCallArg?.schemaVersion).toBe(2);
+    expect(Array.isArray(firstCallArg?.services)).toBe(true);
+    expect(firstCallArg?.services?.[0]?.id).toBe('new-cli');
   });
 
   it('shows schema validation error when service has no adapter contracts', async () => {
@@ -126,7 +130,9 @@ describe('SkillsPage registry flows', () => {
 
     const editor = await screen.findByTestId('json-editor');
     await user.clear(editor);
-    fireEvent.change(editor, { target: { value: '[{"id":"broken"}]' } });
+    fireEvent.change(editor, {
+      target: { value: '{"schemaVersion":2,"services":[{"id":"broken"}]}' },
+    });
 
     await waitFor(() => {
       expect(screen.getByText(/Draft invalid/i)).toBeTruthy();

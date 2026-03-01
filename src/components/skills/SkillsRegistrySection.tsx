@@ -43,7 +43,7 @@ export function SkillsRegistrySection({
     <div className={styles.settingItem}>
       <div className={styles.settingLabel}>Maintenance Service Registry</div>
       <div className={styles.settingDescription}>
-        Configure additional CLI/skill providers inside app settings (JSON array).
+        Configure additional CLI/skill providers inside app settings (versioned JSON document).
       </div>
       <div className={styles.settingDescription}>
         Standard templates and rules: <code>references/maintenance-services.md</code>

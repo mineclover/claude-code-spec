@@ -2,7 +2,8 @@
 
 `CliMaintenanceService` can load additional service adapters from app settings.
 
-- Settings key: `maintenanceServices` in app settings (`app-settings.json`)
+- Settings key: `maintenanceRegistry` in app settings (`app-settings.json`)
+- Legacy key `maintenanceServices` is still read for backward compatibility and migrated automatically
 - Configure from app UI (Settings page) instead of editing source code
 - JSON example payload: `references/maintenance-services.example.json`
 - Code template: `src/services/maintenance/adapterTemplate.ts`
@@ -11,49 +12,54 @@
 ## JSON shape
 
 ```json
-[
-  {
-    "id": "service-id",
-    "name": "Display Name",
-    "enabled": true,
-    "capability": {
-      "maintenance": { "enabled": true },
-      "execution": { "enabled": false },
-      "skills": { "enabled": true },
-      "mcp": { "enabled": false }
-    },
-    "tools": [
-      {
-        "id": "tool-id",
-        "name": "Tool Name",
-        "description": "Optional",
-        "versionCommand": { "command": "tool", "args": ["--version"] },
-        "updateCommand": { "command": "npm", "args": ["install", "-g", "tool@latest"] },
-        "docsUrl": "https://example.com/docs"
+{
+  "schemaVersion": 2,
+  "services": [
+    {
+      "id": "service-id",
+      "name": "Display Name",
+      "enabled": true,
+      "capability": {
+        "maintenance": { "enabled": true },
+        "execution": { "enabled": false },
+        "skills": { "enabled": true },
+        "mcp": { "enabled": false }
+      },
+      "tools": [
+        {
+          "id": "tool-id",
+          "name": "Tool Name",
+          "description": "Optional",
+          "versionCommand": { "command": "tool", "args": ["--version"] },
+          "updateCommand": { "command": "npm", "args": ["install", "-g", "tool@latest"] },
+          "docsUrl": "https://example.com/docs"
+        }
+      ],
+      "skillStore": {
+        "provider": "service-provider",
+        "installRoot": "~/.service/skills",
+        "disabledRoot": "~/.service/skills-disabled",
+        "reference": "optional/source/path"
+      },
+      "execution": {
+        "toolId": "tool-id",
+        "defaultOptions": {
+          "model": "default-model"
+        }
+      },
+      "mcp": {
+        "defaultTargets": ["project"],
+        "strictByDefault": false
       }
-    ],
-    "skillStore": {
-      "provider": "service-provider",
-      "installRoot": "~/.service/skills",
-      "disabledRoot": "~/.service/skills-disabled",
-      "reference": "optional/source/path"
-    },
-    "execution": {
-      "toolId": "tool-id",
-      "defaultOptions": {
-        "model": "default-model"
-      }
-    },
-    "mcp": {
-      "defaultTargets": ["project"],
-      "strictByDefault": false
     }
-  }
-]
+  ]
+}
 ```
 
 Notes:
 
+- `schemaVersion` is required at the registry root (`2` is the current version).
+- Legacy array root payloads are auto-migrated to the latest versioned document on load/save.
 - `tools`, `skillStore`, `execution`, `mcp` are optional, but at least one must be present.
 - `capability` is optional. Missing fields use safe defaults.
 - `disabledRoot` is optional. If omitted, it is inferred from `installRoot`.
@@ -210,7 +216,8 @@ When adding a new service to `maintenanceServices`, follow this order:
 
 Registry save is rejected unless all rules pass:
 
-- root value must be an array
+- root value must be an object with `schemaVersion` and `services`
+- unsupported future `schemaVersion` values are rejected
 - each service must have non-empty `id`
 - each service must include at least one of:
   - `tools` with at least one valid tool, or

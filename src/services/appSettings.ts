@@ -6,8 +6,15 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { app } from 'electron';
-import { validateMaintenanceServicesPayload } from '../lib/maintenanceRegistryValidation';
-import type { MaintenanceRegistryService } from '../types/maintenance-registry';
+import {
+  createEmptyMaintenanceRegistry,
+  runMaintenanceRegistryMigrationTransaction,
+} from '../lib/maintenanceRegistryMigration';
+import { validateMaintenanceRegistryPayload } from '../lib/maintenanceRegistryValidation';
+import type {
+  MaintenanceRegistryDocument,
+  MaintenanceRegistryService,
+} from '../types/maintenance-registry';
 import type {
   ReferenceAssetPreference,
   ReferenceAssetPreferenceMap,
@@ -22,7 +29,9 @@ interface AppSettings {
   claudeDocsPath?: string;
   controllerDocsPath?: string;
   metadataPath?: string;
-  maintenanceServices?: MaintenanceRegistryService[];
+  maintenanceRegistry?: MaintenanceRegistryDocument;
+  // Legacy key (v1): array-root registry payload kept for migration compatibility.
+  maintenanceServices?: unknown;
   referenceAssetPreferences?: ReferenceAssetPreferenceMap;
 }
 
@@ -90,23 +99,80 @@ export class SettingsService {
     }
   }
 
+  private cloneSettingsSnapshot(): AppSettings {
+    return structuredClone(this.settings);
+  }
+
+  private writeSettingsToDisk(settings: AppSettings): void {
+    this.ensureDirectoryExists();
+    fs.writeFileSync(this.settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+  }
+
+  private saveSettingsWithRollback(snapshot: AppSettings): void {
+    try {
+      this.writeSettingsToDisk(this.settings);
+    } catch (error) {
+      this.settings = snapshot;
+      try {
+        this.writeSettingsToDisk(this.settings);
+      } catch (rollbackError) {
+        console.error('Failed to rollback settings snapshot:', rollbackError);
+      }
+      console.error('Failed to save migrated settings. Restored previous snapshot:', error);
+    }
+  }
+
+  private normalizeMaintenanceRegistry(): void {
+    const migrationInput =
+      this.settings.maintenanceRegistry !== undefined
+        ? this.settings.maintenanceRegistry
+        : this.settings.maintenanceServices;
+
+    if (migrationInput === undefined) {
+      return;
+    }
+
+    const snapshot = this.cloneSettingsSnapshot();
+    const transaction = runMaintenanceRegistryMigrationTransaction({
+      input: migrationInput,
+      apply: (registry) => {
+        const validation = validateMaintenanceRegistryPayload(registry);
+        if (!validation.valid || !validation.value) {
+          throw new Error(validation.errors.join('\n'));
+        }
+        this.settings.maintenanceRegistry = {
+          schemaVersion: validation.value.schemaVersion,
+          services: [...validation.value.services],
+        };
+        delete this.settings.maintenanceServices;
+      },
+      rollback: () => {
+        this.settings = snapshot;
+      },
+    });
+
+    if (!transaction.ok || !this.settings.maintenanceRegistry) {
+      console.warn(
+        `[Settings] Invalid maintenance registry in ${this.settingsPath}, resetting to empty registry document:\n${transaction.error ?? 'Unknown migration error'}`,
+      );
+      this.settings.maintenanceRegistry = createEmptyMaintenanceRegistry();
+      delete this.settings.maintenanceServices;
+      this.saveSettingsWithRollback(snapshot);
+      return;
+    }
+
+    if (transaction.migrated || snapshot.maintenanceServices !== undefined) {
+      this.saveSettingsWithRollback(snapshot);
+    }
+  }
+
   private loadSettings(): void {
     try {
       if (fs.existsSync(this.settingsPath)) {
         const data = fs.readFileSync(this.settingsPath, 'utf-8');
-        this.settings = JSON.parse(data);
+        this.settings = JSON.parse(data) as AppSettings;
 
-        if (this.settings.maintenanceServices !== undefined) {
-          const validation = validateMaintenanceServicesPayload(this.settings.maintenanceServices);
-          if (validation.valid) {
-            this.settings.maintenanceServices = validation.value;
-          } else {
-            console.warn(
-              `[Settings] Invalid maintenanceServices in ${this.settingsPath}, resetting to empty array:\n${validation.errors.join('\n')}`,
-            );
-            this.settings.maintenanceServices = [];
-          }
-        }
+        this.normalizeMaintenanceRegistry();
 
         if (this.settings.referenceAssetPreferences !== undefined) {
           this.settings.referenceAssetPreferences = normalizeReferenceAssetPreferences(
@@ -122,8 +188,7 @@ export class SettingsService {
 
   private saveSettings(): void {
     try {
-      this.ensureDirectoryExists();
-      fs.writeFileSync(this.settingsPath, JSON.stringify(this.settings, null, 2), 'utf-8');
+      this.writeSettingsToDisk(this.settings);
     } catch (error) {
       console.error('Failed to save settings:', error);
     }
@@ -242,17 +307,43 @@ export class SettingsService {
     this.saveSettings();
   }
 
+  getMaintenanceRegistry(): MaintenanceRegistryDocument {
+    const source =
+      this.settings.maintenanceRegistry !== undefined
+        ? this.settings.maintenanceRegistry
+        : this.settings.maintenanceServices;
+    const validation = validateMaintenanceRegistryPayload(source);
+    if (validation.valid && validation.value) {
+      return {
+        schemaVersion: validation.value.schemaVersion,
+        services: [...validation.value.services],
+      };
+    }
+    return createEmptyMaintenanceRegistry();
+  }
+
+  setMaintenanceRegistry(registry: MaintenanceRegistryDocument): void {
+    const validation = validateMaintenanceRegistryPayload(registry);
+    if (!validation.valid || !validation.value) {
+      throw new Error(`Invalid maintenance service registry:\n${validation.errors.join('\n')}`);
+    }
+    this.settings.maintenanceRegistry = {
+      schemaVersion: validation.value.schemaVersion,
+      services: [...validation.value.services],
+    };
+    delete this.settings.maintenanceServices;
+    this.saveSettings();
+  }
+
   getMaintenanceServices(): MaintenanceRegistryService[] {
-    return this.settings.maintenanceServices ? [...this.settings.maintenanceServices] : [];
+    return this.getMaintenanceRegistry().services;
   }
 
   setMaintenanceServices(services: MaintenanceRegistryService[]): void {
-    const validation = validateMaintenanceServicesPayload(services);
-    if (!validation.valid) {
-      throw new Error(`Invalid maintenance service registry:\n${validation.errors.join('\n')}`);
-    }
-    this.settings.maintenanceServices = [...(validation.value ?? [])];
-    this.saveSettings();
+    this.setMaintenanceRegistry({
+      ...createEmptyMaintenanceRegistry(),
+      services,
+    });
   }
 
   getReferenceAssetPreferences(): ReferenceAssetPreferenceMap {

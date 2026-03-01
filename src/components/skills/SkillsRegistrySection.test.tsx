@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { MaintenanceRegistryDraft } from '../../hooks/useMaintenanceRegistryDraft';
+import { createEmptyMaintenanceRegistry } from '../../lib/maintenanceRegistryMigration';
 import type { MaintenanceRegistryService } from '../../types/maintenance-registry';
 import { SkillsRegistrySection } from './SkillsRegistrySection';
 
@@ -24,9 +25,10 @@ vi.mock('../common/JsonCodeEditor', () => ({
 }));
 
 function createDraft(partial?: Partial<MaintenanceRegistryDraft>): MaintenanceRegistryDraft {
+  const registry = createEmptyMaintenanceRegistry();
   return {
-    parsed: { value: [] },
-    validation: { valid: true, value: [], issues: [], errors: [] },
+    parsed: { value: registry },
+    validation: { valid: true, value: registry, issues: [], errors: [], migrated: false },
     status: {
       valid: true,
       serviceCount: 0,
@@ -67,7 +69,7 @@ describe('SkillsRegistrySection', () => {
 
     render(
       <SkillsRegistrySection
-        maintenanceRegistryJson="[]"
+        maintenanceRegistryJson={JSON.stringify(createEmptyMaintenanceRegistry(), null, 2)}
         setMaintenanceRegistryJson={setMaintenanceRegistryJson}
         draft={createDraft()}
         visibleErrors={[]}
@@ -113,7 +115,7 @@ describe('SkillsRegistrySection', () => {
 
     render(
       <SkillsRegistrySection
-        maintenanceRegistryJson='[{"id":"broken"}]'
+        maintenanceRegistryJson='{"schemaVersion":2,"services":[{"id":"broken"}]}'
         setMaintenanceRegistryJson={vi.fn()}
         draft={invalidDraft}
         visibleErrors={['root[0]: invalid service']}

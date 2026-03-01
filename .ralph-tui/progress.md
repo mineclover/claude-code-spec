@@ -8,6 +8,7 @@ after each iteration and it's included in prompts for context.
 - 신규 스키마 필드를 점진적으로 도입할 때는 `resolve*` 헬퍼를 만들어 `명시값 > 유추값 > 안전 기본값` 순으로 정규화하고, 런타임 소비 지점에서 해당 정규화 결과만 사용한다.
 - capability 선언에 따라 필수 계약 필드를 강제해야 할 때는 `define*` 등록 헬퍼 + conditional type 조합으로 빌드 타임 제약을 두고, 런타임에서는 동일 계약을 `resolveCapabilityMatrix` 결과로 다시 게이트한다.
 - 경로 템플릿(`${ENV}`/`~`) 확장과 skills disabled root 파생 규칙은 `lib` 공통 유틸로 승격해 내장/커스텀 어댑터가 동일 정규화 경로를 재사용하게 만든다.
+- 버전드 설정 도입 시에는 `migrate*ToLatest` 파이프라인과 `run*MigrationTransaction`(apply/rollback) 보호 헬퍼를 함께 두어 `구버전 흡수`와 `실패 시 원복`을 동일 규칙으로 강제한다.
 
 ---
 
@@ -33,4 +34,12 @@ after each iteration and it's included in prompts for context.
 - **Learnings:**
   - Patterns discovered: 내장/커스텀 어댑터가 같은 SDK를 써도 경로 정규화 유틸이 분산돼 있으면 동작 드리프트가 생기므로, 템플릿 확장 규칙을 단일 유틸로 고정하고 테스트를 함께 두는 편이 안전하다.
   - Gotchas encountered: `${ENV}` 리터럴을 테스트 문자열로 검증할 때 lint(`noTemplateCurlyInString`)와 충돌하므로 ``\${...}`` 이스케이프 템플릿 문자열을 사용해야 한다.
+---
+
+## 2026-03-01 - US-004
+- What was implemented: maintenance registry 루트를 `schemaVersion + services` 문서로 승격하고, `migrateMaintenanceRegistryToLatest` 파이프라인(v1 배열 루트 → v2 문서 루트) 및 `runMaintenanceRegistryMigrationTransaction` 롤백 보호 로직을 추가했다. 또한 settings load/save 경로에 마이그레이션을 연결해 레거시 키(`maintenanceServices`)를 자동 승격/정리하도록 했고, editor/API/문서/예시를 최신 포맷으로 맞췄다.
+- Files changed: `src/types/maintenance-registry.ts`, `src/lib/maintenanceRegistryMigration.ts`, `src/lib/maintenanceRegistryMigration.test.ts`, `src/lib/maintenanceRegistryValidation.ts`, `src/lib/maintenanceRegistryValidation.test.ts`, `src/services/appSettings.ts`, `src/ipc/handlers/settingsHandlers.ts`, `src/preload/apis/settings.ts`, `src/types/api/settings.ts`, `src/hooks/useMaintenanceRegistryDraft.ts`, `src/hooks/useMaintenanceRegistryDraft.test.ts`, `src/hooks/useMaintenanceRegistryEditor.ts`, `src/components/skills/SkillsRegistrySection.tsx`, `src/components/skills/SkillsRegistrySection.test.tsx`, `src/pages/SkillsPage.test.tsx`, `references/maintenance-services.md`, `references/maintenance-services.example.json`, `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered: 레거시 입력 허용이 필요한 validator는 직접 다형 루트를 검증하기보다 `migration -> latest schema validation` 2단계로 분리하면 오류 경로 표시와 런타임 소비 포맷을 동시에 단순화할 수 있다.
+  - Gotchas encountered: settings 로드 시 자동 마이그레이션을 디스크에 즉시 반영할 때 저장 실패 가능성이 있으므로, 메모리 스냅샷 기반 `save-with-rollback` 경로를 같이 두지 않으면 부분 적용 상태가 남을 수 있다.
 ---
