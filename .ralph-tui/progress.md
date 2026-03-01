@@ -39,6 +39,11 @@ after each iteration and it's included in prompts for context.
   `global < project < projectLocal`, then later discovery order, then
   lexicographic `sourcePath` tie-break) via `getMcpServerCandidates` in
   `src/services/settings.ts`.
+- Session path resolution precedence pattern:
+  Extract explicit project paths from raw session event payloads first via
+  `extractSessionPathFromEvent`, then normalize selection with
+  `resolveSessionPath` (`explicit > inferred > safe default`) while keeping
+  `inferProjectPathFromDashDirName` as legacy fallback only.
 
 ---
 
@@ -206,6 +211,35 @@ after each iteration and it's included in prompts for context.
     - Candidate selection is centralized by `resolveSelectedServers`, which
       prevents divergence between profile-based and tool-default MCP config
       generation paths.
+  - Gotchas encountered
+    - Story scope was already implemented in the current branch; this iteration
+      focused on acceptance verification and progress logging.
+---
+
+## 2026-03-01 - US-008
+- What was implemented
+  - Verified metadata-first path extraction is already implemented:
+    `extractSessionPathFromEvent` scans raw session event/metadata records for
+    `cwd`/`projectPath` variants (including nested records) in
+    `src/lib/sessionPathResolver.ts`, and `extractSessionMetadata` consumes it
+    from session log blocks in `src/services/claudeSessions.ts`.
+  - Verified name-based path inference remains fallback-only:
+    `resolveSessionPath` enforces `explicit > inferred > safe default` and
+    `inferProjectPathFromDashDirName` is used only when explicit metadata path
+    is missing.
+  - Verified special character regression coverage already exists in
+    `src/lib/sessionPathResolver.test.ts` for `-`, `_`, `.` cases.
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/lib/sessionPathResolver.ts src/lib/sessionPathResolver.test.ts src/services/claudeSessions.ts`
+    - `npx vitest run src/lib/sessionPathResolver.test.ts`
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - Session path resolution is intentionally two-phase: explicit extraction
+      from session payloads first, then controlled fallback inference for legacy
+      dash-encoded directory names.
   - Gotchas encountered
     - Story scope was already implemented in the current branch; this iteration
       focused on acceptance verification and progress logging.

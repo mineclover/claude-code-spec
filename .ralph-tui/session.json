@@ -3,10 +3,10 @@
   "sessionId": "dc6c3d22-54f9-4db7-9934-5fa7d5391e08",
   "status": "running",
   "startedAt": "2026-03-01T10:55:37.510Z",
-  "updatedAt": "2026-03-01T11:06:08.417Z",
-  "currentIteration": 5,
+  "updatedAt": "2026-03-01T11:07:55.381Z",
+  "currentIteration": 6,
   "maxIterations": 0,
-  "tasksCompleted": 5,
+  "tasksCompleted": 6,
   "isPaused": false,
   "agentPlugin": "codex",
   "trackerState": {
@@ -64,6 +64,16 @@
       "durationMs": 84109,
       "startedAt": "2026-03-01T11:02:31.693Z",
       "endedAt": "2026-03-01T11:03:55.802Z"
+    },
+    {
+      "iteration": 6,
+      "status": "completed",
+      "taskId": "US-007",
+      "taskTitle": "Global/Project MCP Source Aggregator 통합",
+      "taskCompleted": true,
+      "durationMs": 131443,
+      "startedAt": "2026-03-01T11:03:56.973Z",
+      "endedAt": "2026-03-01T11:06:08.416Z"
     }
   ],
   "skippedTaskIds": [],
