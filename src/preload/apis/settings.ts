@@ -65,6 +65,10 @@ export function exposeSettingsAPI(): void {
       servers: string[],
     ) => ipcRenderer.invoke('settings:create-mcp-default-config', projectPath, target, servers),
 
+    // Active hooks
+    listActiveHooks: (projectPath?: string) =>
+      ipcRenderer.invoke('settings:list-active-hooks', projectPath),
+
     // Backup
     createBackup: (projectPath: string) =>
       ipcRenderer.invoke('settings:create-backup', projectPath),

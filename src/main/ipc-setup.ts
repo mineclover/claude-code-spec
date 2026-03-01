@@ -3,7 +3,10 @@
  */
 
 import { registerDialogHandlers } from '../ipc/handlers/dialogHandlers';
-import { registerExecuteHandlers, setupExecutionEventForwarding } from '../ipc/handlers/executeHandlers';
+import {
+  registerExecuteHandlers,
+  setupExecutionEventForwarding,
+} from '../ipc/handlers/executeHandlers';
 import { registerSessionsHandlers } from '../ipc/handlers/sessionsHandlers';
 import { registerSettingsHandlers } from '../ipc/handlers/settingsHandlers';
 import { registerToolsHandlers } from '../ipc/handlers/toolsHandlers';

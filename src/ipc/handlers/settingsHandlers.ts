@@ -12,6 +12,7 @@ import {
   findSettingsFiles,
   getMcpServerCandidates,
   getMcpServerList,
+  listActiveHooks,
   listMcpConfigs,
   loadBackupFromFile,
   readSettingsFile,
@@ -205,6 +206,11 @@ export function registerSettingsHandlers(
       return createMcpDefaultConfig(projectPath, target, servers, { additionalPaths });
     },
   );
+
+  // ---- Active Hooks ----
+  router.handle('list-active-hooks', async (_event, projectPath?: string) => {
+    return listActiveHooks(projectPath);
+  });
 
   // ---- Backup ----
   router.handle('create-backup', async (_event, projectPath: string) => {
