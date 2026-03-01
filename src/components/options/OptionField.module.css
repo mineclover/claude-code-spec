@@ -47,7 +47,7 @@
 
 .hint {
   font-size: var(--text-sm);
-  color: var(--text-faint);
+  color: var(--text-dimmed);
 }
 
 .flag {

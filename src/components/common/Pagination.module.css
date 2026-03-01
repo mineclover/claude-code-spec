@@ -3,8 +3,8 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  border-top: 1px solid #e9ecef;
-  background: #f8f9fa;
+  border-top: 1px solid var(--border-default);
+  background: var(--bg-surface);
   flex-shrink: 0;
 }
 
@@ -15,8 +15,8 @@
 }
 
 .itemCount {
-  font-size: 12px;
-  color: #6c757d;
+  font-size: var(--text-sm);
+  color: var(--text-dimmed);
   font-weight: 500;
 }
 
@@ -29,26 +29,27 @@
 
 .paginationButton {
   padding: 6px 12px;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  background: #fff;
-  color: #495057;
-  font-size: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
   min-width: 60px;
 }
 
 .paginationButton:hover:not(:disabled) {
-  background: #e9ecef;
-  border-color: #adb5bd;
+  background: var(--bg-hover);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
 }
 
 .paginationButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #f8f9fa;
+  background: var(--bg-base);
 }
 
 .pageNumbers {
@@ -59,25 +60,26 @@
 
 .pageNumber {
   padding: 6px 10px;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  background: #fff;
-  color: #495057;
-  font-size: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
   min-width: 36px;
 }
 
 .pageNumber:hover:not(:disabled):not(.active) {
-  background: #e9ecef;
-  border-color: #adb5bd;
+  background: var(--bg-hover);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
 }
 
 .pageNumber.active {
-  background: #17a2b8;
-  border-color: #17a2b8;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
   cursor: default;
 }
@@ -89,6 +91,6 @@
 
 .ellipsis {
   padding: 6px 4px;
-  color: #6c757d;
-  font-size: 12px;
+  color: var(--text-dimmed);
+  font-size: var(--text-sm);
 }

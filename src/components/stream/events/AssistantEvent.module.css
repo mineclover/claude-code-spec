@@ -1,13 +1,14 @@
 .textContent {
   padding: 10px;
-  background-color: #ffffff;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  font-size: 14px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
   margin-bottom: 8px;
+  color: var(--text-primary);
 }
 
 .toolsSection {

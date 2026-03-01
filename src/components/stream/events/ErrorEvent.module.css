@@ -1,18 +1,18 @@
 .errorType {
   font-weight: 600;
-  font-size: 14px;
-  color: #721c24;
+  font-size: var(--text-md);
+  color: var(--danger);
   margin-bottom: 6px;
 }
 
 .errorMessage {
   padding: 10px;
-  background-color: #ffffff;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
-  font-size: 13px;
+  background-color: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
   line-height: 1.5;
-  color: #721c24;
+  color: var(--danger);
   white-space: pre-wrap;
   word-break: break-word;
 }

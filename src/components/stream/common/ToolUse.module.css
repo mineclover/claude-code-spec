@@ -1,9 +1,9 @@
 .toolUse {
   margin-top: 8px;
   padding: 10px;
-  background-color: #fff3cd;
-  border: 1px solid #ffeaa7;
-  border-radius: 4px;
+  background-color: rgba(250, 204, 21, 0.08);
+  border: 1px solid rgba(250, 204, 21, 0.25);
+  border-radius: var(--radius-sm);
 }
 
 .header {
@@ -19,13 +19,13 @@
 
 .toolName {
   font-weight: 600;
-  font-size: 13px;
-  color: #856404;
+  font-size: var(--text-base);
+  color: var(--output-thinking);
 }
 
 .toolId {
-  font-size: 11px;
-  color: #6c757d;
-  font-family: "SF Mono", Monaco, monospace;
+  font-size: var(--text-sm);
+  color: var(--text-dimmed);
+  font-family: var(--font-mono);
   margin-left: auto;
 }

@@ -6,21 +6,21 @@
 
 .rawButton {
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: var(--text-sm);
   font-weight: 500;
-  color: #495057;
-  background: #fff;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
   white-space: nowrap;
 }
 
 .rawButton:hover {
-  background: #f8f9fa;
-  border-color: #adb5bd;
-  color: #212529;
+  background: var(--bg-hover);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
 }
 
 .rawButton:active {

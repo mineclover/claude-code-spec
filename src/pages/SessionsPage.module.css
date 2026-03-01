@@ -84,7 +84,7 @@
 
 .itemMeta {
   font-size: var(--text-sm);
-  color: var(--text-faint);
+  color: var(--text-dimmed);
 }
 
 .placeholder {
@@ -99,7 +99,7 @@
 .loading {
   padding: 20px;
   text-align: center;
-  color: var(--text-faint);
+  color: var(--text-dimmed);
 }
 
 .logContent {

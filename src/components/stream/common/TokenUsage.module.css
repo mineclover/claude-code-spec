@@ -4,13 +4,13 @@
   align-items: center;
   gap: 12px;
   padding: 8px 0;
-  font-size: 12px;
-  color: #6c757d;
+  font-size: var(--text-sm);
+  color: var(--text-dimmed);
 }
 
 .label {
   font-weight: 600;
-  color: #495057;
+  color: var(--text-secondary);
 }
 
 .stat {
@@ -20,11 +20,11 @@
 }
 
 .statLabel {
-  color: #6c757d;
+  color: var(--text-dimmed);
 }
 
 .statValue {
   font-weight: 600;
-  color: #212529;
-  font-family: "SF Mono", Monaco, monospace;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
 }

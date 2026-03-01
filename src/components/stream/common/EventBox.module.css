@@ -1,14 +1,14 @@
 .eventBox {
   margin-bottom: 12px;
   padding: 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-secondary);
-  transition: box-shadow 0.2s ease;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background-color: var(--bg-surface);
+  transition: box-shadow var(--transition-fast) ease;
 }
 
 .eventBox:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .header {
@@ -31,41 +31,41 @@
 }
 
 .title {
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .content {
-  font-size: 13px;
+  font-size: var(--text-base);
   line-height: 1.6;
   color: var(--text-primary);
 }
 
 /* Event Type Variants */
 .system {
-  border-left: 4px solid #007acc;
-  background-color: #f0f7ff;
+  border-left: 4px solid var(--speaker-agent);
+  background-color: var(--speaker-agent-bg);
 }
 
 .assistant {
-  border-left: 4px solid #28a745;
-  background-color: #f0fff4;
+  border-left: 4px solid var(--speaker-human);
+  background-color: var(--speaker-human-bg);
 }
 
 .result {
-  border-left: 4px solid #17a2b8;
-  background-color: #e7f9fc;
+  border-left: 4px solid var(--accent);
+  background-color: var(--accent-muted);
 }
 
 .error {
-  border-left: 4px solid #dc3545;
-  background-color: #fff5f5;
+  border-left: 4px solid var(--danger);
+  background-color: rgba(239, 68, 68, 0.08);
 }
 
 .unknown {
-  border-left: 4px solid #6c757d;
-  background-color: #f8f9fa;
+  border-left: 4px solid var(--text-dimmed);
+  background-color: var(--bg-base);
 }
 
 /* Sub-Agent Styling */
@@ -82,7 +82,7 @@
   position: absolute;
   left: -20px;
   top: 16px;
-  color: #6c757d;
+  color: var(--text-dimmed);
   font-size: 16px;
 }
 
@@ -90,17 +90,10 @@
   display: inline-block;
   margin-left: 8px;
   padding: 2px 8px;
-  font-size: 11px;
+  font-size: var(--text-sm);
   font-weight: 500;
-  color: #6c757d;
-  background-color: rgba(108, 117, 125, 0.1);
-  border: 1px solid rgba(108, 117, 125, 0.2);
+  color: var(--text-dimmed);
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-default);
   border-radius: 12px;
-}
-
-/* CSS Variables */
-:root {
-  --bg-secondary: #ffffff;
-  --border-color: #dee2e6;
-  --text-primary: #212529;
 }

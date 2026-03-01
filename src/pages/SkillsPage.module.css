@@ -169,7 +169,7 @@
   border-radius: 999px;
   border: 1px solid rgba(34, 197, 94, 0.35);
   background: rgba(34, 197, 94, 0.12);
-  color: #86efac;
+  color: var(--speaker-human);
   font-size: 11px;
   font-weight: 600;
 }
@@ -181,7 +181,7 @@
   border-radius: 999px;
   border: 1px solid rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.12);
-  color: #fca5a5;
+  color: var(--danger);
   font-size: 11px;
   font-weight: 600;
 }
@@ -293,9 +293,28 @@
 
 .toolCard {
   background: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  border: 2px solid var(--border-default);
   border-radius: var(--radius-sm);
   padding: 12px;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+  outline: none;
+}
+
+.toolCard:hover {
+  border-color: var(--border-focus);
+  background: var(--bg-hover);
+}
+
+.toolCard:focus-visible {
+  border-color: var(--accent);
+}
+
+.toolCardSelected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-surface));
 }
 
 .toolCardHeader {
@@ -303,6 +322,21 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 8px;
+}
+
+.toolCardMeta {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.toolCheckbox {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 .toolSelectionLabel {
@@ -329,6 +363,45 @@
   color: var(--text-primary);
 }
 
+.toolStatusOk {
+  margin-top: 8px;
+  font-size: var(--text-base);
+  color: var(--speaker-human);
+  font-family: var(--font-mono);
+}
+
+.toolStatusError {
+  margin-top: 8px;
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.toolCommandsDetails {
+  margin-top: 8px;
+}
+
+.toolCommandsSummary {
+  font-size: 11px;
+  color: var(--text-dimmed);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.toolCommandsSummary::-webkit-details-marker {
+  display: none;
+}
+
+.toolCommandsSummary::before {
+  content: "▶ ";
+  font-size: 9px;
+}
+
+details[open] > .toolCommandsSummary::before {
+  content: "▼ ";
+}
+
 .updateRequiredBadge {
   margin-top: 8px;
   display: inline-flex;
@@ -336,7 +409,7 @@
   border-radius: 999px;
   border: 1px solid rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.12);
-  color: #fca5a5;
+  color: var(--danger);
   font-size: 11px;
   font-weight: 600;
 }
@@ -348,7 +421,7 @@
   border-radius: 999px;
   border: 1px solid rgba(34, 197, 94, 0.35);
   background: rgba(34, 197, 94, 0.12);
-  color: #86efac;
+  color: var(--speaker-human);
   font-size: 11px;
   font-weight: 600;
 }
@@ -423,7 +496,7 @@
 .skillPath {
   margin-top: 4px;
   font-size: 11px;
-  color: var(--text-faint);
+  color: var(--text-dimmed);
   font-family: var(--font-mono);
   word-break: break-all;
 }
@@ -437,7 +510,7 @@
 
 .statusActive {
   font-size: 11px;
-  color: #86efac;
+  color: var(--speaker-human);
   background: rgba(34, 197, 94, 0.12);
   border: 1px solid rgba(34, 197, 94, 0.35);
   border-radius: 999px;
@@ -446,7 +519,7 @@
 
 .statusInactive {
   font-size: 11px;
-  color: #fca5a5;
+  color: var(--danger);
   background: rgba(239, 68, 68, 0.12);
   border: 1px solid rgba(239, 68, 68, 0.35);
   border-radius: 999px;
@@ -463,7 +536,7 @@
 .emptyPaths {
   padding: 12px;
   text-align: center;
-  color: var(--text-faint);
+  color: var(--text-dimmed);
   font-size: var(--text-base);
   font-style: italic;
 }
