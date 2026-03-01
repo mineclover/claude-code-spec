@@ -21,5 +21,15 @@ export default defineConfig({
     hmr: {
       overlay: false,
     },
+    headers: {
+      'Content-Security-Policy': [
+        "default-src 'self' http://localhost:* ws://localhost:*",
+        "script-src 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "font-src 'self' data:",
+        "connect-src 'self' http://localhost:* ws://localhost:*",
+      ].join('; '),
+    },
   },
 });

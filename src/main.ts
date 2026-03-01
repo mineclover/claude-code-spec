@@ -6,7 +6,7 @@ import { app, BrowserWindow } from 'electron';
 import started from 'electron-squirrel-startup';
 import { initializeAppContext } from './main/app-context';
 import { setupIPCHandlers } from './main/ipc-setup';
-import { createWindow } from './main/window';
+import { createWindow, setupSessionCSP } from './main/window';
 import { multiCliExecutionService } from './services/MultiCliExecutionService';
 
 if (started) {
@@ -18,6 +18,7 @@ const handleCreateWindow = () => {
 };
 
 app.on('ready', () => {
+  setupSessionCSP();
   initializeAppContext();
   setupIPCHandlers();
   handleCreateWindow();
