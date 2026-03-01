@@ -34,12 +34,11 @@
         "npx vitest run <affected-tests> passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-001"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-003",
@@ -54,12 +53,11 @@
         "npx vitest run <affected-tests> passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-002"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-004",
@@ -74,12 +72,11 @@
         "npx vitest run <affected-tests> passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-001"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-005",
@@ -94,12 +91,11 @@
         "npx vitest run <affected-tests> passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-001"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-006",
@@ -114,12 +110,11 @@
         "npx vitest run <affected-tests> passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-005"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-007",
@@ -134,12 +129,11 @@
         "npx vitest run <affected-tests> passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-006"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-008",
@@ -154,12 +148,11 @@
         "npx vitest run <affected-tests> passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-001"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-009",
@@ -174,12 +167,11 @@
         "npx vitest run <affected-tests> passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-002"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-010",
@@ -194,12 +186,11 @@
         "npx vitest run <affected-tests> passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-009"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-011",
@@ -214,12 +205,11 @@
         "npx vitest run <affected-tests> passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-009"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-012",
@@ -234,12 +224,11 @@
         "npx vitest run <affected-tests> passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-003"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-013",
@@ -255,12 +244,11 @@
         "npm run start 후 Registry 섹션 수동 검증이 완료된다"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-004"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-014",
@@ -276,13 +264,12 @@
         "npm run start 후 Skills/Reference 페이지 수동 검증이 완료된다"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-003",
         "US-010"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-015",
@@ -297,13 +284,12 @@
         "npx vitest run <affected-tests> passes"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-002",
         "US-004"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     },
     {
       "id": "US-016",
@@ -318,18 +304,17 @@
         "npx vitest run <affected-tests> passes"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": "",
       "dependsOn": [
         "US-006",
         "US-009",
         "US-012",
         "US-014"
-      ],
-      "completionNotes": "Completed by agent"
+      ]
     }
   ],
   "metadata": {
-    "updatedAt": "2026-03-01T08:48:47.493Z"
+    "updatedAt": "2026-03-01T09:23:38.996Z"
   }
 }
