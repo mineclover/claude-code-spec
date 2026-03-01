@@ -17,6 +17,11 @@ after each iteration and it's included in prompts for context.
   (`resolvePathTemplate`, `normalizeDir`, `defaultDisabledRoot`) and service dedupe in
   `src/lib/collectionUtils.ts` (`dedupeByLast`), then consume both from
   `serviceIntegrations` so built-in/custom registrations share identical normalization.
+- Registry migration safety pattern:
+  Compose schema upgrades with `migrateMaintenanceRegistryToLatest` and execute writes
+  via `runMaintenanceRegistryMigrationTransaction` in `src/services/appSettings.ts`,
+  then persist using `saveSettingsWithRollback` snapshot restore so migration and disk
+  write failures both recover safely.
 
 ---
 
@@ -73,4 +78,32 @@ after each iteration and it's included in prompts for context.
   - Gotchas encountered
     - Story scope was already implemented in the current branch, so this iteration
       focused on acceptance verification and progress log updates.
+---
+
+## 2026-03-01 - US-004
+- What was implemented
+  - Verified registry root schema versioning is enforced by
+    `MaintenanceRegistryDocument` (`schemaVersion`) in
+    `src/types/maintenance-registry.ts` and strict validation in
+    `src/lib/maintenanceRegistryValidation.ts`.
+  - Verified legacy-to-latest migration pipeline exists in
+    `src/lib/maintenanceRegistryMigration.ts` via
+    `REGISTRY_MIGRATION_PIPELINE` + `migrateMaintenanceRegistryToLatest`.
+  - Verified rollback protection exists through
+    `runMaintenanceRegistryMigrationTransaction` and
+    `SettingsService.normalizeMaintenanceRegistry()` snapshot restoration flow in
+    `src/services/appSettings.ts`.
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/types/maintenance-registry.ts src/lib/maintenanceRegistryMigration.ts src/lib/maintenanceRegistryMigration.test.ts src/lib/maintenanceRegistryValidation.ts src/lib/maintenanceRegistryValidation.test.ts src/services/appSettings.ts`
+    - `npx vitest run src/lib/maintenanceRegistryMigration.test.ts src/lib/maintenanceRegistryValidation.test.ts src/lib/maintenanceRegistryForm.test.ts src/hooks/useMaintenanceRegistryDraft.test.ts`
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - Registry migration is guarded in two layers: schema migration transaction rollback
+      during in-memory apply, and settings snapshot rollback during disk persistence.
+  - Gotchas encountered
+    - Story scope was already implemented in the current branch; only verification and
+      progress documentation were required.
 ---
