@@ -1,19 +1,38 @@
 /**
  * MCP Configurations Page
  * Manage MCP configuration files for the selected project
- * Includes quick project selector from active session folders
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { ProgressBar } from '../components/common/ProgressBar';
 import { useProject } from '../contexts/ProjectContext';
 import { useToolContext } from '../contexts/ToolContext';
-import type { ProjectFolder, SessionLoadProgress } from '../types/api/sessions';
 import type { McpConfigFile, McpDefaultConfigTarget, McpServer } from '../types/api/settings';
 import styles from './McpConfigsPage.module.css';
 
 type CreateMode = 'named' | 'default';
+
+function relativeToProject(absPath: string, projectPath: string): string {
+  const prefix = projectPath.endsWith('/') ? projectPath : `${projectPath}/`;
+  return absPath.startsWith(prefix) ? absPath.slice(prefix.length) : absPath;
+}
+
+function buildUsageScripts(
+  toolId: string,
+  configRelPath: string,
+  skipPerms: boolean,
+): { interactive: string; singleQuery: string } {
+  const permFlag = skipPerms ? ' --dangerously-skip-permissions' : '';
+  const mcpFlags = `--mcp-config ${configRelPath} --strict-mcp-config`;
+  return {
+    interactive: `${toolId} ${mcpFlags}${permFlag}`,
+    singleQuery: `${toolId} -p "your query here" ${mcpFlags}${permFlag}`,
+  };
+}
+
+async function copyToClipboard(text: string): Promise<void> {
+  await navigator.clipboard.writeText(text);
+}
 
 function defaultTargetFromToolId(toolId: string): McpDefaultConfigTarget {
   if (toolId === 'codex') return 'codex';
@@ -29,7 +48,7 @@ function defaultPathFromTarget(target: McpDefaultConfigTarget): string {
 }
 
 export function McpConfigsPage() {
-  const { projectPath, projectDirName, updateProject } = useProject();
+  const { projectPath, projectDirName } = useProject();
   const { selectedToolId } = useToolContext();
   const [configs, setConfigs] = useState<McpConfigFile[]>([]);
   const [availableServers, setAvailableServers] = useState<McpServer[]>([]);
@@ -41,37 +60,14 @@ export function McpConfigsPage() {
   const [newConfigName, setNewConfigName] = useState('');
   const [selectedServers, setSelectedServers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [skipPermissions, setSkipPermissions] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Project picker state
-  const [sessionProjects, setSessionProjects] = useState<ProjectFolder[]>([]);
-  const [projectsLoading, setProjectsLoading] = useState(false);
-  const [progressMessage, setProgressMessage] = useState<string | undefined>();
-  const [showProjectPicker, setShowProjectPicker] = useState(false);
-
-  // Subscribe to load progress events
-  useEffect(() => {
-    const cleanup = window.sessionsAPI.onLoadProgress((progress: SessionLoadProgress) => {
-      if (progress.phase === 'done') {
-        setProgressMessage(undefined);
-      } else {
-        setProgressMessage(progress.message);
-      }
-    });
-    return cleanup;
-  }, []);
-
-  // Load session projects for the quick picker (lightweight folder listing)
-  const loadSessionProjects = useCallback(async () => {
-    setProjectsLoading(true);
-    try {
-      const folders = await window.sessionsAPI.listProjectFolders(selectedToolId);
-      setSessionProjects(folders);
-    } catch (error) {
-      console.error('Failed to load session projects:', error);
-    } finally {
-      setProjectsLoading(false);
-    }
-  }, [selectedToolId]);
+  const handleCopy = async (key: string, text: string) => {
+    await copyToClipboard(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 1500);
+  };
 
   const loadConfigs = useCallback(async () => {
     if (!projectPath) return;
@@ -106,10 +102,6 @@ export function McpConfigsPage() {
   }, [projectPath]);
 
   useEffect(() => {
-    loadSessionProjects();
-  }, [loadSessionProjects]);
-
-  useEffect(() => {
     if (!projectPath) {
       setLoading(false);
       return;
@@ -117,13 +109,6 @@ export function McpConfigsPage() {
     loadConfigs();
     loadAvailableServers();
   }, [projectPath, loadConfigs, loadAvailableServers]);
-
-  const handleSelectProject = async (project: ProjectFolder) => {
-    await updateProject(project.projectPath, project.projectDirName);
-    setShowProjectPicker(false);
-    setSelectedConfig(null);
-    setEditingContent('');
-  };
 
   const handleSelectConfig = (config: McpConfigFile) => {
     setSelectedConfig(config);
@@ -206,11 +191,11 @@ export function McpConfigsPage() {
   };
 
   const toggleServer = (name: string) => {
-    setSelectedServers((prev) => {
-      const next = prev.includes(name) ? prev.filter((s) => s !== name) : [...prev, name];
-      if (selectedConfig && !isCreating) updateConfigContent(next);
-      return next;
-    });
+    const next = selectedServers.includes(name)
+      ? selectedServers.filter((s) => s !== name)
+      : [...selectedServers, name];
+    setSelectedServers(next);
+    if (selectedConfig && !isCreating) updateConfigContent(next);
   };
 
   const updateConfigContent = (serverNames: string[]) => {
@@ -220,11 +205,6 @@ export function McpConfigsPage() {
     }
     setEditingContent(JSON.stringify({ mcpServers: configs }, null, 2));
   };
-
-  const displayName = (p: ProjectFolder) =>
-    p.projectPath === '/'
-      ? 'root'
-      : p.projectPath.split('/').filter(Boolean).pop() || p.projectDirName;
 
   const renderSourcePaths = () => {
     if (sourcePaths.length === 0) {
@@ -248,66 +228,11 @@ export function McpConfigsPage() {
   const isCreateDisabled =
     selectedServers.length === 0 || (createMode === 'named' && !newConfigName.trim());
 
-  // -- Project Picker overlay --
-  const renderProjectPicker = () => (
-    <div className={styles.pickerOverlay} onClick={() => setShowProjectPicker(false)}>
-      <div className={styles.pickerPanel} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.pickerHeader}>
-          <h3>Select Project</h3>
-          <button
-            type="button"
-            className={styles.pickerClose}
-            onClick={() => setShowProjectPicker(false)}
-          >
-            Close
-          </button>
-        </div>
-        {projectsLoading ? (
-          <div className={styles.pickerLoading}>
-            <ProgressBar visible={true} message={progressMessage} />
-          </div>
-        ) : sessionProjects.length === 0 ? (
-          <div className={styles.pickerEmpty}>No session projects found</div>
-        ) : (
-          <div className={styles.pickerList}>
-            {sessionProjects.map((p) => (
-              <button
-                key={p.projectPath}
-                type="button"
-                className={`${styles.pickerItem} ${projectPath === p.projectPath ? styles.pickerItemActive : ''}`}
-                onClick={() => handleSelectProject(p)}
-              >
-                <div className={styles.pickerItemName}>{displayName(p)}</div>
-                <div className={styles.pickerItemPath}>{p.projectPath}</div>
-                {p.sessionCount != null && (
-                  <div className={styles.pickerItemMeta}>{p.sessionCount} sessions</div>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
   return (
     <div className={styles.container}>
       <div className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <h2 className={styles.sidebarTitle}>MCP Configurations</h2>
-          {/* Quick project selector */}
-          <button
-            type="button"
-            className={styles.projectSelector}
-            onClick={() => setShowProjectPicker(true)}
-          >
-            <span className={styles.projectSelectorLabel}>Project</span>
-            <span className={styles.projectSelectorValue}>
-              {projectPath
-                ? projectDirName || projectPath.split('/').filter(Boolean).pop()
-                : 'Select project...'}
-            </span>
-          </button>
           {projectPath && (
             <button
               type="button"
@@ -465,6 +390,70 @@ export function McpConfigsPage() {
                 <h2 className={styles.contentTitle}>{selectedConfig.name}</h2>
                 <p className={styles.contentPath}>{selectedConfig.path}</p>
               </div>
+
+              {/* Usage Scripts — shown immediately after selecting a config */}
+              {(() => {
+                const relPath = relativeToProject(selectedConfig.path, projectPath ?? '');
+                const { interactive, singleQuery } = buildUsageScripts(
+                  selectedToolId,
+                  relPath,
+                  skipPermissions,
+                );
+                return (
+                  <div className={styles.usageSection}>
+                    <div className={styles.usageSectionTitle}>Usage Scripts</div>
+
+                    <label className={styles.usageToggle}>
+                      <input
+                        type="checkbox"
+                        checked={skipPermissions}
+                        onChange={() => setSkipPermissions((v) => !v)}
+                      />
+                      <span>Skip permissions (--dangerously-skip-permissions)</span>
+                    </label>
+                    {skipPermissions && (
+                      <div className={styles.usageWarning}>
+                        ⚠️ Use with caution: bypasses all security checks. Only use with trusted MCP
+                        servers. Recommended: configure permissions in .claude/settings.json
+                        instead.
+                      </div>
+                    )}
+
+                    <div className={styles.usageMode}>
+                      <div className={styles.usageModeHeader}>
+                        <span>💬 Interactive Mode</span>
+                        <button
+                          type="button"
+                          className={styles.copyButton}
+                          onClick={() => handleCopy('interactive', interactive)}
+                        >
+                          {copiedKey === 'interactive' ? '✓ Copied' : '📋 Copy'}
+                        </button>
+                      </div>
+                      <code className={styles.usageCommand}>{interactive}</code>
+                      <div className={styles.usageModeDesc}>
+                        Starts an interactive session with the selected MCP servers
+                      </div>
+                    </div>
+
+                    <div className={styles.usageMode}>
+                      <div className={styles.usageModeHeader}>
+                        <span>⚡ Single Query Mode</span>
+                        <button
+                          type="button"
+                          className={styles.copyButton}
+                          onClick={() => handleCopy('singleQuery', singleQuery)}
+                        >
+                          {copiedKey === 'singleQuery' ? '✓ Copied' : '📋 Copy'}
+                        </button>
+                      </div>
+                      <code className={styles.usageCommand}>{singleQuery}</code>
+                      <div className={styles.usageModeDesc}>Executes a single query and exits</div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className={styles.formGroup}>
                 <div className={styles.formLabel}>MCP Servers ({selectedServers.length})</div>
                 {renderSourcePaths()}
@@ -522,7 +511,6 @@ export function McpConfigsPage() {
         </div>
       </div>
 
-      {showProjectPicker && renderProjectPicker()}
     </div>
   );
 }
