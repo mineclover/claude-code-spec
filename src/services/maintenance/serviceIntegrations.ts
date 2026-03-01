@@ -57,6 +57,7 @@ interface CustomSkillStoreLike {
   provider?: unknown;
   installRoot?: unknown;
   disabledRoot?: unknown;
+  scanStrategy?: unknown;
   reference?: unknown;
 }
 
@@ -219,11 +220,13 @@ function normalizeCustomSkillStore(
     env,
   );
   const provider = readString(source.provider) ?? serviceId;
+  const scanStrategy = readString(source.scanStrategy) ?? undefined;
 
   return {
     provider,
     installRoot,
     disabledRoot,
+    scanStrategy,
     reference: readString(source.reference) ?? undefined,
   };
 }

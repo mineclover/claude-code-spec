@@ -24,6 +24,7 @@ export interface MaintenanceRegistrySkillStore {
   provider?: SkillProvider;
   installRoot: string;
   disabledRoot?: string;
+  scanStrategy?: string;
   reference?: string;
 }
 

@@ -5,7 +5,6 @@
  */
 
 import { spawn } from 'node:child_process';
-import type { Dirent } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -26,6 +25,13 @@ import {
   type SkillStoreAdapter,
   toSkillInstallPathInfo,
 } from './maintenance/serviceIntegrations';
+import {
+  dedupeAndSortInstalledSkills,
+  movePathWithExdevFallback,
+  resolveSkillStoreScanRoots,
+  SKILL_FILE_NAME,
+  scanSkillEntriesFromRoots,
+} from './maintenance/skillStoreScanner';
 
 interface CommandExecutionResult {
   exitCode: number | null;
@@ -41,7 +47,6 @@ interface SkillLockEntryLike {
   updatedAt?: string;
 }
 
-const SKILL_FILE_NAME = 'SKILL.md';
 const SKILL_LOCK_PATH = path.join(os.homedir(), '.agents', '.skill-lock.json');
 
 function limitText(raw: string, max = 12000): string {
@@ -118,19 +123,7 @@ export class CliMaintenanceService {
     const allSkills = (
       await Promise.all(targets.map((target) => this.scanSkillSet(target, lockMap)))
     ).flat();
-
-    const deduped = new Map<string, InstalledSkillInfo>();
-    for (const skill of allSkills) {
-      const key = `${skill.provider}:${skill.id}`;
-      if (!deduped.has(key)) {
-        deduped.set(key, skill);
-      }
-    }
-
-    return Array.from(deduped.values()).sort((a, b) => {
-      if (a.provider !== b.provider) return a.provider.localeCompare(b.provider);
-      return a.name.localeCompare(b.name);
-    });
+    return dedupeAndSortInstalledSkills(allSkills);
   }
 
   async setSkillActivation(
@@ -140,28 +133,40 @@ export class CliMaintenanceService {
   ): Promise<InstalledSkillInfo> {
     const normalizedSkillId = ensureNoPathTraversal(skillId);
     const config = this.getSkillPathConfig(provider);
-    const activePath = this.buildSkillPath(config.installRoot, normalizedSkillId);
-    const disabledPath = this.buildSkillPath(config.disabledRoot, normalizedSkillId);
+    const roots = resolveSkillStoreScanRoots(config);
+    const primaryInstallRoot = roots.installRoots[0] ?? config.installRoot;
+    const primaryDisabledRoot = roots.disabledRoots[0] ?? config.disabledRoot;
+    const activePath = this.buildSkillPath(primaryInstallRoot, normalizedSkillId);
+    const disabledPath = this.buildSkillPath(primaryDisabledRoot, normalizedSkillId);
+    const activeEntries = await scanSkillEntriesFromRoots(roots.installRoots);
+    const disabledEntries = await scanSkillEntriesFromRoots(roots.disabledRoots);
 
     if (active) {
-      const hasActive = await this.pathExists(activePath);
+      const hasActive = activeEntries.has(normalizedSkillId) || (await this.pathExists(activePath));
       if (!hasActive) {
-        const hasDisabled = await this.pathExists(disabledPath);
-        if (!hasDisabled) {
+        const existingDisabledPath = disabledEntries.get(normalizedSkillId);
+        if (!existingDisabledPath && !(await this.pathExists(disabledPath))) {
           throw new Error(`Skill not found for activation: ${provider}/${normalizedSkillId}`);
         }
-        await fs.mkdir(config.installRoot, { recursive: true });
-        await this.movePath(disabledPath, activePath);
+        await fs.mkdir(primaryInstallRoot, { recursive: true });
+        const sourcePath = existingDisabledPath ?? disabledPath;
+        if (sourcePath !== activePath) {
+          await movePathWithExdevFallback(sourcePath, activePath);
+        }
       }
     } else {
-      const hasDisabled = await this.pathExists(disabledPath);
+      const hasDisabled =
+        disabledEntries.has(normalizedSkillId) || (await this.pathExists(disabledPath));
       if (!hasDisabled) {
-        const hasActive = await this.pathExists(activePath);
-        if (!hasActive) {
+        const existingActivePath = activeEntries.get(normalizedSkillId);
+        if (!existingActivePath && !(await this.pathExists(activePath))) {
           throw new Error(`Skill not found for deactivation: ${provider}/${normalizedSkillId}`);
         }
-        await fs.mkdir(config.disabledRoot, { recursive: true });
-        await this.movePath(activePath, disabledPath);
+        await fs.mkdir(primaryDisabledRoot, { recursive: true });
+        const sourcePath = existingActivePath ?? activePath;
+        if (sourcePath !== disabledPath) {
+          await movePathWithExdevFallback(sourcePath, disabledPath);
+        }
       }
     }
 
@@ -328,32 +333,21 @@ export class CliMaintenanceService {
     }
   }
 
-  private async movePath(fromPath: string, toPath: string): Promise<void> {
-    try {
-      await fs.rename(fromPath, toPath);
-      return;
-    } catch (error) {
-      const maybeErr = error as NodeJS.ErrnoException;
-      if (maybeErr.code !== 'EXDEV') {
-        throw error;
-      }
-    }
-    await fs.cp(fromPath, toPath, { recursive: true });
-    await fs.rm(fromPath, { recursive: true, force: true });
-  }
-
   private async scanSkillSet(
     config: SkillStoreAdapter,
     lockMap: Record<string, SkillLockEntryLike>,
   ): Promise<InstalledSkillInfo[]> {
-    const activeEntries = await this.scanSkillDirectoryEntries(config.installRoot);
-    const disabledEntries = await this.scanSkillDirectoryEntries(config.disabledRoot);
+    const roots = resolveSkillStoreScanRoots(config);
+    const activeEntries = await scanSkillEntriesFromRoots(roots.installRoots);
+    const disabledEntries = await scanSkillEntriesFromRoots(roots.disabledRoots);
     const allSkillIds = new Set<string>([...activeEntries.keys(), ...disabledEntries.keys()]);
+    const primaryInstallRoot = roots.installRoots[0] ?? config.installRoot;
+    const primaryDisabledRoot = roots.disabledRoots[0] ?? config.disabledRoot;
 
     const skills: InstalledSkillInfo[] = [];
     for (const skillId of allSkillIds) {
-      const activePath = this.buildSkillPath(config.installRoot, skillId);
-      const disabledPath = this.buildSkillPath(config.disabledRoot, skillId);
+      const activePath = this.buildSkillPath(primaryInstallRoot, skillId);
+      const disabledPath = this.buildSkillPath(primaryDisabledRoot, skillId);
       const currentPath = activeEntries.get(skillId) ?? disabledEntries.get(skillId);
       if (!currentPath) {
         continue;
@@ -374,33 +368,6 @@ export class CliMaintenanceService {
     }
 
     return skills;
-  }
-
-  private async scanSkillDirectoryEntries(dirPath: string): Promise<Map<string, string>> {
-    const found = new Map<string, string>();
-
-    let entries: Dirent[];
-    try {
-      entries = await fs.readdir(dirPath, { withFileTypes: true });
-    } catch {
-      return found;
-    }
-
-    for (const entry of entries) {
-      const isSymbolicLink = entry.isSymbolicLink();
-      if ((!entry.isDirectory() && !isSymbolicLink) || entry.name.startsWith('.')) {
-        continue;
-      }
-
-      const skillDir = path.join(dirPath, entry.name);
-      const skillFilePath = path.join(skillDir, SKILL_FILE_NAME);
-      try {
-        await fs.access(skillFilePath);
-        found.set(entry.name, skillDir);
-      } catch {}
-    }
-
-    return found;
   }
 
   private async parseInstalledSkill(

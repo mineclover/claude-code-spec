@@ -3,10 +3,10 @@
   "sessionId": "4046228a-df35-4376-a8e6-94d8b329eb90",
   "status": "running",
   "startedAt": "2026-03-01T06:20:59.603Z",
-  "updatedAt": "2026-03-01T07:37:13.796Z",
-  "currentIteration": 7,
+  "updatedAt": "2026-03-01T07:43:26.569Z",
+  "currentIteration": 8,
   "maxIterations": 0,
-  "tasksCompleted": 7,
+  "tasksCompleted": 8,
   "isPaused": false,
   "agentPlugin": "codex",
   "trackerState": {
@@ -59,8 +59,8 @@
       {
         "id": "US-008",
         "title": "세션 기반 실제 경로 해석 서비스 도입",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-009",
@@ -182,6 +182,16 @@
       "durationMs": 440950,
       "startedAt": "2026-03-01T07:24:48.393Z",
       "endedAt": "2026-03-01T07:32:09.343Z"
+    },
+    {
+      "iteration": 8,
+      "status": "completed",
+      "taskId": "US-008",
+      "taskTitle": "세션 기반 실제 경로 해석 서비스 도입",
+      "taskCompleted": true,
+      "durationMs": 303262,
+      "startedAt": "2026-03-01T07:32:10.533Z",
+      "endedAt": "2026-03-01T07:37:13.795Z"
     }
   ],
   "skippedTaskIds": [],

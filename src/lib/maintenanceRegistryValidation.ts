@@ -27,6 +27,7 @@ const skillStoreSchema = z.object({
   provider: nonEmptyString.optional(),
   installRoot: nonEmptyString,
   disabledRoot: nonEmptyString.optional(),
+  scanStrategy: nonEmptyString.optional(),
   reference: nonEmptyString.optional(),
 });
 

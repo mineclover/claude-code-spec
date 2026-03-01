@@ -13,6 +13,7 @@ after each iteration and it's included in prompts for context.
 - 도구별 MCP 플래그 정책은 전용 `mcpLaunch` 세그먼트로 승격하고, `resolveMcpLaunchStrategy`에서 `명시값 > 유추값 > 안전 기본값` 정규화 후 런타임에서 strict-only 허용 여부(`allowWithoutConfig`)를 게이트한다.
 - 멀티 소스 설정 병합이 필요한 경우에는 `get*Candidates` 집계 API를 먼저 만들고, 소비 API(`get*List`/생성 API)는 후보 결과를 재사용하게 연결해 충돌 규칙을 단일 merge comparator로 고정한다.
 - 세션 경로 해석은 `extract*FromEvent`와 `resolve*` 정규화 헬퍼를 분리해 `세션 명시 경로(cwd/projectPath) > 디렉토리명 유추 > 안전 기본값` 우선순위를 고정하고, 런타임 소비는 정규화 결과만 사용한다.
+- provider별 파일시스템 레이아웃 차이가 있는 스캐너는 `resolve*Strategy`(명시값 > provider 유추값 > 안전 기본값)와 `scan/move` 공통 FS 헬퍼를 분리해 symlink/숨김 디렉토리/EXDEV fallback 규칙을 단일 구현으로 고정한다.
 
 ---
 
@@ -78,4 +79,12 @@ after each iteration and it's included in prompts for context.
 - **Learnings:**
   - Patterns discovered: 경로 해석처럼 추정 오차 비용이 큰 영역은 이벤트 스키마 탐색(`extract*`)과 우선순위 정규화(`resolve*`)를 분리하면 fallback 정책을 런타임 전체에 일관되게 강제할 수 있다.
   - Gotchas encountered: Claude dash 디렉토리명은 하이픈을 구분자로도 데이터로도 사용하므로(`agent-town`) 역변환 기반 유추를 기본 경로로 쓰면 오탐이 생기며, 메타데이터 경로를 우선 추출하지 않으면 회귀가 재발한다.
+---
+
+## 2026-03-01 - US-009
+- What was implemented: provider별 skill store 스캔을 `skillStoreScanner` 전략 인터페이스로 분리하고, `CliMaintenanceService`가 해당 전략의 installRoot/disabledRoot 후보를 통해 스캔/활성화 경로를 해석하도록 리팩터링했다. 또한 symlink 허용 + 숨김 디렉토리 제외 스캔 규칙과 EXDEV 이동 fallback(copy+remove), 스킬 목록 dedupe/정렬 comparator를 공통 헬퍼로 승격했다.
+- Files changed: `src/services/maintenance/skillStoreScanner.ts`, `src/services/maintenance/skillStoreScanner.test.ts`, `src/services/CliMaintenanceService.ts`, `src/services/maintenance/serviceIntegrations.ts`, `src/types/maintenance-adapter-sdk.ts`, `src/types/maintenance-registry.ts`, `src/lib/maintenanceRegistryValidation.ts`, `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered: provider 확장이 예정된 스캔 로직은 서비스 클래스 내부 분기보다 전략 해석(`resolve*`) + 공통 FS 동작(`scan/move`) 분리 구조가 테스트와 회귀 방지에 유리하다.
+  - Gotchas encountered: Node 내장 `fs.promises` 메서드는 직접 spy가 불가능한 경우가 있어(EXDEV 테스트), 파일 연산 의존성 주입 포인트를 열어 테스트에서 모의 구현을 주입해야 안정적으로 검증할 수 있다.
 ---
