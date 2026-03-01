@@ -1,0 +1,64 @@
+{
+  "id": "full-provider",
+  "description": "Full provider contracts should pass all release compatibility scenarios.",
+  "services": [
+    {
+      "id": "acme",
+      "name": "Acme CLI",
+      "capability": {
+        "maintenance": {
+          "enabled": true
+        },
+        "execution": {
+          "enabled": true
+        },
+        "skills": {
+          "enabled": true
+        },
+        "mcp": {
+          "enabled": true
+        }
+      },
+      "tools": [
+        {
+          "id": "acme",
+          "name": "Acme CLI",
+          "description": "Acme provider fixture",
+          "versionCommand": {
+            "command": "acme",
+            "args": ["--version"]
+          },
+          "updateCommand": {
+            "command": "npm",
+            "args": ["install", "-g", "acme@latest"]
+          }
+        }
+      ],
+      "skillStore": {
+        "provider": "acme",
+        "installRoot": "~/.acme/skills",
+        "disabledRoot": "~/.acme/skills-disabled"
+      },
+      "execution": {
+        "toolId": "acme"
+      },
+      "mcp": {
+        "defaultTargets": ["project"],
+        "strictByDefault": false
+      }
+    }
+  ],
+  "expect": {
+    "adapterId": "acme",
+    "scenarios": {
+      "version-check": "pass",
+      "update": "pass",
+      "mcp-launch": "pass",
+      "skill-scan": "pass"
+    },
+    "summary": {
+      "failed": 0
+    },
+    "reportIncludes": ["Failed scenarios: none", "Failure details: none"]
+  }
+}

@@ -1,14 +1,14 @@
 {
-  "id": "4046228a-df35-4376-a8e6-94d8b329eb90",
+  "id": "e7108f46-fd3f-4053-b25b-c6ad536e704c",
   "status": "running",
-  "startedAt": "2026-03-01T06:20:59.562Z",
-  "updatedAt": "2026-03-01T08:24:57.426Z",
+  "startedAt": "2026-03-01T08:42:44.894Z",
+  "updatedAt": "2026-03-01T08:42:44.894Z",
   "agentPlugin": "codex",
   "trackerPlugin": "json",
   "prdPath": "./tasks/prd.json",
-  "currentIteration": 14,
+  "currentIteration": 0,
   "maxIterations": 0,
   "totalTasks": 0,
-  "tasksCompleted": 14,
+  "tasksCompleted": 0,
   "cwd": "/Users/junwoobang/workflow/claude-code-spec"
 }

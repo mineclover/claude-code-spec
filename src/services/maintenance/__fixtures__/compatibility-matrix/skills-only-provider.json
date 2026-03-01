@@ -1,0 +1,32 @@
+{
+  "id": "skills-only-provider",
+  "description": "Skills-only providers should only run skill-scan scenario while others are skipped.",
+  "services": [
+    {
+      "id": "skills-only",
+      "name": "Skills Only",
+      "capability": {
+        "skills": {
+          "enabled": true
+        }
+      },
+      "skillStore": {
+        "provider": "skills-only",
+        "installRoot": "~/.skills-only/skills"
+      }
+    }
+  ],
+  "expect": {
+    "adapterId": "skills-only",
+    "scenarios": {
+      "version-check": "skip",
+      "update": "skip",
+      "mcp-launch": "skip",
+      "skill-scan": "pass"
+    },
+    "summary": {
+      "failed": 0
+    },
+    "reportIncludes": ["Failed scenarios: none", "Impact scope providers: none"]
+  }
+}

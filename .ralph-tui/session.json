@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "sessionId": "4046228a-df35-4376-a8e6-94d8b329eb90",
+  "sessionId": "e7108f46-fd3f-4053-b25b-c6ad536e704c",
   "status": "running",
-  "startedAt": "2026-03-01T06:20:59.603Z",
-  "updatedAt": "2026-03-01T08:28:51.144Z",
-  "currentIteration": 14,
+  "startedAt": "2026-03-01T08:42:44.950Z",
+  "updatedAt": "2026-03-01T08:48:47.493Z",
+  "currentIteration": 0,
   "maxIterations": 0,
-  "tasksCompleted": 14,
+  "tasksCompleted": 0,
   "isPaused": false,
   "agentPlugin": "codex",
   "trackerState": {
@@ -18,90 +18,90 @@
         "id": "US-001",
         "title": "Capability Matrix 표준 스키마 정의",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-002",
         "title": "서비스 어댑터 SDK 인터페이스 패키지화",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-003",
         "title": "내장 서비스 어댑터 SDK 마이그레이션",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-004",
         "title": "Maintenance Registry 버전 관리 및 마이그레이션",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-005",
         "title": "CLI 명령 조합 Rule Catalog 고도화",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-006",
         "title": "CLI별 MCP Launch Strategy 추상화",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-007",
         "title": "Global/Project MCP Source Aggregator 통합",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-008",
         "title": "세션 기반 실제 경로 해석 서비스 도입",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-009",
         "title": "Skill Store Scanner 전략화",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-010",
         "title": "Skill Version Resolver 체인 추가",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-011",
         "title": "Skill Activation 트랜잭션 및 감사 로그",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-012",
         "title": "업데이트 플래너(체크/실행/요약) 워크플로우",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-013",
         "title": "Registry 설정 UI 폼 모드 추가(JSON 병행)",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-014",
         "title": "Provider 전용 관리 페이지 확장 프레임워크",
         "status": "completed",
-        "completedInSession": true
+        "completedInSession": false
       },
       {
         "id": "US-015",
         "title": "신규 서비스 온보딩 키트(템플릿/검증/문서)",
-        "status": "open",
+        "status": "completed",
         "completedInSession": false
       },
       {
@@ -112,148 +112,7 @@
       }
     ]
   },
-  "iterations": [
-    {
-      "iteration": 1,
-      "status": "completed",
-      "taskId": "US-001",
-      "taskTitle": "Capability Matrix 표준 스키마 정의",
-      "taskCompleted": true,
-      "durationMs": 358921,
-      "startedAt": "2026-03-01T06:40:21.286Z",
-      "endedAt": "2026-03-01T06:46:20.207Z"
-    },
-    {
-      "iteration": 2,
-      "status": "completed",
-      "taskId": "US-002",
-      "taskTitle": "서비스 어댑터 SDK 인터페이스 패키지화",
-      "taskCompleted": true,
-      "durationMs": 713678,
-      "startedAt": "2026-03-01T06:46:21.454Z",
-      "endedAt": "2026-03-01T06:58:15.132Z"
-    },
-    {
-      "iteration": 3,
-      "status": "completed",
-      "taskId": "US-003",
-      "taskTitle": "내장 서비스 어댑터 SDK 마이그레이션",
-      "taskCompleted": true,
-      "durationMs": 330170,
-      "startedAt": "2026-03-01T06:58:16.285Z",
-      "endedAt": "2026-03-01T07:03:46.455Z"
-    },
-    {
-      "iteration": 4,
-      "status": "completed",
-      "taskId": "US-004",
-      "taskTitle": "Maintenance Registry 버전 관리 및 마이그레이션",
-      "taskCompleted": true,
-      "durationMs": 709638,
-      "startedAt": "2026-03-01T07:03:47.628Z",
-      "endedAt": "2026-03-01T07:15:37.266Z"
-    },
-    {
-      "iteration": 5,
-      "status": "completed",
-      "taskId": "US-005",
-      "taskTitle": "CLI 명령 조합 Rule Catalog 고도화",
-      "taskCompleted": true,
-      "durationMs": 270057,
-      "startedAt": "2026-03-01T07:15:38.458Z",
-      "endedAt": "2026-03-01T07:20:08.515Z"
-    },
-    {
-      "iteration": 6,
-      "status": "completed",
-      "taskId": "US-006",
-      "taskTitle": "CLI별 MCP Launch Strategy 추상화",
-      "taskCompleted": true,
-      "durationMs": 277565,
-      "startedAt": "2026-03-01T07:20:09.672Z",
-      "endedAt": "2026-03-01T07:24:47.237Z"
-    },
-    {
-      "iteration": 7,
-      "status": "completed",
-      "taskId": "US-007",
-      "taskTitle": "Global/Project MCP Source Aggregator 통합",
-      "taskCompleted": true,
-      "durationMs": 440950,
-      "startedAt": "2026-03-01T07:24:48.393Z",
-      "endedAt": "2026-03-01T07:32:09.343Z"
-    },
-    {
-      "iteration": 8,
-      "status": "completed",
-      "taskId": "US-008",
-      "taskTitle": "세션 기반 실제 경로 해석 서비스 도입",
-      "taskCompleted": true,
-      "durationMs": 303262,
-      "startedAt": "2026-03-01T07:32:10.533Z",
-      "endedAt": "2026-03-01T07:37:13.795Z"
-    },
-    {
-      "iteration": 9,
-      "status": "completed",
-      "taskId": "US-009",
-      "taskTitle": "Skill Store Scanner 전략화",
-      "taskCompleted": true,
-      "durationMs": 371611,
-      "startedAt": "2026-03-01T07:37:14.957Z",
-      "endedAt": "2026-03-01T07:43:26.568Z"
-    },
-    {
-      "iteration": 10,
-      "status": "completed",
-      "taskId": "US-010",
-      "taskTitle": "Skill Version Resolver 체인 추가",
-      "taskCompleted": true,
-      "durationMs": 348394,
-      "startedAt": "2026-03-01T07:43:27.724Z",
-      "endedAt": "2026-03-01T07:49:16.118Z"
-    },
-    {
-      "iteration": 11,
-      "status": "completed",
-      "taskId": "US-011",
-      "taskTitle": "Skill Activation 트랜잭션 및 감사 로그",
-      "taskCompleted": true,
-      "durationMs": 508619,
-      "startedAt": "2026-03-01T07:49:17.294Z",
-      "endedAt": "2026-03-01T07:57:45.913Z"
-    },
-    {
-      "iteration": 12,
-      "status": "completed",
-      "taskId": "US-012",
-      "taskTitle": "업데이트 플래너(체크/실행/요약) 워크플로우",
-      "taskCompleted": true,
-      "durationMs": 622660,
-      "startedAt": "2026-03-01T07:57:47.066Z",
-      "endedAt": "2026-03-01T08:08:09.726Z"
-    },
-    {
-      "iteration": 13,
-      "status": "completed",
-      "taskId": "US-013",
-      "taskTitle": "Registry 설정 UI 폼 모드 추가(JSON 병행)",
-      "taskCompleted": true,
-      "durationMs": 489152,
-      "startedAt": "2026-03-01T08:08:10.918Z",
-      "endedAt": "2026-03-01T08:16:20.070Z"
-    },
-    {
-      "iteration": 14,
-      "status": "completed",
-      "taskId": "US-014",
-      "taskTitle": "Provider 전용 관리 페이지 확장 프레임워크",
-      "taskCompleted": true,
-      "durationMs": 515963,
-      "startedAt": "2026-03-01T08:16:21.304Z",
-      "endedAt": "2026-03-01T08:24:57.267Z"
-    }
-  ],
+  "iterations": [],
   "skippedTaskIds": [],
   "cwd": "/Users/junwoobang/workflow/claude-code-spec",
   "activeTaskIds": [],

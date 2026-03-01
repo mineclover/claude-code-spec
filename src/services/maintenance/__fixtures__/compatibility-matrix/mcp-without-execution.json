@@ -1,0 +1,62 @@
+{
+  "id": "mcp-without-execution",
+  "description": "MCP enabled without execution capability should fail mcp-launch and summarize impact scope.",
+  "services": [
+    {
+      "id": "mcp-without-execution",
+      "name": "MCP Without Execution",
+      "capability": {
+        "maintenance": {
+          "enabled": true
+        },
+        "execution": {
+          "enabled": false
+        },
+        "mcp": {
+          "enabled": true
+        }
+      },
+      "tools": [
+        {
+          "id": "mcp-without-execution",
+          "name": "MCP Without Execution",
+          "description": "Broken fixture for mcp launch",
+          "versionCommand": {
+            "command": "mcp-without-execution",
+            "args": ["--version"]
+          },
+          "updateCommand": {
+            "command": "npm",
+            "args": ["install", "-g", "mcp-without-execution@latest"]
+          }
+        }
+      ],
+      "mcp": {
+        "defaultTargets": ["project"],
+        "strictByDefault": true
+      }
+    }
+  ],
+  "expect": {
+    "adapterId": "mcp-without-execution",
+    "scenarios": {
+      "version-check": "pass",
+      "update": "pass",
+      "mcp-launch": "fail",
+      "skill-scan": "skip"
+    },
+    "summary": {
+      "failed": 1,
+      "failedScenarios": ["mcp-launch"],
+      "impactedAdapters": ["mcp-without-execution"],
+      "impactedTools": ["mcp-without-execution"],
+      "impactedProviders": []
+    },
+    "reportIncludes": [
+      "Failed scenarios: mcp-launch",
+      "Impact scope adapters: mcp-without-execution",
+      "Impact scope tools: mcp-without-execution",
+      "[mcp-without-execution] mcp-launch"
+    ]
+  }
+}

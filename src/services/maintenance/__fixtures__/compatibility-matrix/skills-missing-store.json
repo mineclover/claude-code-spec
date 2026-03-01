@@ -1,0 +1,54 @@
+{
+  "id": "skills-missing-store",
+  "description": "Skills capability without skillStore contract should fail skill-scan and expose provider impact.",
+  "services": [
+    {
+      "id": "skills-missing-store",
+      "name": "Skills Missing Store",
+      "capability": {
+        "maintenance": {
+          "enabled": true
+        },
+        "skills": {
+          "enabled": true
+        }
+      },
+      "tools": [
+        {
+          "id": "skills-missing-store",
+          "name": "Skills Missing Store",
+          "description": "Broken fixture for skill scan",
+          "versionCommand": {
+            "command": "skills-missing-store",
+            "args": ["--version"]
+          },
+          "updateCommand": {
+            "command": "npm",
+            "args": ["install", "-g", "skills-missing-store@latest"]
+          }
+        }
+      ]
+    }
+  ],
+  "expect": {
+    "adapterId": "skills-missing-store",
+    "scenarios": {
+      "version-check": "pass",
+      "update": "pass",
+      "mcp-launch": "skip",
+      "skill-scan": "fail"
+    },
+    "summary": {
+      "failed": 1,
+      "failedScenarios": ["skill-scan"],
+      "impactedAdapters": ["skills-missing-store"],
+      "impactedTools": ["skills-missing-store"],
+      "impactedProviders": ["skills-missing-store"]
+    },
+    "reportIncludes": [
+      "Failed scenarios: skill-scan",
+      "Impact scope providers: skills-missing-store",
+      "[skills-missing-store] skill-scan"
+    ]
+  }
+}
