@@ -22,6 +22,11 @@ after each iteration and it's included in prompts for context.
   via `runMaintenanceRegistryMigrationTransaction` in `src/services/appSettings.ts`,
   then persist using `saveSettingsWithRollback` snapshot restore so migration and disk
   write failures both recover safely.
+- CLI command rule-catalog composition pattern:
+  Model CLI arguments as declarative `commandSpec.segments` and compose with
+  `fallback` + `conditional` segment nesting (plus `mcpLaunch` strategy flags) in
+  `src/services/CliCommandComposer.ts` and `src/data/cli-tools/claude.ts` so new
+  option combinations can be added without hardcoded branching.
 
 ---
 
@@ -106,4 +111,31 @@ after each iteration and it's included in prompts for context.
   - Gotchas encountered
     - Story scope was already implemented in the current branch; only verification and
       progress documentation were required.
+---
+
+## 2026-03-01 - US-005
+- What was implemented
+  - Verified composable command rule catalog supports `conditional` groups and
+    `fallback` selection in `src/types/cli-tool.ts` and
+    `src/services/CliCommandComposer.ts`.
+  - Verified Claude command composition uses declarative MCP/permission combinations
+    (`mcpLaunch` + `fallback` + `conditional`) in
+    `src/data/cli-tools/claude.ts`.
+  - Verified strict MCP launch strategy behavior (allow/block strict-only usage per
+    tool) and command snapshot outputs through
+    `src/services/CliCommandComposer.test.ts`.
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/types/cli-tool.ts src/services/CliCommandComposer.ts src/data/cli-tools/claude.ts src/services/CliCommandComposer.test.ts`
+    - `npx vitest run src/services/CliCommandComposer.test.ts`
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - Wrapping permission flag resolution in a `fallback` segment cleanly enforces
+      precedence (`--permission-mode` mapping first, bypass fallback second) without
+      imperative branching.
+  - Gotchas encountered
+    - Story scope was already implemented in the current branch; this iteration focused
+      on acceptance verification and progress logging.
 ---
