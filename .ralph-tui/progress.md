@@ -12,6 +12,11 @@ after each iteration and it's included in prompts for context.
   adapters with `createAdapterFromRegistration` in
   `src/services/maintenance/serviceIntegrations.ts`. This gives compile-time contract
   enforcement and runtime capability normalization in one flow.
+- Adapter normalization utility pattern:
+  Keep path template/skill root normalization in `src/lib/pathTemplateUtils.ts`
+  (`resolvePathTemplate`, `normalizeDir`, `defaultDisabledRoot`) and service dedupe in
+  `src/lib/collectionUtils.ts` (`dedupeByLast`), then consume both from
+  `serviceIntegrations` so built-in/custom registrations share identical normalization.
 
 ---
 
@@ -40,4 +45,32 @@ after each iteration and it's included in prompts for context.
   - Gotchas encountered
     - No additional implementation was required; story scope was already satisfied in the
       current branch and only verification/logging was needed.
+---
+
+## 2026-03-01 - US-003
+- What was implemented
+  - Verified `claude/codex/gemini/ralph/moai/skills` built-in registrations are all
+    authored through `defineMaintenanceServiceAdapter(s)` and normalized via
+    `createAdapterFromRegistration` in
+    `src/services/maintenance/serviceIntegrations.ts`.
+  - Verified dedupe/path resolution logic is merged into shared utilities:
+    `dedupeByLast` (`src/lib/collectionUtils.ts`) and
+    `resolvePathTemplate`/`normalizeDir`/`defaultDisabledRoot`
+    (`src/lib/pathTemplateUtils.ts`).
+  - Verified no regression on version check / update / skill listing behaviors through
+    `src/services/CliMaintenanceService.test.ts`.
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/lib/pathTemplateUtils.ts src/lib/pathTemplateUtils.test.ts src/services/maintenance/serviceIntegrations.ts src/services/maintenance/serviceIntegrations.test.ts src/services/CliMaintenanceService.test.ts`
+    - `npx vitest run src/lib/pathTemplateUtils.test.ts src/services/maintenance/serviceIntegrations.test.ts src/services/CliMaintenanceService.test.ts`
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - Built-in adapter migration quality can be validated by pairing
+      `serviceIntegrations` contract tests (registration/merge paths) with
+      `CliMaintenanceService` behavior tests (version/update/skills flows).
+  - Gotchas encountered
+    - Story scope was already implemented in the current branch, so this iteration
+      focused on acceptance verification and progress log updates.
 ---

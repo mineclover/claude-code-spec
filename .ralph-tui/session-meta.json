@@ -2,12 +2,12 @@
   "id": "dc6c3d22-54f9-4db7-9934-5fa7d5391e08",
   "status": "running",
   "startedAt": "2026-03-01T10:55:37.455Z",
-  "updatedAt": "2026-03-01T10:55:37.455Z",
+  "updatedAt": "2026-03-01T10:57:14.412Z",
   "agentPlugin": "codex",
   "trackerPlugin": "json",
-  "currentIteration": 0,
+  "currentIteration": 1,
   "maxIterations": 0,
   "totalTasks": 0,
-  "tasksCompleted": 0,
+  "tasksCompleted": 1,
   "cwd": "/Users/junwoobang/workflow/claude-code-spec"
 }
