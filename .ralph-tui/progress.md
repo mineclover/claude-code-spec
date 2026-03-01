@@ -86,6 +86,13 @@ after each iteration and it's included in prompts for context.
   (`adapterTemplate.test.ts` with registry validation checks), and docs checklist
   (`docs/features/skills/service-onboarding-standard.md`) so process guidance,
   contracts, and verification remain synchronized.
+- Compatibility matrix fixture contract pattern:
+  Define release-gate scenarios once in
+  `src/services/maintenance/compatibilityMatrix.ts`
+  (`CORE_COMPATIBILITY_SCENARIOS` + `createCompatibilityTestReport`) and validate
+  provider onboarding via JSON fixtures consumed by
+  `src/services/maintenance/compatibilityMatrix.test.ts`, so new providers are
+  auto-covered by matrix status, failure reason, and impact-scope report checks.
 
 ---
 
@@ -488,6 +495,34 @@ after each iteration and it's included in prompts for context.
   - Patterns discovered
     - Onboarding quality stays stable when template code, contract/validation examples,
       and checklist documentation are maintained as one linked kit.
+  - Gotchas encountered
+    - Existing implementation already satisfied story requirements; this iteration
+      focused on verification and documentation updates.
+---
+
+## 2026-03-01 - US-016
+- What was implemented
+  - Verified story scope was already implemented in the current branch:
+    - Core CLI/provider compatibility matrix scenarios are defined in
+      `src/services/maintenance/compatibilityMatrix.ts` for
+      `version-check`, `update`, `mcp-launch`, and `skill-scan`.
+    - Fixture-based contract pipeline is implemented in
+      `src/services/maintenance/compatibilityMatrix.test.ts` loading
+      `src/services/maintenance/__fixtures__/compatibility-matrix/*.json`
+      for provider onboarding validation.
+    - Release report summary includes failed scenarios and impact scope (adapters,
+      tools, providers) via `formatCompatibilityTestReport`.
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/services/maintenance/compatibilityMatrix.ts src/services/maintenance/compatibilityMatrix.test.ts src/services/maintenance/__fixtures__/compatibility-matrix/full-provider.json src/services/maintenance/__fixtures__/compatibility-matrix/skills-only-provider.json src/services/maintenance/__fixtures__/compatibility-matrix/skills-missing-store.json src/services/maintenance/__fixtures__/compatibility-matrix/mcp-without-execution.json`
+    - `npx vitest run src/services/maintenance/compatibilityMatrix.test.ts`
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - Compatibility regressions are easiest to extend when scenario IDs are centralized
+      in one matrix definition and provider fixtures assert both status and summary
+      snippets from the formatted release report.
   - Gotchas encountered
     - Existing implementation already satisfied story requirements; this iteration
       focused on verification and documentation updates.
