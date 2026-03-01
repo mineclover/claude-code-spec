@@ -37,11 +37,13 @@ export interface UserEvent extends StreamEvent {
   type: 'user';
   message: {
     role: 'user';
-    content: string | Array<{
-      type: 'tool_result';
-      tool_use_id: string;
-      content: string;
-    }>;
+    content:
+      | string
+      | Array<{
+          type: 'tool_result';
+          tool_use_id: string;
+          content: string;
+        }>;
   };
   session_id: string;
   parent_tool_use_id: string | null;
@@ -79,7 +81,12 @@ export interface AssistantEvent extends StreamEvent {
 // Result event
 export interface ResultEvent extends StreamEvent {
   type: 'result';
-  subtype: 'success' | 'error' | 'error_during_execution' | 'error_max_turns' | 'error_max_budget_usd';
+  subtype:
+    | 'success'
+    | 'error'
+    | 'error_during_execution'
+    | 'error_max_turns'
+    | 'error_max_budget_usd';
   is_error: boolean;
   duration_ms: number;
   duration_api_ms: number;
@@ -97,15 +104,18 @@ export interface ResultEvent extends StreamEvent {
     };
     service_tier: string;
   };
-  modelUsage: Record<string, {
-    inputTokens: number;
-    outputTokens: number;
-    cacheReadInputTokens: number;
-    cacheCreationInputTokens: number;
-    webSearchRequests: number;
-    costUSD: number;
-    contextWindow: number;
-  }>;
+  modelUsage: Record<
+    string,
+    {
+      inputTokens: number;
+      outputTokens: number;
+      cacheReadInputTokens: number;
+      cacheCreationInputTokens: number;
+      webSearchRequests: number;
+      costUSD: number;
+      contextWindow: number;
+    }
+  >;
   permission_denials: Array<{
     tool_name: string;
     tool_input: Record<string, unknown>;

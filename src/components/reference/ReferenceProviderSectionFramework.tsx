@@ -7,6 +7,7 @@ export interface ReferenceProviderSectionCard {
   title: string;
   description: string;
   count: number;
+  supported: boolean;
   actionLabel?: string;
   onOpen: () => void;
 }
@@ -82,13 +83,24 @@ export function ReferenceProviderSectionFramework({
               </header>
               <div className={styles.sectionGrid}>
                 {group.sections.map((section) => (
-                  <article key={`${group.provider}-${section.id}`} className={styles.sectionCard}>
+                  <article
+                    key={`${group.provider}-${section.id}`}
+                    className={
+                      section.supported ? styles.sectionCard : styles.sectionCardUnsupported
+                    }
+                  >
                     <div className={styles.sectionTopRow}>
                       <span className={styles.sectionTitle}>{section.title}</span>
-                      <span className={styles.sectionCount}>{section.count}</span>
+                      {section.supported ? (
+                        <span className={styles.sectionCount}>{section.count}</span>
+                      ) : (
+                        <span className={styles.unsupportedBadge}>Not supported</span>
+                      )}
                     </div>
                     <p className={styles.sectionDescription}>{section.description}</p>
-                    <div className={styles.sectionAction}>{renderAction(group, section)}</div>
+                    {section.supported && (
+                      <div className={styles.sectionAction}>{renderAction(group, section)}</div>
+                    )}
                   </article>
                 ))}
               </div>

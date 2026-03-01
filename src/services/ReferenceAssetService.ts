@@ -7,6 +7,7 @@ import type {
   ReferenceAssetType,
   ReferenceProvider,
 } from '../types/reference-assets';
+import { REFERENCE_PROVIDERS } from '../types/reference-assets';
 
 interface ResolvePathResult {
   success: boolean;
@@ -15,26 +16,26 @@ interface ResolvePathResult {
 }
 
 interface ProviderConfig {
-  baseDir: string;
+  baseDirs: string[];
   roots: Record<ReferenceAssetType, string[]>;
 }
 
 const PROVIDER_CONFIG: Record<ReferenceProvider, ProviderConfig> = {
-  moai: {
-    baseDir: 'moai-adk-upstream',
+  claude: {
+    baseDirs: ['moai-adk-upstream', 'ralph-tui-upstream'],
     roots: {
       hooks: ['.claude/hooks'],
       outputStyles: ['.claude/output-styles'],
       skills: ['.claude/skills'],
     },
   },
-  ralph: {
-    baseDir: 'ralph-tui-upstream',
-    roots: {
-      hooks: ['src/tui/hooks'],
-      outputStyles: ['website/styles', 'assets/themes'],
-      skills: ['skills'],
-    },
+  gemini: {
+    baseDirs: [],
+    roots: { hooks: [], outputStyles: [], skills: [] },
+  },
+  codex: {
+    baseDirs: [],
+    roots: { hooks: [], outputStyles: [], skills: [] },
   },
 };
 
@@ -100,34 +101,39 @@ export class ReferenceAssetService {
   constructor(private readonly referencesRoot = path.resolve(process.cwd(), 'references')) {}
 
   listAssets(assetType: ReferenceAssetType, provider?: ReferenceProvider): ReferenceAssetItem[] {
-    const providers: ReferenceProvider[] = provider ? [provider] : ['moai', 'ralph'];
+    const providers: ReferenceProvider[] = provider ? [provider] : [...REFERENCE_PROVIDERS];
     const items: ReferenceAssetItem[] = [];
 
     for (const currentProvider of providers) {
       const config = PROVIDER_CONFIG[currentProvider];
-      const providerBase = path.join(this.referencesRoot, config.baseDir);
-      for (const root of config.roots[assetType]) {
-        const sourceRootAbsolute = path.join(providerBase, root);
-        if (!fs.existsSync(sourceRootAbsolute) || !fs.statSync(sourceRootAbsolute).isDirectory()) {
-          continue;
-        }
+      for (const baseDir of config.baseDirs) {
+        const providerBase = path.join(this.referencesRoot, baseDir);
+        for (const root of config.roots[assetType]) {
+          const sourceRootAbsolute = path.join(providerBase, root);
+          if (
+            !fs.existsSync(sourceRootAbsolute) ||
+            !fs.statSync(sourceRootAbsolute).isDirectory()
+          ) {
+            continue;
+          }
 
-        if (assetType === 'skills') {
-          this.collectSkillItems(
-            items,
-            currentProvider,
-            assetType,
-            sourceRootAbsolute,
-            path.relative(this.referencesRoot, sourceRootAbsolute),
-          );
-        } else {
-          this.collectFileItems(
-            items,
-            currentProvider,
-            assetType,
-            sourceRootAbsolute,
-            path.relative(this.referencesRoot, sourceRootAbsolute),
-          );
+          if (assetType === 'skills') {
+            this.collectSkillItems(
+              items,
+              currentProvider,
+              assetType,
+              sourceRootAbsolute,
+              path.relative(this.referencesRoot, sourceRootAbsolute),
+            );
+          } else {
+            this.collectFileItems(
+              items,
+              currentProvider,
+              assetType,
+              sourceRootAbsolute,
+              path.relative(this.referencesRoot, sourceRootAbsolute),
+            );
+          }
         }
       }
     }

@@ -5,8 +5,8 @@
  * across both StreamOutput and SessionLogViewer contexts.
  */
 
-import type { StreamEvent } from '../types/stream-events';
 import type React from 'react';
+import type { StreamEvent } from '../types/stream-events';
 
 export interface ClaudeSessionEntry {
   type: string;

@@ -1,8 +1,13 @@
 import { useSearchParams } from 'react-router-dom';
+import { REFERENCE_PROVIDERS } from '../types/reference-assets';
 import { ReferenceAssetsPage } from './ReferenceAssetsPage';
 
-function resolveProvider(value: string | null): 'all' | 'moai' | 'ralph' {
-  return value === 'moai' || value === 'ralph' ? value : 'all';
+type ProviderParam = (typeof REFERENCE_PROVIDERS)[number];
+
+function resolveProvider(value: string | null): 'all' | ProviderParam {
+  return REFERENCE_PROVIDERS.includes(value as ProviderParam)
+    ? (value as ProviderParam)
+    : 'all';
 }
 
 export function ReferenceHooksPage() {
@@ -12,7 +17,7 @@ export function ReferenceHooksPage() {
     <ReferenceAssetsPage
       assetType="hooks"
       title="Reference Hooks"
-      description="Inspect and compare hook assets from MoAI and Ralph references."
+      description="Inspect and compare hook assets from Claude Code references."
       initialProvider={resolveProvider(searchParams.get('provider'))}
     />
   );

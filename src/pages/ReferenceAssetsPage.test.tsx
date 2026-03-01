@@ -9,8 +9,8 @@ function setupWindowApis() {
   const toolsAPI = {
     listReferenceAssets: vi.fn().mockResolvedValue([
       {
-        id: 'moai:hooks:references/moai-adk-upstream/.claude/hooks/a.md',
-        provider: 'moai',
+        id: 'claude:hooks:moai-adk-upstream/.claude/hooks/a.md',
+        provider: 'claude',
         type: 'hooks',
         name: 'a.md',
         relativePath: 'moai-adk-upstream/.claude/hooks/a.md',
@@ -18,8 +18,8 @@ function setupWindowApis() {
         updatedAt: Date.now(),
       },
       {
-        id: 'moai:hooks:references/moai-adk-upstream/.claude/hooks/b.md',
-        provider: 'moai',
+        id: 'claude:hooks:moai-adk-upstream/.claude/hooks/b.md',
+        provider: 'claude',
         type: 'hooks',
         name: 'b.md',
         relativePath: 'moai-adk-upstream/.claude/hooks/b.md',
@@ -27,12 +27,12 @@ function setupWindowApis() {
         updatedAt: Date.now() - 1000,
       },
       {
-        id: 'ralph:hooks:references/ralph-tui-upstream/src/tui/hooks/c.md',
-        provider: 'ralph',
+        id: 'claude:hooks:ralph-tui-upstream/.claude/hooks/c.md',
+        provider: 'claude',
         type: 'hooks',
         name: 'c.md',
-        relativePath: 'ralph-tui-upstream/src/tui/hooks/c.md',
-        sourceRoot: 'ralph-tui-upstream/src/tui/hooks',
+        relativePath: 'ralph-tui-upstream/.claude/hooks/c.md',
+        sourceRoot: 'ralph-tui-upstream/.claude/hooks',
         updatedAt: Date.now() - 2000,
       },
     ]),
@@ -48,7 +48,7 @@ function setupWindowApis() {
         favorite: false,
         tags: ['alpha'],
       },
-      'ralph-tui-upstream/src/tui/hooks/c.md': {
+      'ralph-tui-upstream/.claude/hooks/c.md': {
         favorite: false,
         tags: ['beta'],
       },

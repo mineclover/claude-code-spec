@@ -40,30 +40,28 @@ export function ReferenceProvidersPage() {
   const { providers, isLoading, message, load } = useReferenceProviderSections();
 
   const groups = useMemo<ReferenceProviderSectionGroup[]>(() => {
-    return providers
-      .map((provider) => {
-        const sections = SECTION_ORDER.filter(
-          (sectionType) => provider.capability[sectionType].enabled,
-        ).map((sectionType) => {
-          const meta = SECTION_META[sectionType];
-          return {
-            id: sectionType,
-            title: meta.title,
-            description: meta.description,
-            count: provider.counts[sectionType],
-            actionLabel: `Open ${meta.title}`,
-            onOpen: () => navigate(`${meta.route}?provider=${provider.provider}`),
-          };
-        });
-
+    return providers.map((provider) => {
+      const sections = SECTION_ORDER.map((sectionType) => {
+        const cap = provider.capability[sectionType];
+        const meta = SECTION_META[sectionType];
         return {
-          provider: provider.provider,
-          displayName: provider.displayName,
-          description: provider.description,
-          sections,
+          id: sectionType,
+          title: meta.title,
+          description: meta.description,
+          count: provider.counts[sectionType],
+          supported: cap.supported,
+          actionLabel: `Open ${meta.title}`,
+          onOpen: () => navigate(`${meta.route}?provider=${provider.provider}`),
         };
-      })
-      .filter((group) => group.sections.length > 0);
+      });
+
+      return {
+        provider: provider.provider,
+        displayName: provider.displayName,
+        description: provider.description,
+        sections,
+      };
+    });
   }, [navigate, providers]);
 
   return (
@@ -71,7 +69,7 @@ export function ReferenceProvidersPage() {
       <div className={styles.header}>
         <h2>Reference Providers</h2>
         <div className={styles.description}>
-          Standardized provider management cards for hooks, output styles, and skills.
+          Compatibility matrix for hooks, output styles, and skills across CLI tools.
         </div>
       </div>
 
@@ -80,7 +78,7 @@ export function ReferenceProvidersPage() {
         isLoading={isLoading}
         message={message}
         onRefresh={load}
-        emptyText="No provider sections are enabled by capability."
+        emptyText="No providers registered."
       />
     </div>
   );

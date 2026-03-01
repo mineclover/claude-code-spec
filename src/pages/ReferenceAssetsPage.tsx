@@ -16,8 +16,9 @@ interface ReferenceAssetsPageProps {
 
 const providerFilterOptions: Array<{ value: ProviderFilter; label: string }> = [
   { value: 'all', label: 'All providers' },
-  { value: 'moai', label: 'MoAI' },
-  { value: 'ralph', label: 'Ralph' },
+  { value: 'claude', label: 'Claude Code' },
+  { value: 'gemini', label: 'Gemini CLI' },
+  { value: 'codex', label: 'Codex' },
 ];
 
 const sortModeOptions: Array<{ value: SortMode; label: string }> = [

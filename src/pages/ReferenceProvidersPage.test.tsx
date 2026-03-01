@@ -11,21 +11,21 @@ function setupWindowApis() {
       if (assetType === 'hooks') {
         return Promise.resolve([
           {
-            id: 'moai:hooks:1',
-            provider: 'moai',
+            id: 'claude:hooks:moai-adk-upstream/.claude/hooks/a.md',
+            provider: 'claude',
             type: 'hooks',
             name: 'a.md',
-            relativePath: 'moai/hooks/a.md',
-            sourceRoot: 'moai/hooks',
+            relativePath: 'moai-adk-upstream/.claude/hooks/a.md',
+            sourceRoot: 'moai-adk-upstream/.claude/hooks',
             updatedAt: Date.now(),
           },
           {
-            id: 'ralph:hooks:1',
-            provider: 'ralph',
+            id: 'claude:hooks:ralph-tui-upstream/.claude/hooks/b.md',
+            provider: 'claude',
             type: 'hooks',
             name: 'b.md',
-            relativePath: 'ralph/hooks/b.md',
-            sourceRoot: 'ralph/hooks',
+            relativePath: 'ralph-tui-upstream/.claude/hooks/b.md',
+            sourceRoot: 'ralph-tui-upstream/.claude/hooks',
             updatedAt: Date.now(),
           },
         ]);
@@ -33,24 +33,24 @@ function setupWindowApis() {
       if (assetType === 'outputStyles') {
         return Promise.resolve([
           {
-            id: 'ralph:outputStyles:1',
-            provider: 'ralph',
+            id: 'claude:outputStyles:moai-adk-upstream/.claude/output-styles/theme.css',
+            provider: 'claude',
             type: 'outputStyles',
             name: 'theme.css',
-            relativePath: 'ralph/styles/theme.css',
-            sourceRoot: 'ralph/styles',
+            relativePath: 'moai-adk-upstream/.claude/output-styles/theme.css',
+            sourceRoot: 'moai-adk-upstream/.claude/output-styles',
             updatedAt: Date.now(),
           },
         ]);
       }
       return Promise.resolve([
         {
-          id: 'moai:skills:1',
-          provider: 'moai',
+          id: 'claude:skills:moai-adk-upstream/.claude/skills/my-skill/SKILL.md',
+          provider: 'claude',
           type: 'skills',
           name: 'my-skill',
-          relativePath: 'moai/skills/my-skill/SKILL.md',
-          sourceRoot: 'moai/skills',
+          relativePath: 'moai-adk-upstream/.claude/skills/my-skill/SKILL.md',
+          sourceRoot: 'moai-adk-upstream/.claude/skills',
           updatedAt: Date.now(),
         },
       ]);
@@ -66,7 +66,7 @@ describe('ReferenceProvidersPage', () => {
     vi.clearAllMocks();
   });
 
-  it('shows provider sections dynamically from inferred capability counts', async () => {
+  it('shows all three provider cards', async () => {
     const { toolsAPI } = setupWindowApis();
 
     render(
@@ -79,19 +79,74 @@ describe('ReferenceProvidersPage', () => {
       expect(toolsAPI.listReferenceAssets).toHaveBeenCalledTimes(3);
     });
 
-    const moaiCard = screen.getByRole('heading', { name: 'MoAI' }).closest('section');
-    const ralphCard = screen.getByRole('heading', { name: 'Ralph' }).closest('section');
-    expect(moaiCard).toBeTruthy();
-    expect(ralphCard).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Claude Code' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Gemini CLI' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Codex' })).toBeTruthy();
+  });
 
-    const moai = within(moaiCard as HTMLElement);
-    expect(moai.getByText('Hooks')).toBeTruthy();
-    expect(moai.getByText('Skills')).toBeTruthy();
-    expect(moai.queryByText('Output Styles')).toBeNull();
+  it('shows Claude Code sections with counts and action buttons', async () => {
+    const { toolsAPI } = setupWindowApis();
 
-    const ralph = within(ralphCard as HTMLElement);
-    expect(ralph.getByText('Hooks')).toBeTruthy();
-    expect(ralph.getByText('Output Styles')).toBeTruthy();
-    expect(ralph.queryByText('Skills')).toBeNull();
+    render(
+      <MemoryRouter>
+        <ReferenceProvidersPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(toolsAPI.listReferenceAssets).toHaveBeenCalledTimes(3);
+    });
+
+    const claudeCard = screen.getByRole('heading', { name: 'Claude Code' }).closest('section');
+    expect(claudeCard).toBeTruthy();
+
+    const claude = within(claudeCard as HTMLElement);
+    expect(claude.getByText('Hooks')).toBeTruthy();
+    expect(claude.getByText('Output Styles')).toBeTruthy();
+    expect(claude.getByText('Skills')).toBeTruthy();
+    // Should NOT show "Not supported" badge for claude
+    expect(claude.queryByText('Not supported')).toBeNull();
+  });
+
+  it('shows Not supported badge for all gemini sections', async () => {
+    const { toolsAPI } = setupWindowApis();
+
+    render(
+      <MemoryRouter>
+        <ReferenceProvidersPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(toolsAPI.listReferenceAssets).toHaveBeenCalledTimes(3);
+    });
+
+    const geminiCard = screen.getByRole('heading', { name: 'Gemini CLI' }).closest('section');
+    expect(geminiCard).toBeTruthy();
+
+    const gemini = within(geminiCard as HTMLElement);
+    const unsupportedBadges = gemini.getAllByText('Not supported');
+    expect(unsupportedBadges).toHaveLength(3);
+  });
+
+  it('shows Not supported badge for all codex sections', async () => {
+    const { toolsAPI } = setupWindowApis();
+
+    render(
+      <MemoryRouter>
+        <ReferenceProvidersPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(toolsAPI.listReferenceAssets).toHaveBeenCalledTimes(3);
+    });
+
+    const codexCard = screen.getByRole('heading', { name: 'Codex' }).closest('section');
+    expect(codexCard).toBeTruthy();
+
+    const codex = within(codexCard as HTMLElement);
+    const unsupportedBadges = codex.getAllByText('Not supported');
+    expect(unsupportedBadges).toHaveLength(3);
   });
 });

@@ -2,6 +2,7 @@ import type { ReferenceAssetType, ReferenceProvider } from '../types/reference-a
 
 export interface ReferenceSectionSwitch {
   enabled: boolean;
+  supported: boolean;
 }
 
 export interface ReferenceSectionMatrix {
@@ -17,9 +18,9 @@ export interface ReferenceSectionMatrixDeclaration {
 }
 
 export const SAFE_REFERENCE_SECTION_MATRIX: ReferenceSectionMatrix = {
-  hooks: { enabled: false },
-  outputStyles: { enabled: false },
-  skills: { enabled: false },
+  hooks: { enabled: false, supported: true },
+  outputStyles: { enabled: false, supported: true },
+  skills: { enabled: false, supported: true },
 };
 
 interface ReferenceSectionFallbacks {
@@ -33,6 +34,7 @@ function toSectionSwitch(
   fallbackEnabled: boolean,
 ): ReferenceSectionSwitch {
   return {
+    supported: typeof declared?.supported === 'boolean' ? declared.supported : true,
     enabled: typeof declared?.enabled === 'boolean' ? declared.enabled : fallbackEnabled,
   };
 }
@@ -85,14 +87,29 @@ export interface ResolvedReferenceProviderSection {
 export const DEFAULT_REFERENCE_PROVIDER_SECTION_REGISTRATIONS: ReferenceProviderSectionRegistration[] =
   [
     {
-      provider: 'moai',
-      displayName: 'MoAI',
-      description: 'Manage upstream MoAI reference assets by section.',
+      provider: 'claude',
+      displayName: 'Claude Code',
+      description: 'Hooks, output styles, and skills for Claude Code.',
     },
     {
-      provider: 'ralph',
-      displayName: 'Ralph',
-      description: 'Manage upstream Ralph reference assets by section.',
+      provider: 'gemini',
+      displayName: 'Gemini CLI',
+      description: 'Google Gemini CLI — hooks, output styles, and skills are not supported.',
+      capability: {
+        hooks: { supported: false, enabled: false },
+        outputStyles: { supported: false, enabled: false },
+        skills: { supported: false, enabled: false },
+      },
+    },
+    {
+      provider: 'codex',
+      displayName: 'Codex',
+      description: 'OpenAI Codex — hooks, output styles, and skills are not supported.',
+      capability: {
+        hooks: { supported: false, enabled: false },
+        outputStyles: { supported: false, enabled: false },
+        skills: { supported: false, enabled: false },
+      },
     },
   ];
 

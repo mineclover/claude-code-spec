@@ -1,4 +1,4 @@
-export const REFERENCE_PROVIDERS = ['moai', 'ralph'] as const;
+export const REFERENCE_PROVIDERS = ['claude', 'gemini', 'codex'] as const;
 export type ReferenceProvider = (typeof REFERENCE_PROVIDERS)[number];
 
 export const REFERENCE_ASSET_TYPES = ['hooks', 'outputStyles', 'skills'] as const;
