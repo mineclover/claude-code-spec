@@ -6,6 +6,13 @@ after each iteration and it's included in prompts for context.
 ## Codebase Patterns (Study These First)
 
 *Add reusable patterns discovered during development here.*
+- Skill store scanner strategy composition pattern:
+  Keep provider-specific root resolution in `resolveSkillStoreScanRoots` through
+  `SkillStoreScanRootStrategy` mappings, and centralize shared filesystem rules
+  (`shouldSkipDirectoryEntry` for hidden/symlink handling, `movePathWithExdevFallback`
+  for cross-device moves, `dedupeAndSortInstalledSkills` for provider-stable output)
+  in `src/services/maintenance/skillStoreScanner.ts` so new providers only declare
+  roots/strategy IDs without duplicating scan behavior.
 - MCP launch strategy declaration pattern:
   Declare MCP path/strict behavior inside `commandSpec.segments` with `type: 'mcpLaunch'`
   and tune strict-only behavior per tool using `strict.allowWithoutConfig` plus
@@ -240,6 +247,40 @@ after each iteration and it's included in prompts for context.
     - Session path resolution is intentionally two-phase: explicit extraction
       from session payloads first, then controlled fallback inference for legacy
       dash-encoded directory names.
+  - Gotchas encountered
+    - Story scope was already implemented in the current branch; this iteration
+      focused on acceptance verification and progress logging.
+---
+
+## 2026-03-01 - US-009
+- What was implemented
+  - Verified provider-specific scan strategy abstraction already exists in
+    `src/services/maintenance/skillStoreScanner.ts` via
+    `SkillStoreScanRootStrategy` + provider mapping (`PROVIDER_SCAN_STRATEGIES`) and
+    explicit/inferred/default precedence in `resolveSkillStoreScanRoots`.
+  - Verified shared filesystem behavior is centralized:
+    symlink/hidden handling in `shouldSkipDirectoryEntry`,
+    EXDEV fallback in `movePathWithExdevFallback`,
+    and transactional rollback wrapper in `runSkillStoreMoveTransaction`.
+  - Verified installed skill dedupe and stable sorting are centralized in
+    `dedupeAndSortInstalledSkills` and consumed by
+    `CliMaintenanceService.getInstalledSkills()`, preserving behavior for provider
+    extensions.
+  - Verified regression coverage exists in
+    `src/services/maintenance/skillStoreScanner.test.ts`:
+    strategy precedence, symlink/hidden scan rules, EXDEV fallback, and
+    provider/id dedupe-sort stability.
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/services/maintenance/skillStoreScanner.ts src/services/maintenance/skillStoreScanner.test.ts src/services/CliMaintenanceService.ts src/services/CliMaintenanceService.test.ts src/types/maintenance-adapter-sdk.ts src/services/maintenance/serviceIntegrations.ts`
+    - `npx vitest run src/services/maintenance/skillStoreScanner.test.ts src/services/CliMaintenanceService.test.ts src/services/maintenance/serviceIntegrations.test.ts`
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - Provider onboarding for skill scanning should be done by adding strategy/provider
+      mappings, while keeping directory traversal/move/dedupe rules in shared scanner
+      utilities to avoid behavior drift.
   - Gotchas encountered
     - Story scope was already implemented in the current branch; this iteration
       focused on acceptance verification and progress logging.
