@@ -62,6 +62,11 @@ after each iteration and it's included in prompts for context.
   frontmatter version -> metadata version -> lockfile hash -> source-derived ref
   -> `SKILL_VERSION_HINT_FALLBACK`, and keep UI rendering aligned with
   `formatSkillVersionHint` so missing values consistently display `unknown`.
+- CLI update planner post-run sync pattern:
+  In `useCliMaintenance`, always refresh version checks and persisted update logs
+  together (`Promise.all([checkToolVersions(...), loadToolUpdateLogs()])`) after
+  both single-tool and batch updates so update-required badges, batch summary,
+  and log panels stay consistent with the latest execution result.
 
 ---
 
@@ -353,6 +358,32 @@ after each iteration and it's included in prompts for context.
   - Patterns discovered
     - Activation state changes should treat move + state refresh + audit append as one
       transaction boundary; rollback must reverse the move when refresh/audit fails.
+  - Gotchas encountered
+    - Story scope was already implemented in the current branch; this iteration focused
+      on acceptance verification and progress logging.
+---
+
+## 2026-03-01 - US-012
+- What was implemented
+  - Verified update planner workflow is already implemented end-to-end:
+    - Version check output includes explicit `updateRequired` / `updateReason` and UI labels
+      in `src/services/CliMaintenanceService.ts`,
+      `src/hooks/useCliMaintenance.ts`, and
+      `src/components/skills/SkillsCliMaintenanceSection.tsx`.
+    - Batch update executes only selected tools with dedupe and returns success/failure
+      summary in `runToolUpdates` + `runSelectedToolUpdates`.
+    - Update execution log API exists with `stdout` / `stderr` / `exitCode` via
+      `getToolUpdateLogs` (service), IPC handler, preload API, and contract types.
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/services/CliMaintenanceService.ts src/services/CliMaintenanceService.test.ts src/components/skills/SkillsCliMaintenanceSection.tsx src/components/skills/SkillsCliMaintenanceSection.test.tsx src/hooks/useCliMaintenance.ts src/ipc/handlers/toolsHandlers.ts src/preload/apis/tools.ts src/types/tool-maintenance.ts src/types/api/tools.ts src/services/maintenance/toolUpdateAuditLog.ts src/services/maintenance/toolUpdateAuditLog.test.ts`
+    - `npx vitest run src/services/CliMaintenanceService.test.ts src/components/skills/SkillsCliMaintenanceSection.test.tsx src/services/maintenance/toolUpdateAuditLog.test.ts src/pages/SkillsPage.test.tsx`
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - Keeping post-update state refresh centralized in the hook prevents drift between
+      planner badges (`updateRequired`), batch summary, and persisted update logs.
   - Gotchas encountered
     - Story scope was already implemented in the current branch; this iteration focused
       on acceptance verification and progress logging.
