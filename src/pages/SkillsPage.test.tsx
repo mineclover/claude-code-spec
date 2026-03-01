@@ -120,7 +120,7 @@ describe('SkillsPage registry flows', () => {
     expect(firstCallArg[0]?.id).toBe('new-cli');
   });
 
-  it('shows schema validation error when service has no tools and no skillStore', async () => {
+  it('shows schema validation error when service has no adapter contracts', async () => {
     const user = userEvent.setup();
     render(<SkillsPage />);
 
@@ -131,7 +131,9 @@ describe('SkillsPage registry flows', () => {
     await waitFor(() => {
       expect(screen.getByText(/Draft invalid/i)).toBeTruthy();
     });
-    expect(screen.getByText(/At least one of `tools` or `skillStore` is required/i)).toBeTruthy();
+    expect(
+      screen.getByText(/At least one of `tools`, `skillStore`, `execution`, or `mcp` is required/i),
+    ).toBeTruthy();
     const saveButton = screen.getByRole('button', { name: 'Save Registry' }) as HTMLButtonElement;
     expect(saveButton.disabled).toBe(true);
   });

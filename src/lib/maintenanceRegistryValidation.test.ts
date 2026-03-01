@@ -28,13 +28,15 @@ describe('validateMaintenanceServicesPayload', () => {
     expect(result.value).toHaveLength(1);
   });
 
-  it('rejects service without tools and skillStore', () => {
+  it('rejects service without any adapter contracts', () => {
     const payload = [{ id: 'empty-service' }];
     const result = validateMaintenanceServicesPayload(payload);
 
     expect(result.valid).toBe(false);
     expect(
-      result.errors.some((line) => line.includes('At least one of `tools` or `skillStore`')),
+      result.errors.some((line) =>
+        line.includes('At least one of `tools`, `skillStore`, `execution`, or `mcp`'),
+      ),
     ).toBe(true);
   });
 

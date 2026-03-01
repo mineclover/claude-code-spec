@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MCP_CONFIG_TARGETS } from '../types/maintenance-adapter-sdk';
 import type { MaintenanceRegistryService } from '../types/maintenance-registry';
 
 const nonEmptyString = z.string().trim().min(1, 'Must be a non-empty string');
@@ -24,6 +25,20 @@ const skillStoreSchema = z.object({
   reference: nonEmptyString.optional(),
 });
 
+const executionSchema = z
+  .object({
+    toolId: nonEmptyString.optional(),
+    defaultOptions: z.record(z.unknown()).optional(),
+  })
+  .strict();
+
+const mcpSchema = z
+  .object({
+    defaultTargets: z.array(z.enum(MCP_CONFIG_TARGETS)).min(1).optional(),
+    strictByDefault: z.boolean().optional(),
+  })
+  .strict();
+
 const capabilityAreaSchema = z
   .object({
     enabled: z.boolean().optional(),
@@ -47,14 +62,18 @@ const serviceSchema = z
     capability: capabilitySchema.optional(),
     tools: z.array(toolSchema).optional(),
     skillStore: skillStoreSchema.optional(),
+    execution: executionSchema.optional(),
+    mcp: mcpSchema.optional(),
   })
   .superRefine((value, ctx) => {
     const hasTools = Array.isArray(value.tools) && value.tools.length > 0;
     const hasSkillStore = Boolean(value.skillStore);
-    if (!hasTools && !hasSkillStore) {
+    const hasExecution = Boolean(value.execution);
+    const hasMcp = Boolean(value.mcp);
+    if (!hasTools && !hasSkillStore && !hasExecution && !hasMcp) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'At least one of `tools` or `skillStore` is required',
+        message: 'At least one of `tools`, `skillStore`, `execution`, or `mcp` is required',
       });
     }
   });

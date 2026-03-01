@@ -5,6 +5,7 @@
 - Settings key: `maintenanceServices` in app settings (`app-settings.json`)
 - Configure from app UI (Settings page) instead of editing source code
 - JSON example payload: `references/maintenance-services.example.json`
+- Code template: `src/services/maintenance/adapterTemplate.ts`
 - CLI execution reference review: `references/ralph-tui-execution-review.md`
 
 ## JSON shape
@@ -36,6 +37,16 @@
       "installRoot": "~/.service/skills",
       "disabledRoot": "~/.service/skills-disabled",
       "reference": "optional/source/path"
+    },
+    "execution": {
+      "toolId": "tool-id",
+      "defaultOptions": {
+        "model": "default-model"
+      }
+    },
+    "mcp": {
+      "defaultTargets": ["project"],
+      "strictByDefault": false
     }
   }
 ]
@@ -43,9 +54,11 @@
 
 Notes:
 
-- `tools` and `skillStore` are optional, but at least one must be present.
+- `tools`, `skillStore`, `execution`, `mcp` are optional, but at least one must be present.
 - `capability` is optional. Missing fields use safe defaults.
 - `disabledRoot` is optional. If omitted, it is inferred from `installRoot`.
+- `execution.toolId` is optional. If omitted, it falls back to the first managed tool id, then service id.
+- `mcp.defaultTargets` is optional. If omitted, it is inferred from service id (`claude/codex/gemini`) or `project`.
 - `${ENV_VAR}` placeholders and `~` are expanded in command/paths.
 - If custom `tool.id` or `skillStore.provider` matches built-in, custom config overrides built-in.
 
@@ -201,7 +214,9 @@ Registry save is rejected unless all rules pass:
 - each service must have non-empty `id`
 - each service must include at least one of:
   - `tools` with at least one valid tool, or
-  - `skillStore`
+  - `skillStore`, or
+  - `execution`, or
+  - `mcp`
 - each tool must include non-empty `id`, `name`, `versionCommand.command`, `updateCommand.command`
 - command `args` must be an array of non-empty strings (if present)
 - `docsUrl` must be a valid URL (if present)

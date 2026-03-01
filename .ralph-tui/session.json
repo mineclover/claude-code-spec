@@ -3,10 +3,10 @@
   "sessionId": "4046228a-df35-4376-a8e6-94d8b329eb90",
   "status": "running",
   "startedAt": "2026-03-01T06:20:59.603Z",
-  "updatedAt": "2026-03-01T06:46:20.209Z",
-  "currentIteration": 0,
+  "updatedAt": "2026-03-01T06:58:15.133Z",
+  "currentIteration": 1,
   "maxIterations": 0,
-  "tasksCompleted": 0,
+  "tasksCompleted": 1,
   "isPaused": false,
   "agentPlugin": "codex",
   "trackerState": {
@@ -17,8 +17,8 @@
       {
         "id": "US-001",
         "title": "Capability Matrix 표준 스키마 정의",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-002",
@@ -112,7 +112,18 @@
       }
     ]
   },
-  "iterations": [],
+  "iterations": [
+    {
+      "iteration": 1,
+      "status": "completed",
+      "taskId": "US-001",
+      "taskTitle": "Capability Matrix 표준 스키마 정의",
+      "taskCompleted": true,
+      "durationMs": 358921,
+      "startedAt": "2026-03-01T06:40:21.286Z",
+      "endedAt": "2026-03-01T06:46:20.207Z"
+    }
+  ],
   "skippedTaskIds": [],
   "cwd": "/Users/junwoobang/workflow/claude-code-spec",
   "activeTaskIds": [],

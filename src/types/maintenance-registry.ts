@@ -3,6 +3,8 @@
  */
 
 import type { CapabilityMatrixDeclaration } from './capability-matrix';
+import type { ExecutionAdapter, McpAdapter, McpConfigTarget } from './maintenance-adapter-sdk';
+import type { SkillProvider } from './tool-maintenance';
 
 export interface MaintenanceRegistryCommand {
   command: string;
@@ -19,10 +21,20 @@ export interface MaintenanceRegistryTool {
 }
 
 export interface MaintenanceRegistrySkillStore {
-  provider?: string;
+  provider?: SkillProvider;
   installRoot: string;
   disabledRoot?: string;
   reference?: string;
+}
+
+export interface MaintenanceRegistryExecution {
+  toolId?: ExecutionAdapter['toolId'];
+  defaultOptions?: ExecutionAdapter['defaultOptions'];
+}
+
+export interface MaintenanceRegistryMcp {
+  defaultTargets?: McpConfigTarget[];
+  strictByDefault?: McpAdapter['strictByDefault'];
 }
 
 export interface MaintenanceRegistryService {
@@ -32,4 +44,6 @@ export interface MaintenanceRegistryService {
   capability?: CapabilityMatrixDeclaration;
   tools?: MaintenanceRegistryTool[];
   skillStore?: MaintenanceRegistrySkillStore;
+  execution?: MaintenanceRegistryExecution;
+  mcp?: MaintenanceRegistryMcp;
 }
