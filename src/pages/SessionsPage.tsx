@@ -10,7 +10,12 @@ import { ClassifiedLogEntry } from '../components/sessions/ClassifiedLogEntry';
 import { useProject } from '../contexts/ProjectContext';
 import { useToolContext } from '../contexts/ToolContext';
 import { classifyEntry } from '../lib/sessionClassifier';
-import type { ClaudeProjectInfo, ClaudeSessionEntry, ClaudeSessionInfo, SessionLoadProgress } from '../types/api/sessions';
+import type {
+  ClaudeProjectInfo,
+  ClaudeSessionEntry,
+  ClaudeSessionInfo,
+  SessionLoadProgress,
+} from '../types/api/sessions';
 import styles from './SessionsPage.module.css';
 
 export function SessionsPage() {
@@ -19,7 +24,9 @@ export function SessionsPage() {
   const [projects, setProjects] = useState<ClaudeProjectInfo[]>([]);
   const [totalProjects, setTotalProjects] = useState(0);
   const [projectPage, setProjectPage] = useState(0);
-  const [sessions, setSessions] = useState<Omit<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>[]>([]);
+  const [sessions, setSessions] = useState<
+    Omit<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>[]
+  >([]);
   const [totalSessions, setTotalSessions] = useState(0);
   const [sessionPage, setSessionPage] = useState(0);
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
@@ -51,13 +58,17 @@ export function SessionsPage() {
     setSessionPage(0);
     setSelectedSession(null);
     setSessionLog([]);
-  }, [selectedToolId]);
+  }, []);
 
   // Load projects
   const loadProjects = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await window.sessionsAPI.getAllProjectsByTool(selectedToolId, projectPage, PAGE_SIZE);
+      const result = await window.sessionsAPI.getAllProjectsByTool(
+        selectedToolId,
+        projectPage,
+        PAGE_SIZE,
+      );
       setProjects(result.projects);
       setTotalProjects(result.total);
     } catch (error) {
@@ -78,7 +89,12 @@ export function SessionsPage() {
       return;
     }
     try {
-      const result = await window.sessionsAPI.getSessionsByTool(selectedToolId, projectPath, sessionPage, PAGE_SIZE);
+      const result = await window.sessionsAPI.getSessionsByTool(
+        selectedToolId,
+        projectPath,
+        sessionPage,
+        PAGE_SIZE,
+      );
       setSessions(result.sessions);
       setTotalSessions(result.total);
     } catch (error) {
@@ -144,9 +160,7 @@ export function SessionsPage() {
                   <div className={styles.itemTitle}>
                     {p.projectPath.split('/').filter(Boolean).pop()}
                   </div>
-                  <div className={styles.itemMeta}>
-                    {p.sessions.length} sessions
-                  </div>
+                  <div className={styles.itemMeta}>{p.sessions.length} sessions</div>
                 </button>
               ))}
             </div>
@@ -182,9 +196,7 @@ export function SessionsPage() {
                   }`}
                   onClick={() => handleSelectSession(s.sessionId)}
                 >
-                  <div className={styles.itemTitle}>
-                    {s.sessionId.substring(0, 8)}...
-                  </div>
+                  <div className={styles.itemTitle}>{s.sessionId.substring(0, 8)}...</div>
                   <div className={styles.itemMeta}>
                     {formatDate(s.lastModified)} | {formatSize(s.fileSize)}
                   </div>
@@ -211,7 +223,11 @@ export function SessionsPage() {
           <h3>Session Log</h3>
         </div>
         {selectedSession && sessionLog.length > 0 ? (
-          <ClassifiedLogList entries={sessionLog} toolId={selectedToolId} selectedSession={selectedSession} />
+          <ClassifiedLogList
+            entries={sessionLog}
+            toolId={selectedToolId}
+            selectedSession={selectedSession}
+          />
         ) : (
           <div className={styles.placeholder}>
             {selectedSession ? 'No log entries' : 'Select a session'}
@@ -232,15 +248,15 @@ function ClassifiedLogList({
   toolId: string;
   selectedSession: string;
 }) {
-  const classified = useMemo(
-    () => entries.map((e) => classifyEntry(e, toolId)),
-    [entries, toolId],
-  );
+  const classified = useMemo(() => entries.map((e) => classifyEntry(e, toolId)), [entries, toolId]);
 
   return (
     <div className={styles.logContent}>
       {classified.map((ce, i) => (
-        <ClassifiedLogEntry key={`${selectedSession}-${i}`} entry={ce} />
+        <ClassifiedLogEntry
+          key={String(ce.rawEntry.leafUuid ?? `${selectedSession}-${i}`)}
+          entry={ce}
+        />
       ))}
     </div>
   );

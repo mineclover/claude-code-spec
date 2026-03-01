@@ -171,7 +171,7 @@ interface ClaudeProjectDirectoryCache {
   byProjectPath: Map<string, ClaudeProjectDirectoryInfo>;
 }
 
-const PROJECT_DIRECTORY_CACHE_TTL_MS = 10_000;
+const PROJECT_DIRECTORY_CACHE_TTL_MS = 30_000;
 let projectDirectoryCache: ClaudeProjectDirectoryCache | null = null;
 
 function listSessionFilesFromProjectDir(claudeProjectDir: string): SessionFileStat[] {
@@ -195,23 +195,56 @@ function listSessionFilesFromProjectDir(claudeProjectDir: string): SessionFileSt
   }
 }
 
+/**
+ * Read only the first 4KB of a session file to extract cwd.
+ * Avoids reading entire large session files just to find the project path.
+ */
+function extractCwdFromSessionFileHead(filePath: string): string | null {
+  try {
+    const CHUNK_SIZE = 4096;
+    const buffer = Buffer.alloc(CHUNK_SIZE);
+    const fd = fs.openSync(filePath, 'r');
+    let bytesRead = 0;
+    try {
+      bytesRead = fs.readSync(fd, buffer, 0, CHUNK_SIZE, 0);
+    } finally {
+      fs.closeSync(fd);
+    }
+    const chunk = buffer.subarray(0, bytesRead).toString('utf-8');
+    const newlineIdx = chunk.indexOf('\n');
+    const firstLine = newlineIdx !== -1 ? chunk.slice(0, newlineIdx) : chunk;
+    if (!firstLine.trim()) return null;
+    return extractSessionPathFromEvent(JSON.parse(firstLine));
+  } catch {
+    return null;
+  }
+}
+
 function resolveProjectPathFromSessionFiles(
   sessionFiles: SessionFileStat[],
   projectDirName: string,
 ): string | null {
-  let explicitPath: string | null = null;
+  const inferredPath = inferProjectPathFromDashDirName(projectDirName);
 
-  for (const file of sessionFiles) {
-    const metadata = extractSessionMetadata(file.filePath);
-    if (metadata.cwd) {
-      explicitPath = metadata.cwd;
-      break;
-    }
+  // Fast path: inferred path from dirName is accurate when it exists on disk.
+  // Skip file reads entirely in this case.
+  if (inferredPath) {
+    try {
+      if (fs.existsSync(inferredPath)) {
+        return inferredPath;
+      }
+    } catch {}
   }
+
+  // Slow path: read only the first chunk of the most recent session file.
+  // This covers projects with hyphens in their paths where the inferred path is wrong.
+  const explicitPath = sessionFiles.length > 0
+    ? extractCwdFromSessionFileHead(sessionFiles[0].filePath)
+    : null;
 
   return resolveSessionPath({
     explicitPath,
-    inferredPath: inferProjectPathFromDashDirName(projectDirName),
+    inferredPath,
     safeDefaultPath: null,
   });
 }
@@ -331,7 +364,7 @@ function getProjectSessionsBasicFromDir(
  * List project folders based on actual session metadata (cwd)
  */
 export const listClaudeProjectFolders = (onProgress?: ProgressCallback): ProjectFolder[] => {
-  const cache = getClaudeProjectDirectoryCache(true);
+  const cache = getClaudeProjectDirectoryCache();
   const projectInfos = Array.from(cache.byDirName.values())
     .filter((info) => info.projectPath && info.sessionCount > 0)
     .sort((a, b) => b.latestSessionMtime - a.latestSessionMtime);

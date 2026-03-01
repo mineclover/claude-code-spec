@@ -71,7 +71,8 @@ function classifyClaudeEntry(entry: ClaudeSessionEntry): ClassifiedEntry {
     if (entry.subtype) parts.push(`Status: ${entry.subtype}`);
     if (entry.duration_ms != null) parts.push(`Duration: ${Number(entry.duration_ms) / 1000}s`);
     if (entry.num_turns != null) parts.push(`Turns: ${entry.num_turns}`);
-    if (entry.total_cost_usd != null) parts.push(`Cost: $${Number(entry.total_cost_usd).toFixed(4)}`);
+    if (entry.total_cost_usd != null)
+      parts.push(`Cost: $${Number(entry.total_cost_usd).toFixed(4)}`);
     if (entry.result && typeof entry.result === 'string') {
       parts.push(entry.result.substring(0, 200));
     }
@@ -94,7 +95,9 @@ function classifyClaudeEntry(entry: ClaudeSessionEntry): ClassifiedEntry {
       if (Array.isArray(message.content)) {
         base.speaker = 'human';
         base.outputType = 'tool-output';
-        base.toolResults = (message.content as Array<{ type?: string; tool_use_id?: string; content?: string }>)
+        base.toolResults = (
+          message.content as Array<{ type?: string; tool_use_id?: string; content?: string }>
+        )
           .filter((c) => c.type === 'tool_result')
           .map((c) => ({
             toolUseId: c.tool_use_id || '',
@@ -120,7 +123,9 @@ function classifyClaudeEntry(entry: ClaudeSessionEntry): ClassifiedEntry {
   if (entry.type === 'assistant') {
     base.speaker = entry.isSidechain ? 'sub-agent' : 'agent';
 
-    const message = entry.message as { content?: Array<{ type: string; [key: string]: unknown }> } | undefined;
+    const message = entry.message as
+      | { content?: Array<{ type: string; [key: string]: unknown }> }
+      | undefined;
     const content = message?.content;
     if (!content || !Array.isArray(content)) {
       base.outputType = 'answer';
@@ -190,9 +195,10 @@ function classifyCodexEntry(entry: ClaudeSessionEntry): ClassifiedEntry {
   if (entry.type === 'response_item') {
     base.speaker = 'agent';
     base.outputType = 'answer';
-    base.textContent = typeof entry.content === 'string'
-      ? entry.content
-      : JSON.stringify(entry.content ?? entry, null, 2).substring(0, 500);
+    base.textContent =
+      typeof entry.content === 'string'
+        ? entry.content
+        : JSON.stringify(entry.content ?? entry, null, 2).substring(0, 500);
     return base;
   }
 
@@ -200,9 +206,12 @@ function classifyCodexEntry(entry: ClaudeSessionEntry): ClassifiedEntry {
   if (entry.type === 'event_msg') {
     base.speaker = 'agent';
     base.outputType = 'answer';
-    base.textContent = typeof entry.content === 'string'
-      ? entry.content
-      : (typeof entry.message === 'string' ? entry.message : JSON.stringify(entry, null, 2).substring(0, 500));
+    base.textContent =
+      typeof entry.content === 'string'
+        ? entry.content
+        : typeof entry.message === 'string'
+          ? entry.message
+          : JSON.stringify(entry, null, 2).substring(0, 500);
     return base;
   }
 
@@ -223,7 +232,8 @@ function classifyGeminiEntry(entry: ClaudeSessionEntry): ClassifiedEntry {
     return {
       speaker: 'human',
       outputType: 'answer',
-      textContent: typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content),
+      textContent:
+        typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content),
       rawEntry: entry,
     };
   }
@@ -232,7 +242,8 @@ function classifyGeminiEntry(entry: ClaudeSessionEntry): ClassifiedEntry {
     return {
       speaker: 'agent',
       outputType: 'answer',
-      textContent: typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content),
+      textContent:
+        typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content),
       rawEntry: entry,
     };
   }

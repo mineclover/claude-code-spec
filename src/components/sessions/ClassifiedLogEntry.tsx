@@ -69,9 +69,7 @@ export function ClassifiedLogEntry({ entry }: Props) {
         {entry.toolCalls?.map((tc) => (
           <div key={tc.id} className={styles.toolCall}>
             <div className={styles.toolName}>{tc.name}</div>
-            <pre className={styles.toolInput}>
-              {formatToolInput(tc.input)}
-            </pre>
+            <pre className={styles.toolInput}>{formatToolInput(tc.input)}</pre>
           </div>
         ))}
 
@@ -81,16 +79,14 @@ export function ClassifiedLogEntry({ entry }: Props) {
             {toolOutputExpanded ? (
               entry.toolResults.map((tr) => (
                 <div key={tr.toolUseId} className={styles.toolResult}>
-                  <div className={styles.toolResultId}>tool_use: {tr.toolUseId.substring(0, 12)}</div>
-                  <pre className={styles.toolResultContent}>
-                    {tr.content.substring(0, 1000)}
-                  </pre>
+                  <div className={styles.toolResultId}>
+                    tool_use: {tr.toolUseId.substring(0, 12)}
+                  </div>
+                  <pre className={styles.toolResultContent}>{tr.content.substring(0, 1000)}</pre>
                 </div>
               ))
             ) : (
-              <div className={styles.toolResultId}>
-                {entry.toolResults.length} tool result(s)
-              </div>
+              <div className={styles.toolResultId}>{entry.toolResults.length} tool result(s)</div>
             )}
             <button
               type="button"
@@ -116,9 +112,12 @@ function formatToolInput(input: Record<string, unknown>): string {
   if (entries.length === 0) return '{}';
   // Show abbreviated form for readability
   const lines = entries.map(([k, v]) => {
-    const val = typeof v === 'string'
-      ? (v.length > 120 ? `"${v.substring(0, 120)}..."` : `"${v}"`)
-      : JSON.stringify(v);
+    const val =
+      typeof v === 'string'
+        ? v.length > 120
+          ? `"${v.substring(0, 120)}..."`
+          : `"${v}"`
+        : JSON.stringify(v);
     return `${k}: ${val}`;
   });
   return lines.join('\n');

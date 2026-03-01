@@ -2,13 +2,21 @@
  * Session Provider - dispatches to the correct session service by toolId
  */
 
-import type { ClaudeProjectInfo, ClaudeSessionEntry, ClaudeSessionInfo, LatestSessionMeta, ProjectFolder, SessionLoadProgress } from '../types/api/sessions';
+import type {
+  ClaudeProjectInfo,
+  ClaudeSessionEntry,
+  ClaudeSessionInfo,
+  LatestSessionMeta,
+  ProjectFolder,
+  SessionLoadProgress,
+} from '../types/api/sessions';
 
 export type ProgressCallback = (progress: SessionLoadProgress) => void;
+
 import {
   getAllClaudeProjectsPaginated,
-  getLatestClaudeSessionMeta,
   getProjectSessionsPaginated as getClaudeSessionsPaginated,
+  getLatestClaudeSessionMeta,
   listClaudeProjectFolders,
   readSessionLog as readClaudeSessionLog,
 } from './claudeSessions';
@@ -30,12 +38,20 @@ import {
 export interface SessionProvider {
   listProjectFolders(onProgress?: ProgressCallback): ProjectFolder[];
   getLatestSessionMeta(projectPath: string): LatestSessionMeta | null;
-  getAllProjectsPaginated(page: number, pageSize: number, onProgress?: ProgressCallback): {
+  getAllProjectsPaginated(
+    page: number,
+    pageSize: number,
+    onProgress?: ProgressCallback,
+  ): {
     projects: ClaudeProjectInfo[];
     total: number;
     hasMore: boolean;
   };
-  getProjectSessionsPaginated(projectPath: string, page: number, pageSize: number): {
+  getProjectSessionsPaginated(
+    projectPath: string,
+    page: number,
+    pageSize: number,
+  ): {
     sessions: Omit<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>[];
     total: number;
     hasMore: boolean;
@@ -46,7 +62,8 @@ export interface SessionProvider {
 const claudeProvider: SessionProvider = {
   listProjectFolders: (onProgress?) => listClaudeProjectFolders(onProgress),
   getLatestSessionMeta: getLatestClaudeSessionMeta,
-  getAllProjectsPaginated: (page, pageSize, onProgress?) => getAllClaudeProjectsPaginated(page, pageSize, onProgress),
+  getAllProjectsPaginated: (page, pageSize, onProgress?) =>
+    getAllClaudeProjectsPaginated(page, pageSize, onProgress),
   getProjectSessionsPaginated: getClaudeSessionsPaginated,
   readSessionLog: readClaudeSessionLog,
 };
@@ -54,7 +71,8 @@ const claudeProvider: SessionProvider = {
 const codexProvider: SessionProvider = {
   listProjectFolders: (onProgress?) => listCodexProjectFolders(onProgress),
   getLatestSessionMeta: getLatestCodexSessionMeta,
-  getAllProjectsPaginated: (page, pageSize, onProgress?) => getAllCodexProjectsPaginated(page, pageSize, onProgress),
+  getAllProjectsPaginated: (page, pageSize, onProgress?) =>
+    getAllCodexProjectsPaginated(page, pageSize, onProgress),
   getProjectSessionsPaginated: getCodexProjectSessionsPaginated,
   readSessionLog: readCodexSessionLog,
 };
@@ -62,7 +80,8 @@ const codexProvider: SessionProvider = {
 const geminiProvider: SessionProvider = {
   listProjectFolders: (onProgress?) => listGeminiProjectFolders(onProgress),
   getLatestSessionMeta: getLatestGeminiSessionMeta,
-  getAllProjectsPaginated: (page, pageSize, onProgress?) => getAllGeminiProjectsPaginated(page, pageSize, onProgress),
+  getAllProjectsPaginated: (page, pageSize, onProgress?) =>
+    getAllGeminiProjectsPaginated(page, pageSize, onProgress),
   getProjectSessionsPaginated: getGeminiProjectSessionsPaginated,
   readSessionLog: readGeminiSessionLog,
 };
