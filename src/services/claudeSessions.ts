@@ -7,6 +7,11 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {
+  extractSessionPathFromEvent,
+  inferProjectPathFromDashDirName,
+  resolveSessionPath,
+} from '../lib/sessionPathResolver';
 import { settingsService } from './appSettings';
 
 // ============================================================================
@@ -96,9 +101,12 @@ const extractSessionMetadata = (
         const block = JSON.parse(line);
         hasAnyData = true;
 
-        // Extract cwd from any block that has it
-        if (!cwd && block.cwd) {
-          cwd = block.cwd;
+        // Extract cwd/project path from session event payloads (metadata-first).
+        if (!cwd) {
+          const resolvedPath = extractSessionPathFromEvent(block);
+          if (resolvedPath) {
+            cwd = resolvedPath;
+          }
         }
 
         // Look for first "user" block (blocks can have different types)
@@ -187,14 +195,25 @@ function listSessionFilesFromProjectDir(claudeProjectDir: string): SessionFileSt
   }
 }
 
-function resolveProjectPathFromSessionFiles(sessionFiles: SessionFileStat[]): string | null {
+function resolveProjectPathFromSessionFiles(
+  sessionFiles: SessionFileStat[],
+  projectDirName: string,
+): string | null {
+  let explicitPath: string | null = null;
+
   for (const file of sessionFiles) {
     const metadata = extractSessionMetadata(file.filePath);
     if (metadata.cwd) {
-      return metadata.cwd;
+      explicitPath = metadata.cwd;
+      break;
     }
   }
-  return null;
+
+  return resolveSessionPath({
+    explicitPath,
+    inferredPath: inferProjectPathFromDashDirName(projectDirName),
+    safeDefaultPath: null,
+  });
 }
 
 function buildClaudeProjectDirectoryCache(projectsDir: string): ClaudeProjectDirectoryCache {
@@ -225,7 +244,7 @@ function buildClaudeProjectDirectoryCache(projectsDir: string): ClaudeProjectDir
       continue;
     }
 
-    const projectPath = resolveProjectPathFromSessionFiles(sessionFiles);
+    const projectPath = resolveProjectPathFromSessionFiles(sessionFiles, dirName);
     const info: ClaudeProjectDirectoryInfo = {
       dirName,
       claudeProjectDir,

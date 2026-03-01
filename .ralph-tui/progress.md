@@ -12,6 +12,7 @@ after each iteration and it's included in prompts for context.
 - 플래그 우선순위 분기가 필요한 CLI 명령 조합은 `fallback` 세그먼트에 우선 브랜치를 앞에서부터 선언하고, 각 브랜치 내부는 `conditional` 그룹으로 묶어 하나의 의미 단위(예: `mcp-config + strict`)를 원자적으로 출력한다.
 - 도구별 MCP 플래그 정책은 전용 `mcpLaunch` 세그먼트로 승격하고, `resolveMcpLaunchStrategy`에서 `명시값 > 유추값 > 안전 기본값` 정규화 후 런타임에서 strict-only 허용 여부(`allowWithoutConfig`)를 게이트한다.
 - 멀티 소스 설정 병합이 필요한 경우에는 `get*Candidates` 집계 API를 먼저 만들고, 소비 API(`get*List`/생성 API)는 후보 결과를 재사용하게 연결해 충돌 규칙을 단일 merge comparator로 고정한다.
+- 세션 경로 해석은 `extract*FromEvent`와 `resolve*` 정규화 헬퍼를 분리해 `세션 명시 경로(cwd/projectPath) > 디렉토리명 유추 > 안전 기본값` 우선순위를 고정하고, 런타임 소비는 정규화 결과만 사용한다.
 
 ---
 
@@ -69,4 +70,12 @@ after each iteration and it's included in prompts for context.
 - **Learnings:**
   - Patterns discovered: 서버 선택 UI와 설정 파일 생성기가 같은 후보 집계기를 공유하면 merge 규칙이 분기되지 않아 도구별(default target) 생성 경로 회귀를 줄일 수 있다.
   - Gotchas encountered: 프로젝트 source를 전역 source보다 나중에 읽더라도 우선순위 comparator가 분리되어 있지 않으면 입력 순서 변경만으로 충돌 결과가 바뀌므로, source scope 기반 priority를 명시적으로 두는 편이 안전하다.
+---
+
+## 2026-03-01 - US-008
+- What was implemented: 세션 이벤트/메타데이터의 경로 필드를 우선 해석하는 `sessionPathResolver` 유틸(`extractSessionPathFromEvent`, `resolveSessionPath`)을 추가하고, `claudeSessions`가 해당 정규화 결과를 통해 프로젝트 경로를 결정하도록 연결했다. 디렉토리명 기반 dash 추정은 `inferProjectPathFromDashDirName` fallback으로만 분리했으며 기본 경로 해석은 세션 명시 경로 우선으로 고정했다. 또한 `agent-town`, `agent_town`, `agent.town` 특수문자 케이스를 포함한 회귀 테스트를 추가했다.
+- Files changed: `src/lib/sessionPathResolver.ts`, `src/lib/sessionPathResolver.test.ts`, `src/services/claudeSessions.ts`, `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered: 경로 해석처럼 추정 오차 비용이 큰 영역은 이벤트 스키마 탐색(`extract*`)과 우선순위 정규화(`resolve*`)를 분리하면 fallback 정책을 런타임 전체에 일관되게 강제할 수 있다.
+  - Gotchas encountered: Claude dash 디렉토리명은 하이픈을 구분자로도 데이터로도 사용하므로(`agent-town`) 역변환 기반 유추를 기본 경로로 쓰면 오탐이 생기며, 메타데이터 경로를 우선 추출하지 않으면 회귀가 재발한다.
 ---
