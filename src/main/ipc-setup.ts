@@ -1,122 +1,36 @@
 /**
- * IPC handlers setup
+ * IPC handlers setup - 5 domain routers
  */
 
-import { registerAgentHandlers } from '../ipc/handlers/agentHandlers';
-import { registerAgentTrackerHandlers } from '../ipc/handlers/agentTrackerHandlers';
-import { registerAppSettingsHandlers } from '../ipc/handlers/appSettingsHandlers';
-import { registerBookmarksHandlers } from '../ipc/handlers/bookmarksHandlers';
-import { registerCentralDatabaseHandlers } from '../ipc/handlers/centralDatabaseHandlers';
-import { registerClaudeHandlers } from '../ipc/handlers/claudeHandlers';
-import { registerClaudeSessionsHandlers } from '../ipc/handlers/claudeSessionsHandlers';
 import { registerDialogHandlers } from '../ipc/handlers/dialogHandlers';
-import { registerDocsHandlers } from '../ipc/handlers/docsHandlers';
-import { registerFileHandlers } from '../ipc/handlers/fileHandlers';
-import { registerLangGraphHandlers } from '../ipc/handlers/langGraphHandlers';
-import { registerLoggerHandlers } from '../ipc/handlers/loggerHandlers';
-import { registerMetadataHandlers } from '../ipc/handlers/metadataHandlers';
-import { registerOutputStyleHandlers } from '../ipc/handlers/outputStyleHandlers';
-import { registerQueryHandlers } from '../ipc/handlers/queryHandlers';
+import { registerExecuteHandlers, setupExecutionEventForwarding } from '../ipc/handlers/executeHandlers';
+import { registerSessionsHandlers } from '../ipc/handlers/sessionsHandlers';
 import { registerSettingsHandlers } from '../ipc/handlers/settingsHandlers';
-import { registerSkillHandlers } from '../ipc/handlers/skillHandlers';
-import { registerSkillRepositoryHandlers } from '../ipc/handlers/skillRepositoryHandlers';
-import { registerTaskHandlers } from '../ipc/handlers/taskHandlers';
-import { registerWorkAreaHandlers } from '../ipc/handlers/workAreaHandlers';
-import { registerWorkflowHandlers } from '../ipc/handlers/workflowHandlers';
+import { registerToolsHandlers } from '../ipc/handlers/toolsHandlers';
 import { ipcRegistry } from '../ipc/IPCRouter';
 import { settingsService } from '../services/appSettings';
-import { logger, loggerConfig, sessionManager } from './app-context';
 
-/**
- * Register all IPC handlers
- */
 export function setupIPCHandlers(): void {
-  // Dialog handlers
+  // Dialog
   const dialogRouter = ipcRegistry.router('dialog');
   registerDialogHandlers(dialogRouter);
 
-  // Claude handlers
-  const claudeRouter = ipcRegistry.router('claude');
-  registerClaudeHandlers(claudeRouter, {
-    sessionManager,
-    logger,
-  });
+  // Execute
+  const executeRouter = ipcRegistry.router('execute');
+  registerExecuteHandlers(executeRouter);
+  setupExecutionEventForwarding();
 
-  // Logger handlers
-  const loggerRouter = ipcRegistry.router('logger');
-  registerLoggerHandlers(loggerRouter, loggerConfig);
+  // Sessions
+  const sessionsRouter = ipcRegistry.router('sessions');
+  registerSessionsHandlers(sessionsRouter);
 
-  // Settings handlers
+  // Settings (merged: app settings + MCP + project settings)
   const settingsRouter = ipcRegistry.router('settings');
-  registerSettingsHandlers(settingsRouter);
+  registerSettingsHandlers(settingsRouter, settingsService);
 
-  // Bookmarks handlers
-  const bookmarksRouter = ipcRegistry.router('bookmarks');
-  registerBookmarksHandlers(bookmarksRouter);
-
-  // Claude sessions handlers
-  const claudeSessionsRouter = ipcRegistry.router('claude-sessions');
-  registerClaudeSessionsHandlers(claudeSessionsRouter);
-
-  // App settings handlers
-  const appSettingsRouter = ipcRegistry.router('app-settings');
-  registerAppSettingsHandlers(appSettingsRouter, settingsService);
-
-  // Docs handlers
-  const docsRouter = ipcRegistry.router('docs');
-  registerDocsHandlers(docsRouter);
-
-  // Metadata handlers
-  const metadataRouter = ipcRegistry.router('metadata');
-  registerMetadataHandlers(metadataRouter, settingsService);
-
-  // File handlers
-  const fileRouter = ipcRegistry.router('file');
-  registerFileHandlers(fileRouter);
-
-  // Task handlers
-  const taskRouter = ipcRegistry.router('task');
-  registerTaskHandlers(taskRouter);
-
-  // Agent handlers
-  const agentRouter = ipcRegistry.router('agent');
-  registerAgentHandlers(agentRouter);
-
-  // Work area handlers
-  const workAreaRouter = ipcRegistry.router('work-area');
-  registerWorkAreaHandlers(workAreaRouter);
-
-  // Output style handlers
-  const outputStyleRouter = ipcRegistry.router('output-style');
-  registerOutputStyleHandlers(outputStyleRouter);
-
-  // Skill handlers
-  const skillRouter = ipcRegistry.router('skill');
-  registerSkillHandlers(skillRouter);
-
-  // Skill repository handlers
-  const skillRepoRouter = ipcRegistry.router('skill-repo');
-  registerSkillRepositoryHandlers(skillRepoRouter);
-
-  // Query API handlers
-  const queryRouter = ipcRegistry.router('query');
-  registerQueryHandlers(queryRouter);
-
-  // Workflow handlers
-  const workflowRouter = ipcRegistry.router('workflow');
-  registerWorkflowHandlers(workflowRouter);
-
-  // Central database handlers
-  const centralDatabaseRouter = ipcRegistry.router('central-database');
-  registerCentralDatabaseHandlers(centralDatabaseRouter);
-
-  // Agent tracker handlers
-  const agentTrackerRouter = ipcRegistry.router('agent-tracker');
-  registerAgentTrackerHandlers(agentTrackerRouter);
-
-  // LangGraph handlers
-  const langGraphRouter = ipcRegistry.router('langgraph');
-  registerLangGraphHandlers(langGraphRouter);
+  // Tools
+  const toolsRouter = ipcRegistry.router('tools');
+  registerToolsHandlers(toolsRouter);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }

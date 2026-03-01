@@ -11,8 +11,8 @@ import type { ForgeConfig } from '@electron-forge/shared-types';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    name: 'Claude Code Spec',
-    appBundleId: 'com.mineclover.claude-code-spec',
+    name: 'CLI Cockpit',
+    appBundleId: 'com.mineclover.cli-cockpit',
   },
   rebuildConfig: {},
   makers: [
@@ -20,7 +20,7 @@ const config: ForgeConfig = {
     new MakerZIP({}, ['darwin']),
     new MakerDMG(
       {
-        name: 'Claude Code Spec',
+        name: 'CLI Cockpit',
         format: 'ULFO', // Compressed
       },
       ['darwin'],

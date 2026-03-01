@@ -7,7 +7,13 @@
 
 import type { StreamEvent } from '../types/stream-events';
 import type React from 'react';
-import type { ClaudeSessionEntry } from '../preload';
+
+export interface ClaudeSessionEntry {
+  type: string;
+  summary?: string;
+  leafUuid?: string;
+  [key: string]: unknown;
+}
 
 // ============================================================================
 // Unified Event Type

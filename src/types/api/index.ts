@@ -1,17 +1,8 @@
-// Re-export all API types from a centralized location
+/**
+ * API types - unified re-exports
+ */
 
-export * from './agentTracker';
-export * from './app-settings';
-export * from './bookmarks';
-export * from './centralDatabase';
-export * from './claude';
-export * from './docs';
-export * from './file';
-export * from './logger';
-export * from './metadata';
-export * from './outputStyle';
-export * from './sessions';
-export * from './settings';
-export * from './skill';
-export * from './skillRepository';
-export * from './workflow';
+export type { ExecuteAPI } from './execute';
+export type { SessionsAPI, SessionLoadProgress, ClaudeProjectInfo, ClaudeSessionInfo, ClaudeSessionEntry, ProjectFolder, LatestSessionMeta } from './sessions';
+export type { SettingsAPI, McpConfigFile, McpServer, ProjectSettings, SettingsBackup } from './settings';
+export type { ToolsAPI } from './tools';

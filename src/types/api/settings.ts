@@ -20,6 +20,8 @@ export interface McpServer {
   env: Record<string, string>;
 }
 
+export type McpDefaultConfigTarget = 'project' | 'claude' | 'codex' | 'gemini';
+
 export interface ProjectSettings {
   projectPath: string;
   claudeMd?: {
@@ -87,6 +89,11 @@ export interface SettingsAPI {
   createMcpConfig: (
     projectPath: string,
     name: string,
+    servers: string[],
+  ) => Promise<{ success: boolean; path?: string; error?: string }>;
+  createMcpDefaultConfig: (
+    projectPath: string,
+    target: McpDefaultConfigTarget,
     servers: string[],
   ) => Promise<{ success: boolean; path?: string; error?: string }>;
 

@@ -218,6 +218,34 @@
   margin-top: 4px;
 }
 
+.modeTabs {
+  display: flex;
+  gap: 8px;
+}
+
+.modeTab {
+  padding: 8px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.modeTab:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.modeTabActive {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  color: var(--text-primary);
+}
+
 .sourcePaths {
   margin-bottom: 8px;
   padding: 8px 10px;

@@ -1,0 +1,6 @@
+.container {
+  height: 100%;
+  background: #fff;
+  padding: 24px;
+  overflow-y: auto;
+}

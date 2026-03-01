@@ -1,22 +1,75 @@
 /**
  * Application-level settings storage service
- * Stores user preferences like Claude Projects path in JSON file
+ * Stores user preferences in JSON file
  */
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { app } from 'electron';
+import { validateMaintenanceServicesPayload } from '../lib/maintenanceRegistryValidation';
+import type { MaintenanceRegistryService } from '../types/maintenance-registry';
+import type {
+  ReferenceAssetPreference,
+  ReferenceAssetPreferenceMap,
+  ReferenceAssetPreferenceUpdate,
+} from '../types/reference-assets';
 
 interface AppSettings {
   claudeProjectsPath?: string;
   currentProjectPath?: string;
   currentProjectDirName?: string;
-  mcpResourcePaths?: string[]; // Additional MCP config file paths
-
-  // Document paths
+  mcpResourcePaths?: string[];
   claudeDocsPath?: string;
   controllerDocsPath?: string;
   metadataPath?: string;
+  maintenanceServices?: MaintenanceRegistryService[];
+  referenceAssetPreferences?: ReferenceAssetPreferenceMap;
+}
+
+function sanitizeTags(tags: unknown): string[] {
+  if (!Array.isArray(tags)) {
+    return [];
+  }
+  const normalized = tags
+    .filter((tag): tag is string => typeof tag === 'string')
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0);
+  return Array.from(new Set(normalized));
+}
+
+function normalizeReferenceAssetPreference(input: unknown): ReferenceAssetPreference | undefined {
+  if (typeof input !== 'object' || input === null) {
+    return undefined;
+  }
+
+  const candidate = input as Partial<ReferenceAssetPreference>;
+  const favorite = candidate.favorite === true;
+  const tags = sanitizeTags(candidate.tags);
+
+  if (!favorite && tags.length === 0) {
+    return undefined;
+  }
+
+  return { favorite, tags };
+}
+
+function normalizeReferenceAssetPreferences(input: unknown): ReferenceAssetPreferenceMap {
+  if (typeof input !== 'object' || input === null) {
+    return {};
+  }
+
+  const result: ReferenceAssetPreferenceMap = {};
+  for (const [relativePath, pref] of Object.entries(input as Record<string, unknown>)) {
+    const normalizedPath = relativePath.trim();
+    if (!normalizedPath) {
+      continue;
+    }
+    const normalizedPreference = normalizeReferenceAssetPreference(pref);
+    if (normalizedPreference) {
+      result[normalizedPath] = normalizedPreference;
+    }
+  }
+  return result;
 }
 
 export class SettingsService {
@@ -34,7 +87,6 @@ export class SettingsService {
     const dir = path.dirname(this.settingsPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
-      console.log(`[SettingsService] Created settings directory: ${dir}`);
     }
   }
 
@@ -43,6 +95,24 @@ export class SettingsService {
       if (fs.existsSync(this.settingsPath)) {
         const data = fs.readFileSync(this.settingsPath, 'utf-8');
         this.settings = JSON.parse(data);
+
+        if (this.settings.maintenanceServices !== undefined) {
+          const validation = validateMaintenanceServicesPayload(this.settings.maintenanceServices);
+          if (validation.valid) {
+            this.settings.maintenanceServices = validation.value;
+          } else {
+            console.warn(
+              `[Settings] Invalid maintenanceServices in ${this.settingsPath}, resetting to empty array:\n${validation.errors.join('\n')}`,
+            );
+            this.settings.maintenanceServices = [];
+          }
+        }
+
+        if (this.settings.referenceAssetPreferences !== undefined) {
+          this.settings.referenceAssetPreferences = normalizeReferenceAssetPreferences(
+            this.settings.referenceAssetPreferences,
+          );
+        }
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -77,31 +147,25 @@ export class SettingsService {
   }
 
   getCurrentProjectPath(): string | undefined {
-    console.log('[SettingsService] getCurrentProjectPath:', this.settings.currentProjectPath);
     return this.settings.currentProjectPath;
   }
 
   getCurrentProjectDirName(): string | undefined {
-    console.log('[SettingsService] getCurrentProjectDirName:', this.settings.currentProjectDirName);
     return this.settings.currentProjectDirName;
   }
 
   setCurrentProject(projectPath: string, projectDirName: string): void {
-    console.log('[SettingsService] setCurrentProject:', { projectPath, projectDirName });
     this.settings.currentProjectPath = projectPath;
     this.settings.currentProjectDirName = projectDirName;
     this.saveSettings();
-    console.log('[SettingsService] Settings after save:', this.settings);
   }
 
   clearCurrentProject(): void {
-    console.log('[SettingsService] clearCurrentProject');
     this.settings.currentProjectPath = undefined;
     this.settings.currentProjectDirName = undefined;
     this.saveSettings();
   }
 
-  // MCP Resource Paths methods
   getMcpResourcePaths(): string[] {
     return this.settings.mcpResourcePaths || [];
   }
@@ -111,26 +175,25 @@ export class SettingsService {
     this.saveSettings();
   }
 
-  addMcpResourcePath(path: string): void {
+  addMcpResourcePath(newPath: string): void {
     if (!this.settings.mcpResourcePaths) {
       this.settings.mcpResourcePaths = [];
     }
-
-    // Avoid duplicates
-    if (!this.settings.mcpResourcePaths.includes(path)) {
-      this.settings.mcpResourcePaths.push(path);
+    if (!this.settings.mcpResourcePaths.includes(newPath)) {
+      this.settings.mcpResourcePaths.push(newPath);
       this.saveSettings();
     }
   }
 
-  removeMcpResourcePath(path: string): void {
+  removeMcpResourcePath(pathToRemove: string): void {
     if (this.settings.mcpResourcePaths) {
-      this.settings.mcpResourcePaths = this.settings.mcpResourcePaths.filter((p) => p !== path);
+      this.settings.mcpResourcePaths = this.settings.mcpResourcePaths.filter(
+        (p) => p !== pathToRemove,
+      );
       this.saveSettings();
     }
   }
 
-  // Get OS-specific default paths
   getDefaultPaths(): {
     claudeProjectsPath: string;
     mcpConfigPath: string;
@@ -139,80 +202,99 @@ export class SettingsService {
     metadataPath: string;
   } {
     const homeDir = app.getPath('home');
-    const platform = process.platform;
-
-    // Get project root - use app path in development, user's home in production
     const isDev = !app.isPackaged;
     const appPath = app.getAppPath();
     const projectRoot = isDev ? appPath : path.join(homeDir, 'Documents', 'claude-code-spec');
 
-    let claudeProjectsPath: string;
-    let mcpConfigPath: string;
-
-    if (platform === 'win32') {
-      // Windows
-      claudeProjectsPath = `${homeDir}\\.claude\\projects`;
-      mcpConfigPath = `${homeDir}\\.claude.json`;
-    } else {
-      // macOS/Linux
-      claudeProjectsPath = `${homeDir}/.claude/projects`;
-      mcpConfigPath = `${homeDir}/.claude.json`;
-    }
-
-    // Document paths (relative to project root)
-    const claudeDocsPath = path.join(projectRoot, 'docs', 'claude-context');
-    const controllerDocsPath = path.join(projectRoot, 'docs', 'controller-docs');
-    const metadataPath = path.join(projectRoot, 'docs', 'claude-context-meta');
-
     return {
-      claudeProjectsPath,
-      mcpConfigPath,
-      claudeDocsPath,
-      controllerDocsPath,
-      metadataPath,
+      claudeProjectsPath: path.join(homeDir, '.claude', 'projects'),
+      mcpConfigPath: path.join(homeDir, '.claude.json'),
+      claudeDocsPath: path.join(projectRoot, 'docs', 'claude-context'),
+      controllerDocsPath: path.join(projectRoot, 'docs', 'controller-docs'),
+      metadataPath: path.join(projectRoot, 'docs', 'claude-context-meta'),
     };
   }
 
-  // Get default MCP resource path (the standard ~/.claude.json location)
   getDefaultMcpResourcePaths(): string[] {
     const homeDir = app.getPath('home');
-    const platform = process.platform;
-
-    if (platform === 'win32') {
-      // Windows: %USERPROFILE%\.claude.json
-      return [`${homeDir}\\.claude.json`];
-    } else {
-      // macOS/Linux: ~/.claude.json
-      return [`${homeDir}/.claude.json`];
-    }
+    return [path.join(homeDir, '.claude.json')];
   }
 
-  // Document paths methods
   getClaudeDocsPath(): string | undefined {
     return this.settings.claudeDocsPath;
   }
-
-  setClaudeDocsPath(docsPath: string): void {
-    this.settings.claudeDocsPath = docsPath;
+  setClaudeDocsPath(p: string): void {
+    this.settings.claudeDocsPath = p;
     this.saveSettings();
   }
-
   getControllerDocsPath(): string | undefined {
     return this.settings.controllerDocsPath;
   }
-
-  setControllerDocsPath(docsPath: string): void {
-    this.settings.controllerDocsPath = docsPath;
+  setControllerDocsPath(p: string): void {
+    this.settings.controllerDocsPath = p;
     this.saveSettings();
   }
-
   getMetadataPath(): string | undefined {
     return this.settings.metadataPath;
   }
-
-  setMetadataPath(metadataPath: string): void {
-    this.settings.metadataPath = metadataPath;
+  setMetadataPath(p: string): void {
+    this.settings.metadataPath = p;
     this.saveSettings();
+  }
+
+  getMaintenanceServices(): MaintenanceRegistryService[] {
+    return this.settings.maintenanceServices ? [...this.settings.maintenanceServices] : [];
+  }
+
+  setMaintenanceServices(services: MaintenanceRegistryService[]): void {
+    const validation = validateMaintenanceServicesPayload(services);
+    if (!validation.valid) {
+      throw new Error(`Invalid maintenance service registry:\n${validation.errors.join('\n')}`);
+    }
+    this.settings.maintenanceServices = [...(validation.value ?? [])];
+    this.saveSettings();
+  }
+
+  getReferenceAssetPreferences(): ReferenceAssetPreferenceMap {
+    return {
+      ...(this.settings.referenceAssetPreferences ?? {}),
+    };
+  }
+
+  private setReferenceAssetPreferenceInternal(
+    relativePath: string,
+    preference: ReferenceAssetPreference,
+  ): void {
+    const normalizedPath = relativePath.trim();
+    if (!normalizedPath) {
+      throw new Error('relativePath is required');
+    }
+
+    const normalizedPreference = normalizeReferenceAssetPreference(preference);
+    if (!this.settings.referenceAssetPreferences) {
+      this.settings.referenceAssetPreferences = {};
+    }
+
+    if (!normalizedPreference) {
+      delete this.settings.referenceAssetPreferences[normalizedPath];
+    } else {
+      this.settings.referenceAssetPreferences[normalizedPath] = normalizedPreference;
+    }
+  }
+
+  setReferenceAssetPreference(relativePath: string, preference: ReferenceAssetPreference): void {
+    this.setReferenceAssetPreferenceInternal(relativePath, preference);
+    this.saveSettings();
+  }
+
+  setReferenceAssetPreferencesBatch(updates: ReferenceAssetPreferenceUpdate[]): number {
+    let updated = 0;
+    for (const update of updates) {
+      this.setReferenceAssetPreferenceInternal(update.relativePath, update.preference);
+      updated += 1;
+    }
+    this.saveSettings();
+    return updated;
   }
 }
 

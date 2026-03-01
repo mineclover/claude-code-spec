@@ -1,67 +1,42 @@
+/**
+ * App - main routes
+ */
+
 import { Toaster } from 'react-hot-toast';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { ProjectProvider } from './contexts/ProjectContext';
-import { AdminPage } from './pages/AdminPage';
-import { AgentsPage } from './pages/AgentsPage';
-import { CentralDashboardPage } from './pages/CentralDashboardPage';
-import { ClaudeDocsPage } from './pages/ClaudeDocsPage';
-import { ClaudeProjectsListPage } from './pages/ClaudeProjectsListPage';
-import { ClaudeSessionAnalysisPage } from './pages/ClaudeSessionAnalysisPage';
-import { ClaudeSessionDetailPage } from './pages/ClaudeSessionDetailPage';
-import { ClaudeSessionsListPage } from './pages/ClaudeSessionsListPage';
-import { ControllerDocsPage } from './pages/ControllerDocsPage';
-import { ExecutionDetailPage } from './pages/ExecutionDetailPage';
-import { ExecutionsPage } from './pages/ExecutionsPage';
-import { IndexPage } from './pages/IndexPage';
-import { LangGraphTestPage } from './pages/LangGraphTestPage';
-import { LangGraphVisualizerPage } from './pages/LangGraphVisualizerPage';
+import { ToolProvider } from './contexts/ToolContext';
+import { ExecutePage } from './pages/ExecutePage';
 import { McpConfigsPage } from './pages/McpConfigsPage';
-import { MemoryPage } from './pages/MemoryPage';
-import { OutputStylesPage } from './pages/OutputStylesPage';
+import { ReferenceHooksPage } from './pages/ReferenceHooksPage';
+import { ReferenceOutputStylesPage } from './pages/ReferenceOutputStylesPage';
+import { ReferenceSkillsPage } from './pages/ReferenceSkillsPage';
+import { SessionsPage } from './pages/SessionsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SkillsPage } from './pages/SkillsPage';
-import { TasksPage } from './pages/TasksPage';
-import { WorkflowPage } from './pages/WorkflowPage';
 
 function App() {
   return (
-    <ProjectProvider>
-      <HashRouter>
-        <Toaster position="top-right" />
-        <Layout>
-          <Routes>
-            <Route path="/" element={<ExecutionsPage />} />
-            <Route path="/executions/:sessionId" element={<ExecutionDetailPage />} />
-            <Route path="/index" element={<IndexPage />} />
-            <Route path="/central-dashboard" element={<CentralDashboardPage />} />
-            <Route path="/claude-projects" element={<ClaudeProjectsListPage />} />
-            <Route path="/claude-projects/:projectDirName" element={<ClaudeSessionsListPage />} />
-            <Route
-              path="/claude-projects/:projectDirName/sessions/:sessionId"
-              element={<ClaudeSessionDetailPage />}
-            />
-            <Route
-              path="/claude-projects/:projectDirName/sessions/:sessionId/analysis"
-              element={<ClaudeSessionAnalysisPage />}
-            />
-            <Route path="/mcp-configs" element={<McpConfigsPage />} />
-            <Route path="/claude-docs" element={<ClaudeDocsPage />} />
-            <Route path="/controller-docs" element={<ControllerDocsPage />} />
-            <Route path="/memory" element={<MemoryPage />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/workflow" element={<WorkflowPage />} />
-            <Route path="/agents" element={<AgentsPage />} />
-            <Route path="/skills" element={<SkillsPage />} />
-            <Route path="/output-styles" element={<OutputStylesPage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/langgraph-test" element={<LangGraphTestPage />} />
-            <Route path="/langgraph-visualizer" element={<LangGraphVisualizerPage />} />
-          </Routes>
-        </Layout>
-      </HashRouter>
-    </ProjectProvider>
+    <ToolProvider>
+      <ProjectProvider>
+        <HashRouter>
+          <Toaster position="top-right" />
+          <Layout>
+            <Routes>
+              <Route path="/" element={<ExecutePage />} />
+              <Route path="/sessions" element={<SessionsPage />} />
+              <Route path="/mcp-configs" element={<McpConfigsPage />} />
+              <Route path="/skills" element={<SkillsPage />} />
+              <Route path="/references/hooks" element={<ReferenceHooksPage />} />
+              <Route path="/references/output-styles" element={<ReferenceOutputStylesPage />} />
+              <Route path="/references/skills" element={<ReferenceSkillsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Routes>
+          </Layout>
+        </HashRouter>
+      </ProjectProvider>
+    </ToolProvider>
   );
 }
 

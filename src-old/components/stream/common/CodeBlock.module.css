@@ -1,0 +1,35 @@
+.codeBlock {
+  margin: 8px 0;
+  padding: 12px;
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-family:
+    "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.codeBlock code {
+  background: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: #24292f;
+}
+
+.json {
+  color: #0550ae;
+}
+
+.typescript {
+  color: #6f42c1;
+}
+
+.text {
+  color: #24292f;
+}

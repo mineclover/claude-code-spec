@@ -1,0 +1,53 @@
+/**
+ * ToolsAPI type contract
+ */
+
+import type { CLIToolDefinition } from '../cli-tool';
+import type {
+  ReferenceAssetActionResult,
+  ReferenceAssetItem,
+  ReferenceAssetPreference,
+  ReferenceAssetPreferenceMap,
+  ReferenceAssetPreferenceUpdate,
+  ReferenceAssetReadResult,
+  ReferenceAssetType,
+  ReferenceProvider,
+} from '../reference-assets';
+import type {
+  CliToolUpdateResult,
+  CliToolVersionInfo,
+  InstalledSkillInfo,
+  ManagedCliTool,
+  SkillInstallPathInfo,
+  SkillProvider,
+} from '../tool-maintenance';
+
+export interface ToolsAPI {
+  getRegisteredTools: () => Promise<CLIToolDefinition[]>;
+  getToolById: (toolId: string) => Promise<CLIToolDefinition | null>;
+  getMaintenanceTools: () => Promise<ManagedCliTool[]>;
+  checkToolVersions: (toolIds?: string[]) => Promise<CliToolVersionInfo[]>;
+  runToolUpdate: (toolId: string) => Promise<CliToolUpdateResult>;
+  getSkillInstallPaths: () => Promise<SkillInstallPathInfo[]>;
+  getInstalledSkills: () => Promise<InstalledSkillInfo[]>;
+  listReferenceAssets: (
+    assetType: ReferenceAssetType,
+    provider?: ReferenceProvider,
+  ) => Promise<ReferenceAssetItem[]>;
+  readReferenceAsset: (relativePath: string) => Promise<ReferenceAssetReadResult>;
+  openReferenceAsset: (relativePath: string) => Promise<ReferenceAssetActionResult>;
+  revealReferenceAsset: (relativePath: string) => Promise<ReferenceAssetActionResult>;
+  getReferenceAssetPreferences: () => Promise<ReferenceAssetPreferenceMap>;
+  setReferenceAssetPreference: (
+    relativePath: string,
+    preference: ReferenceAssetPreference,
+  ) => Promise<{ success: boolean }>;
+  setReferenceAssetPreferencesBatch: (
+    updates: ReferenceAssetPreferenceUpdate[],
+  ) => Promise<{ success: boolean; updated: number }>;
+  setSkillActivation: (
+    provider: SkillProvider,
+    skillId: string,
+    active: boolean,
+  ) => Promise<InstalledSkillInfo>;
+}

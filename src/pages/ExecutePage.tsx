@@ -3,12 +3,13 @@
  * Uses sidebar tool selection + dynamic options + query input + stream output
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { OptionPanel } from '../components/options/OptionPanel';
 import { StreamOutput } from '../components/stream/StreamOutput';
 import { useProject } from '../contexts/ProjectContext';
 import { useToolContext } from '../contexts/ToolContext';
-import type { CLIToolDefinition } from '../types/cli-tool';
+import type { McpConfigFile } from '../types/api/settings';
+import type { CLIOptionSchema, CLIToolDefinition } from '../types/cli-tool';
 import type { StreamEvent } from '../types/stream-events';
 import styles from './ExecutePage.module.css';
 
@@ -22,11 +23,43 @@ function buildDefaultOptions(tool: CLIToolDefinition): Record<string, unknown> {
   return defaults;
 }
 
+function hasMcpConfigOption(tool: CLIToolDefinition | null): boolean {
+  return Boolean(tool?.options.some((option) => option.key === 'mcpConfig'));
+}
+
+function toProjectRelativePath(filePath: string, projectPath: string): string {
+  const prefix = projectPath.endsWith('/') ? projectPath : `${projectPath}/`;
+  if (filePath.startsWith(prefix)) {
+    return filePath.slice(prefix.length);
+  }
+  return filePath;
+}
+
+function buildMcpConfigChoices(
+  configs: McpConfigFile[],
+  projectPath: string,
+): Array<{ label: string; value: string }> {
+  const seen = new Set<string>();
+  const choices: Array<{ label: string; value: string }> = [];
+  for (const config of configs) {
+    const relativePath = toProjectRelativePath(config.path, projectPath);
+    if (seen.has(relativePath)) {
+      continue;
+    }
+    seen.add(relativePath);
+    choices.push({ label: config.name, value: relativePath });
+  }
+  return choices;
+}
+
 export function ExecutePage() {
   const { projectPath } = useProject();
   const { selectedToolId } = useToolContext();
   const [tools, setTools] = useState<CLIToolDefinition[]>([]);
   const [selectedTool, setSelectedTool] = useState<CLIToolDefinition | null>(null);
+  const [mcpConfigChoices, setMcpConfigChoices] = useState<Array<{ label: string; value: string }>>(
+    [],
+  );
   const [options, setOptions] = useState<Record<string, unknown>>({});
   const [query, setQuery] = useState('');
   const [events, setEvents] = useState<StreamEvent[]>([]);
@@ -53,6 +86,35 @@ export function ExecutePage() {
       setOptions(buildDefaultOptions(tools[0]));
     }
   }, [selectedToolId, tools]);
+
+  // Load project MCP config files as selectable suggestions for mcpConfig option.
+  useEffect(() => {
+    if (!projectPath || !hasMcpConfigOption(selectedTool)) {
+      setMcpConfigChoices([]);
+      return;
+    }
+
+    let cancelled = false;
+    window.settingsAPI
+      .listMcpConfigs(projectPath)
+      .then((configs) => {
+        if (cancelled) {
+          return;
+        }
+        setMcpConfigChoices(buildMcpConfigChoices(configs, projectPath));
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        console.error('[ExecutePage] Failed to load MCP config choices:', error);
+        setMcpConfigChoices([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTool, projectPath]);
 
   // Subscribe to stream events
   useEffect(() => {
@@ -117,6 +179,25 @@ export function ExecutePage() {
     }
   };
 
+  const optionSchemas = useMemo<CLIOptionSchema[]>(() => {
+    if (!selectedTool) {
+      return [];
+    }
+    if (mcpConfigChoices.length === 0) {
+      return selectedTool.options;
+    }
+
+    return selectedTool.options.map((option) => {
+      if (option.key !== 'mcpConfig') {
+        return option;
+      }
+      return {
+        ...option,
+        choices: mcpConfigChoices,
+      };
+    });
+  }, [selectedTool, mcpConfigChoices]);
+
   if (!projectPath) {
     return (
       <div className={styles.emptyState}>
@@ -139,11 +220,7 @@ export function ExecutePage() {
         {selectedTool && (
           <div className={styles.section}>
             <label className={styles.sectionLabel}>Options</label>
-            <OptionPanel
-              options={selectedTool.options}
-              values={options}
-              onChange={handleOptionChange}
-            />
+            <OptionPanel options={optionSchemas} values={options} onChange={handleOptionChange} />
           </div>
         )}
 

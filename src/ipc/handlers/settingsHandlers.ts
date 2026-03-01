@@ -7,6 +7,7 @@ import type { SettingsService } from '../../services/appSettings';
 import {
   createBackup,
   createMcpConfig,
+  createMcpDefaultConfig,
   deleteSettingsFile,
   findSettingsFiles,
   getMcpServerList,
@@ -168,6 +169,19 @@ export function registerSettingsHandlers(
     async (_event, projectPath: string, name: string, servers: string[]) => {
       const additionalPaths = settingsService.getMcpResourcePaths();
       return createMcpConfig(projectPath, name, servers, { additionalPaths });
+    },
+  );
+
+  router.handle(
+    'create-mcp-default-config',
+    async (
+      _event,
+      projectPath: string,
+      target: 'project' | 'claude' | 'codex' | 'gemini',
+      servers: string[],
+    ) => {
+      const additionalPaths = settingsService.getMcpResourcePaths();
+      return createMcpDefaultConfig(projectPath, target, servers, { additionalPaths });
     },
   );
 

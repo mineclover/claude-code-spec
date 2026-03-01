@@ -1,0 +1,320 @@
+{
+  "name": "CLI Cockpit Extensibility Roadmap",
+  "description": "Multi-CLI maintenance, skill lifecycle, MCP orchestration, and execution command composition을 표준화해 서비스 추가와 기능 확장을 빠르게 만드는 확장성 중심 로드맵",
+  "branchName": "ralph/extensible-cli-platform",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Capability Matrix 표준 스키마 정의",
+      "description": "As a platform engineer, I want a single capability matrix schema so that 모든 CLI/서비스 확장 기능을 같은 언어로 모델링할 수 있다.",
+      "acceptanceCriteria": [
+        "Maintenance/Execution/Skills/MCP 영역을 아우르는 Capability 타입이 정의된다.",
+        "서비스별 capability 선언 예시(claude/codex/gemini/ralph/moai)가 문서화된다.",
+        "기존 런타임에서 capability 누락 시 안전한 기본값이 적용된다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-002",
+      "title": "서비스 어댑터 SDK 인터페이스 패키지화",
+      "description": "As a maintainer, I want a stable adapter SDK contract so that 신규 CLI 서비스를 최소 코드로 등록할 수 있다.",
+      "acceptanceCriteria": [
+        "Tool/SkillStore/MCP/Execution 관련 adapter contract가 공통 타입으로 분리된다.",
+        "adapter 등록 시 필수 필드 누락을 빌드 타임에 검출한다.",
+        "신규 서비스 추가용 최소 템플릿 코드가 제공된다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "내장 서비스 어댑터 SDK 마이그레이션",
+      "description": "As a product engineer, I want built-in providers to use the same adapter SDK so that 동작 일관성과 확장성을 확보한다.",
+      "acceptanceCriteria": [
+        "claude/codex/gemini/ralph/moai/skills의 서비스 등록 경로가 SDK 기반으로 통일된다.",
+        "중복 dedupe/path resolution 로직이 공통 유틸로 병합된다.",
+        "기존 기능(버전체크/업데이트/스킬조회)이 회귀 없이 동작한다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Maintenance Registry 버전 관리 및 마이그레이션",
+      "description": "As a user, I want registry schema versioning so that 설정 포맷이 진화해도 데이터가 안전하게 유지된다.",
+      "acceptanceCriteria": [
+        "registry root에 schemaVersion 규칙이 도입된다.",
+        "구버전 레지스트리를 최신 포맷으로 변환하는 migration pipeline이 추가된다.",
+        "마이그레이션 실패 시 롤백 가능한 보호 로직이 제공된다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "CLI 명령 조합 Rule Catalog 고도화",
+      "description": "As an execution engine owner, I want composable command rules so that CLI별 옵션 조합을 하드코딩 없이 안전하게 확장한다.",
+      "acceptanceCriteria": [
+        "option/static/mapped segment 외 조합 규칙(conditional group, fallback)이 지원된다.",
+        "strictMcpConfig + mcpConfig + permission 관련 조합 테스트 케이스가 추가된다.",
+        "조합 결과가 예상 명령 문자열 스냅샷 테스트로 검증된다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "CLI별 MCP Launch Strategy 추상화",
+      "description": "As a CLI integrator, I want per-tool MCP launch strategies so that mcp 사용/미사용/strict 조합이 도구별 규칙에 맞게 동작한다.",
+      "acceptanceCriteria": [
+        "MCP config path가 없을 때 strict 단독 적용 가능 여부를 도구별로 제어한다.",
+        "mcp-config 플래그와 strict 플래그의 조합 규칙이 서비스 정의에서 선언된다.",
+        "claude 기준 대표 조합(기본, bypass, strict-only, strict+mcp-config)이 모두 검증된다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-005"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Global/Project MCP Source Aggregator 통합",
+      "description": "As a user, I want shared MCP server candidate aggregation so that 모든 CLI에서 재사용 가능한 서버 후보를 한 번에 구성할 수 있다.",
+      "acceptanceCriteria": [
+        "전역/프로젝트 MCP source를 병합한 candidate list API가 제공된다.",
+        "도구별 설정 파일 생성 시 candidate 재사용이 가능하다.",
+        "중복 서버명 충돌 시 deterministic merge 규칙이 적용된다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-006"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "세션 기반 실제 경로 해석 서비스 도입",
+      "description": "As a reliability engineer, I want path resolution from raw session data so that 파일명 추정 오류(agent-town -> agent/town)를 제거한다.",
+      "acceptanceCriteria": [
+        "세션 이벤트/메타데이터에서 실제 파일 경로를 우선 추출한다.",
+        "이름 추정 로직은 fallback으로만 남고 기본 경로 추론 경로에서 제거된다.",
+        "특수 문자(-, _, .) 포함 스킬/파일명 케이스 회귀 테스트가 추가된다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ]
+    },
+    {
+      "id": "US-009",
+      "title": "Skill Store Scanner 전략화",
+      "description": "As a platform maintainer, I want provider-specific skill scanning strategies so that 다양한 설치 레이아웃을 정확히 지원한다.",
+      "acceptanceCriteria": [
+        "provider별 installRoot/disabledRoot scan 전략을 인터페이스로 분리한다.",
+        "symlink, EXDEV 이동, 숨김 파일 처리 규칙이 공통화된다.",
+        "스킬 목록 dedupe와 정렬 규칙이 provider 확장 시에도 유지된다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ]
+    },
+    {
+      "id": "US-010",
+      "title": "Skill Version Resolver 체인 추가",
+      "description": "As a user, I want consistent skill version hints so that provider마다 다른 메타데이터 포맷에서도 버전 정보를 확인할 수 있다.",
+      "acceptanceCriteria": [
+        "frontmatter/metadata/lockfile/source를 순차적으로 확인하는 resolver 체인이 구현된다.",
+        "버전 정보 부재 시 fallback 문구가 일관되게 노출된다.",
+        "provider별 샘플 스킬 fixture 테스트가 추가된다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-009"
+      ]
+    },
+    {
+      "id": "US-011",
+      "title": "Skill Activation 트랜잭션 및 감사 로그",
+      "description": "As an operator, I want transactional activation/deactivation with audit logs so that 스킬 상태 변경을 추적하고 실패를 복구할 수 있다.",
+      "acceptanceCriteria": [
+        "활성/비활성 이동 작업이 실패 시 원상복구 가능한 트랜잭션 경로를 가진다.",
+        "activation 이벤트 로그(provider, skillId, before/after, timestamp)가 저장된다.",
+        "UI에서 최근 activation 이벤트를 조회할 수 있다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-009"
+      ]
+    },
+    {
+      "id": "US-012",
+      "title": "업데이트 플래너(체크/실행/요약) 워크플로우",
+      "description": "As a user, I want an update planner so that 여러 CLI 업데이트를 일괄 실행해도 결과를 안전하게 확인할 수 있다.",
+      "acceptanceCriteria": [
+        "버전 체크 결과를 기준으로 update 필요 여부가 명확히 표시된다.",
+        "선택된 도구만 배치 업데이트 실행하고 성공/실패 요약을 제공한다.",
+        "업데이트 실행 로그(stdout/stderr/exitCode) 조회 API가 제공된다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003"
+      ]
+    },
+    {
+      "id": "US-013",
+      "title": "Registry 설정 UI 폼 모드 추가(JSON 병행)",
+      "description": "As a non-expert user, I want form-based registry editing so that JSON 직접 편집 없이도 서비스 추가가 가능하다.",
+      "acceptanceCriteria": [
+        "서비스 추가/수정/삭제를 위한 폼 기반 에디터가 제공된다.",
+        "JSON editor와 form editor 간 양방향 동기화가 유지된다.",
+        "schema 오류가 form 필드 수준으로 매핑되어 표시된다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes",
+        "npm run start 후 Registry 섹션 수동 검증이 완료된다"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-004"
+      ]
+    },
+    {
+      "id": "US-014",
+      "title": "Provider 전용 관리 페이지 확장 프레임워크",
+      "description": "As a product engineer, I want provider-specific management pages so that hooks/output styles/skills를 서비스별 특성에 맞게 관리할 수 있다.",
+      "acceptanceCriteria": [
+        "공통 섹션 프레임워크로 provider별 페이지 확장 포인트가 제공된다.",
+        "ralph/moai 참조 기준으로 hooks/output styles/skills 카드 UI가 표준화된다.",
+        "서비스가 capability에 따라 페이지 섹션을 동적으로 노출한다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes",
+        "npm run start 후 Skills/Reference 페이지 수동 검증이 완료된다"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003",
+        "US-010"
+      ]
+    },
+    {
+      "id": "US-015",
+      "title": "신규 서비스 온보딩 키트(템플릿/검증/문서)",
+      "description": "As a contributor, I want a standardized onboarding kit so that maintenance service registry에 새 서비스를 일관되게 추가할 수 있다.",
+      "acceptanceCriteria": [
+        "새 서비스 추가 절차를 코드 템플릿 + 체크리스트로 제공한다.",
+        "adapter contract test와 registry validation 예제가 포함된다.",
+        "docs에 '서비스 추가 표준 절차'가 업데이트된다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002",
+        "US-004"
+      ]
+    },
+    {
+      "id": "US-016",
+      "title": "호환성 테스트 매트릭스 및 fixture 파이프라인",
+      "description": "As a release manager, I want a compatibility matrix so that 각 CLI/provider 조합의 회귀를 릴리즈 전에 검증할 수 있다.",
+      "acceptanceCriteria": [
+        "CLI별 핵심 시나리오(version check, update, mcp launch, skill scan) 테스트 매트릭스가 정의된다.",
+        "fixture 기반 contract tests로 provider 추가 시 자동 검증이 가능하다.",
+        "테스트 리포트에 실패 시나리오와 영향 범위가 요약된다.",
+        "npx tsc --noEmit passes",
+        "npx biome check <touched-files> passes",
+        "npx vitest run <affected-tests> passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-006",
+        "US-009",
+        "US-012",
+        "US-014"
+      ]
+    }
+  ],
+  "metadata": {
+    "updatedAt": "2026-03-01T06:46:20.208Z"
+  }
+}

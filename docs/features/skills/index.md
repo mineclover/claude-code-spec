@@ -4,8 +4,17 @@
 
 Skills 기능은 Claude Code의 능력을 확장하여 팀의 전문 지식과 워크플로우를 Claude에 학습시킬 수 있는 모듈형 시스템입니다. 이 플랫폼은 Skills를 생성, 관리, 공유할 수 있는 대화형 인터페이스를 제공합니다.
 
-**Route:** `/skills` (예정)
-**Component:** `src/pages/SkillsPage.tsx` (예정)
+## Validation Checklist
+
+- [Skills/CLI Maintenance UI Smoke Checklist](./ui-smoke-checklist.md)
+
+**Route:** `/skills`
+**Component:** `src/pages/SkillsPage.tsx`
+
+Related reference routes:
+- `/references/hooks` (`src/pages/ReferenceHooksPage.tsx`)
+- `/references/output-styles` (`src/pages/ReferenceOutputStylesPage.tsx`)
+- `/references/skills` (`src/pages/ReferenceSkillsPage.tsx`)
 
 ## What are Skills?
 
@@ -224,35 +233,24 @@ git commit -m "Add custom workflow skill"
 git push
 ```
 
-## Interactive Skills Management UI (Planned)
+## Current UI Coverage
 
-### Features
+- `/skills`:
+  - 관리 대상 CLI 버전 확인/업데이트 실행
+  - 설치된 스킬 목록 조회 및 active/inactive 토글
+  - maintenance service registry JSON 편집/검증
+- `/references/*`:
+  - MoAI/Ralph 레퍼런스의 hooks, output styles, skills 탐색
+  - 파일 미리보기, 경로/내용 복사, 파일 열기/폴더 열기
+  - 즐겨찾기/태그 메타데이터 저장 및 필터링
+  - 태그 인벤토리 기반 일괄 Rename/Remove/Clear
+  - Favorites-only 정렬 옵션 (Name/Path/Updated)
 
-1. **Skill Browser**
-   - 프로젝트 및 글로벌 Skill 목록 조회
-   - Skill 검색 및 필터링
-   - Skill 미리보기
+## Future Enhancements
 
-2. **Skill Editor**
-   - YAML frontmatter 편집
-   - Markdown 본문 편집
-   - 실시간 미리보기
-   - 문법 검증
-
-3. **Skill Creator Wizard**
-   - 단계별 Skill 생성 가이드
-   - 템플릿 선택
-   - 예제 코드 자동 생성
-
-4. **Bidirectional Sync**
-   - UI에서 편집 → SKILL.md 파일 업데이트
-   - SKILL.md 파일 변경 → UI 자동 반영
-   - 변경 사항 추적
-
-5. **Skill Testing**
-   - Skill 테스트 실행
-   - 예상 동작 검증
-   - 결과 확인
+1. Skill Editor with frontmatter/body split editing
+2. Skill Creator wizard templates
+3. Bidirectional file watch sync and conflict handling
 
 ## Data Models
 

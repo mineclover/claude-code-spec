@@ -1,0 +1,56 @@
+[
+  {
+    "id": "acme",
+    "name": "Acme CLI",
+    "enabled": true,
+    "capability": {
+      "maintenance": { "enabled": true },
+      "skills": { "enabled": true }
+    },
+    "tools": [
+      {
+        "id": "acme-cli",
+        "name": "Acme CLI",
+        "description": "Example third-party CLI",
+        "versionCommand": {
+          "command": "acme",
+          "args": ["--version"]
+        },
+        "updateCommand": {
+          "command": "npm",
+          "args": ["install", "-g", "acme-cli@latest"]
+        },
+        "docsUrl": "https://example.com/acme"
+      }
+    ],
+    "skillStore": {
+      "provider": "acme",
+      "installRoot": "~/.acme/skills"
+    }
+  },
+  {
+    "id": "moai",
+    "name": "MoAI-ADK",
+    "enabled": true,
+    "capability": {
+      "maintenance": { "enabled": true },
+      "execution": { "enabled": true }
+    },
+    "tools": [
+      {
+        "id": "moai",
+        "name": "MoAI-ADK",
+        "description": "Self-updating binary CLI example",
+        "versionCommand": {
+          "command": "moai",
+          "args": ["version"]
+        },
+        "updateCommand": {
+          "command": "moai",
+          "args": ["update", "--binary", "--yes"]
+        },
+        "docsUrl": "https://github.com/modu-ai/moai-adk"
+      }
+    ]
+  }
+]

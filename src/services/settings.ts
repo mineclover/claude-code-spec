@@ -231,6 +231,8 @@ export interface McpServer {
   env: Record<string, string>;
 }
 
+export type McpDefaultConfigTarget = 'project' | 'claude' | 'codex' | 'gemini';
+
 interface McpServerListOptions {
   additionalPaths?: string[];
   projectPath?: string;
@@ -283,34 +285,95 @@ function collectProjectMcpCandidates(projectPath: string): string[] {
   return Array.from(ordered);
 }
 
-/**
- * List all MCP configuration files in project's .claude/ directory
- */
-export const listMcpConfigs = (projectPath: string): McpConfigFile[] => {
-  const claudeDir = path.join(projectPath, '.claude');
+function toProjectRelativePath(filePath: string, projectPath: string): string {
+  const normalizedProjectPath = path.normalize(path.resolve(projectPath));
+  const normalizedFilePath = path.normalize(path.resolve(filePath));
+  if (normalizedFilePath.startsWith(`${normalizedProjectPath}${path.sep}`)) {
+    return normalizedFilePath.slice(normalizedProjectPath.length + 1);
+  }
+  return path.basename(normalizedFilePath);
+}
 
-  if (!fs.existsSync(claudeDir)) {
-    return [];
+function buildMcpConfigPayload(servers: McpServer[]): {
+  mcpServers: Record<string, Omit<McpServer, 'name'>>;
+} {
+  const mcpConfig: {
+    mcpServers: Record<string, Omit<McpServer, 'name'>>;
+  } = {
+    mcpServers: {},
+  };
+
+  for (const server of servers) {
+    mcpConfig.mcpServers[server.name] = {
+      type: server.type,
+      command: server.command,
+      args: server.args,
+      env: server.env,
+    };
   }
 
-  const files = fs
-    .readdirSync(claudeDir)
-    .filter((file) => file.startsWith('.mcp-') && file.endsWith('.json'))
-    .map((file) => {
-      const filePath = path.join(claudeDir, file);
-      const stats = fs.statSync(filePath);
-      const content = fs.readFileSync(filePath, 'utf-8');
+  return mcpConfig;
+}
+
+function resolveDefaultMcpConfigPath(projectPath: string, target: McpDefaultConfigTarget): string {
+  switch (target) {
+    case 'project':
+      return path.join(projectPath, '.mcp.json');
+    case 'claude':
+      return path.join(projectPath, '.claude', '.mcp.json');
+    case 'codex':
+      return path.join(projectPath, '.codex', '.mcp.json');
+    case 'gemini':
+      return path.join(projectPath, '.gemini', '.mcp.json');
+    default:
+      return path.join(projectPath, '.mcp.json');
+  }
+}
+
+function resolveSelectedServers(
+  projectPath: string,
+  selectedServerNames: string[],
+  options: Pick<McpServerListOptions, 'additionalPaths'> = {},
+): { selectedServers: McpServer[]; error?: string } {
+  const { servers: availableServers, error } = getMcpServerList({
+    additionalPaths: options.additionalPaths,
+    projectPath,
+  });
+
+  if (error) {
+    return { selectedServers: [], error };
+  }
+
+  const selectedServers = availableServers.filter((server) =>
+    selectedServerNames.includes(server.name),
+  );
+  if (selectedServers.length === 0) {
+    return { selectedServers: [], error: 'No servers selected' };
+  }
+
+  return { selectedServers };
+}
+
+/**
+ * List MCP configuration files from project root and tool-specific directories.
+ */
+export const listMcpConfigs = (projectPath: string): McpConfigFile[] => {
+  const candidatePaths = collectProjectMcpCandidates(projectPath);
+
+  return candidatePaths
+    .filter((candidatePath) => fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile())
+    .map((candidatePath) => {
+      const stats = fs.statSync(candidatePath);
+      const content = fs.readFileSync(candidatePath, 'utf-8');
 
       return {
-        name: file,
-        path: filePath,
+        name: toProjectRelativePath(candidatePath, projectPath),
+        path: candidatePath,
         content,
         lastModified: stats.mtimeMs,
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
-
-  return files;
 };
 
 /**
@@ -411,36 +474,12 @@ export const createMcpConfig = (
   options: Pick<McpServerListOptions, 'additionalPaths'> = {},
 ): { success: boolean; path?: string; error?: string } => {
   try {
-    // Get available servers
-    const { servers: availableServers, error } = getMcpServerList({
-      additionalPaths: options.additionalPaths,
-      projectPath,
-    });
+    const { selectedServers, error } = resolveSelectedServers(projectPath, servers, options);
     if (error) {
       return { success: false, error };
     }
 
-    // Filter selected servers
-    const selectedServers = availableServers.filter((s) => servers.includes(s.name));
-    if (selectedServers.length === 0) {
-      return { success: false, error: 'No servers selected' };
-    }
-
-    // Build MCP config
-    const mcpConfig: {
-      mcpServers: Record<string, Omit<McpServer, 'name'>>;
-    } = {
-      mcpServers: {},
-    };
-
-    for (const server of selectedServers) {
-      mcpConfig.mcpServers[server.name] = {
-        type: server.type,
-        command: server.command,
-        args: server.args,
-        env: server.env,
-      };
-    }
+    const mcpConfig = buildMcpConfigPayload(selectedServers);
 
     // Ensure .claude/ directory exists
     const claudeDir = path.join(projectPath, '.claude');
@@ -460,6 +499,41 @@ export const createMcpConfig = (
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create MCP config',
+    };
+  }
+};
+
+/**
+ * Create default MCP config file without a profile suffix.
+ * Examples: .mcp.json, .claude/.mcp.json, .codex/.mcp.json
+ */
+export const createMcpDefaultConfig = (
+  projectPath: string,
+  target: McpDefaultConfigTarget,
+  servers: string[],
+  options: Pick<McpServerListOptions, 'additionalPaths'> = {},
+): { success: boolean; path?: string; error?: string } => {
+  try {
+    const { selectedServers, error } = resolveSelectedServers(projectPath, servers, options);
+    if (error) {
+      return { success: false, error };
+    }
+
+    const mcpConfig = buildMcpConfigPayload(selectedServers);
+    const filePath = resolveDefaultMcpConfigPath(projectPath, target);
+    const parentDir = path.dirname(filePath);
+    if (!fs.existsSync(parentDir)) {
+      fs.mkdirSync(parentDir, { recursive: true });
+    }
+
+    fs.writeFileSync(filePath, JSON.stringify(mcpConfig, null, 2), 'utf-8');
+    console.log(`[Settings] Created default MCP config: ${filePath}`);
+
+    return { success: true, path: filePath };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create default MCP config',
     };
   }
 };

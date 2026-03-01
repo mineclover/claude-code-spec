@@ -1,6 +1,6 @@
 /**
- * Stream event types for Claude CLI output
- * Migrated from @context-action/code-api
+ * Stream event types - Universal with toolId stamp
+ * Migrated from src-old, extended with toolId for multi-CLI support
  */
 
 // Base stream event
@@ -8,6 +8,7 @@ export interface StreamEvent {
   type: string;
   subtype?: string;
   isSidechain?: boolean;
+  toolId?: string; // which CLI tool produced this event
   [key: string]: unknown;
 }
 

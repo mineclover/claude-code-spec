@@ -423,17 +423,55 @@ area: src/auth  # src/auth 외부 파일 자동 차단
 
 ## 개발 가이드
 
-### GUI 앱 개발
+### 개발 모드 실행
 
 ```bash
 # 의존성 설치
 npm install
 
-# 개발 모드 실행
+# 개발 모드 실행 (Vite dev server + Electron)
 npm start
 
-# 빌드
-npm run build
+# 디버그 모드 실행 (DEBUG=true 환경변수)
+npm run start:debug
+```
+
+`npm start`는 Electron Forge를 통해 Vite dev server와 Electron 프로세스를 동시에 시작합니다. Vite가 HMR을 제공하므로 React 코드 수정 시 자동으로 반영됩니다.
+
+### 빌드 및 패키징
+
+```bash
+# macOS 패키징 (테스트용)
+npm run package:mac
+
+# macOS 배포용 빌드 (DMG + ZIP)
+npm run build:mac
+
+# lint
+npm run lint
+npm run lint:fix
+
+# 테스트
+npm test
+npm run test:ui
+npm run test:coverage
+```
+
+### MCP 서버 설정
+
+개발/분석 시 용도에 맞는 MCP 설정을 선택합니다:
+
+| 설정 파일 | 용도 | 포함 서버 |
+|-----------|------|----------|
+| `.claude/.mcp-dev.json` | 개발 | serena + context7 |
+| `.claude/.mcp-analysis.json` | 분석 | serena + sequential-thinking |
+| `.claude/.mcp-e2e.json` | E2E 테스트 | 전체 |
+| `.claude/.mcp-ui.json` | UI 개발 | UI 관련 |
+| `.claude/.mcp-empty.json` | 최소 | 없음 |
+
+CLI에서 직접 사용:
+```bash
+claude --mcp-config .claude/.mcp-dev.json --strict-mcp-config -p "분석 요청"
 ```
 
 ### 라이브러리 개발 (@context-action/code-api)
@@ -469,6 +507,47 @@ import { ClaudeClient, ProcessManager } from '@context-action/code-api';
 
 const client = new ClaudeClient({ ... });
 ```
+
+## 레거시 코드 관리
+
+### src-old 디렉토리
+
+`src-old/`는 이전 아키텍처의 전체 소스코드를 보관하는 아카이브 디렉토리입니다. 대규모 리팩토링 과정에서 기존 코드를 참조용으로 보존해둔 것으로, 빌드나 실행에는 포함되지 않습니다.
+
+### 리팩토링 요약
+
+기존 아키텍처에서 제거된 모듈:
+- **Agent/Task/Skill 관리**: AgentLoader, TaskLifecycleManager, SkillRepositoryManager 등
+- **LangGraph 엔진**: LangGraphEngine, WorkflowEngine, 그래프 시각화
+- **CentralDatabase**: 중앙 데이터베이스 및 쿼리 시스템
+- **전용 페이지**: AgentsPage, TasksPage, SkillsPage, WorkflowPage, BookmarksPage 등 ~20개 페이지
+- **기타 서비스**: AppLogger, SessionAnalyzer, ExecutionQueue, AgentTracker 등
+
+새로 추가된 모듈:
+- **멀티 CLI 지원**: Claude/Codex/Gemini 통합 (`ToolContext`, `sessionProvider`, `MultiCliExecutionService`)
+- **Tool Registry**: 도구 검색 및 인벤토리 (`ToolRegistry`, `OptionInventoryManager`)
+- **세션 분류기**: 로그 엔트리 분류 및 렌더링 (`sessionClassifier`, `ClassifiedLogEntry`)
+- **세션 프로바이더**: CLI별 세션 로더 (`claudeSessions`, `codexSessions`, `geminiSessions`)
+
+### 현재 페이지 구성 (8개)
+
+| 페이지 | 파일 | 설명 |
+|--------|------|------|
+| Execute | `ExecutePage.tsx` | CLI 실행 및 스트리밍 |
+| Sessions | `SessionsPage.tsx` | 세션 로그 조회 및 분류 뷰어 |
+| MCP Configs | `McpConfigsPage.tsx` | MCP 서버 설정 관리 |
+| Skills | `SkillsPage.tsx` | CLI 버전 확인/업데이트, 설치된 스킬 활성화 관리 |
+| Ref Hooks | `ReferenceHooksPage.tsx` | MoAI/Ralph hook 레퍼런스 조회 및 미리보기 |
+| Ref Styles | `ReferenceOutputStylesPage.tsx` | MoAI/Ralph output style/theme 레퍼런스 조회 |
+| Ref Skills | `ReferenceSkillsPage.tsx` | MoAI/Ralph SKILL.md 레퍼런스 조회 |
+| Settings | `SettingsPage.tsx` | 앱 설정 |
+
+### src-old 참조 시 주의사항
+
+- `src-old/`의 코드는 현재 아키텍처와 호환되지 않습니다
+- import 경로, 타입 정의, IPC 채널이 모두 변경되었습니다
+- 기능 복원이 필요한 경우 현재 아키텍처에 맞게 재작성해야 합니다
+- 리팩토링이 완료되면 `src-old/`는 삭제할 수 있습니다
 
 ## 참고 문서
 

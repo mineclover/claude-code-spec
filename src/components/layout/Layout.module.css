@@ -1,215 +1,127 @@
-.container {
+.layout {
   display: flex;
   height: 100vh;
   overflow: hidden;
 }
 
 .sidebar {
-  flex: 0 0 240px;
-  width: 240px;
-  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-  color: #fff;
+  width: 200px;
+  min-width: 200px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #0f1419;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-}
-
-@media (max-width: 768px) {
-  .sidebar {
-    flex: 0 0 200px;
-    width: 200px;
-  }
+  border-right: 1px solid var(--border-default);
 }
 
 .logo {
-  padding: 24px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px;
+  border-bottom: 1px solid var(--border-default);
 }
 
-.logo h2 {
-  margin: 0;
-  font-size: 20px;
+.logoText {
+  font-size: var(--text-md);
   font-weight: 700;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #fff;
+  letter-spacing: 0.5px;
 }
 
-.subtitle {
-  display: block;
-  font-size: 11px;
-  color: #a0a0c0;
-  margin-top: 4px;
-  font-weight: 400;
+.toolSelector {
+  display: flex;
+  gap: 2px;
+  padding: 8px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.toolButton {
+  flex: 1;
+  padding: 6px 4px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toolButton:hover {
+  color: #fff;
+  background: var(--bg-hover);
+}
+
+.toolButton.toolActive {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .nav {
   flex: 1;
-  padding: 16px 0;
-  overflow-y: auto;
+  padding: 8px 0;
 }
 
 .navItem {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  color: #a0a0c0;
+  gap: 10px;
+  padding: 10px 16px;
+  color: var(--text-muted);
   text-decoration: none;
-  transition: all 0.2s;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--text-base);
+  transition: all var(--transition-fast);
   border-left: 3px solid transparent;
 }
 
 .navItem:hover {
-  background: rgba(255, 255, 255, 0.05);
   color: #fff;
-  border-left-color: rgba(102, 126, 234, 0.3);
+  background: var(--bg-hover);
 }
 
 .navItem.active {
-  background: rgba(102, 126, 234, 0.15);
   color: #fff;
-  border-left-color: #667eea;
+  background: var(--bg-active);
+  border-left-color: var(--accent);
 }
 
-.icon {
-  font-size: 18px;
-  width: 20px;
+.navIcon {
+  font-family: monospace;
+  font-size: var(--text-md);
+  width: 18px;
   text-align: center;
+  color: var(--accent);
 }
 
-.footer {
-  padding: 16px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.navLabel {
+  font-weight: 500;
 }
 
-.currentProject {
-  background: rgba(102, 126, 234, 0.1);
-  border-radius: 8px;
-  padding: 10px 12px;
-  border: 1px solid rgba(102, 126, 234, 0.2);
+.projectInfo {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-default);
+  font-size: var(--text-sm);
 }
 
-.currentProjectLabel {
-  font-size: 10px;
-  color: #a0a0c0;
+.projectLabel {
+  display: block;
+  color: var(--text-faint);
+  margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 4px;
-  font-weight: 600;
 }
 
-.currentProjectPath {
-  font-size: 13px;
-  color: #fff;
-  font-weight: 500;
-  white-space: nowrap;
+.projectPath {
+  display: block;
+  color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.noProject {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.noProjectLabel {
-  font-size: 11px;
-  color: #6c6c80;
-  text-align: center;
-  font-style: italic;
-}
-
-.version {
-  font-size: 11px;
-  color: #6c6c80;
-  text-align: center;
-}
-
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: #f5f7fa;
-  min-width: 0;
-}
-
-.addressBar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-  background: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  flex-shrink: 0;
-}
-
-.addressBarLeft {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.pageIcon {
-  font-size: 18px;
-  flex-shrink: 0;
-}
-
-.pageName {
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
   white-space: nowrap;
 }
 
-.addressSeparator {
-  color: #ccc;
-  font-size: 12px;
-  flex-shrink: 0;
-}
-
-.addressInputWrapper {
+.content {
   flex: 1;
-  min-width: 0;
-}
-
-.addressInput {
-  width: 100%;
-  padding: 6px 12px;
-  background-color: #f5f7fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  color: #333;
-  font-size: 13px;
-  font-family: "Consolas", "Monaco", "Courier New", monospace;
-  outline: none;
-  transition: all 0.2s;
-}
-
-.addressInput:focus {
-  background-color: #ffffff;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.addressInput::placeholder {
-  color: #999;
-}
-
-.mainContent {
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg-base);
+  color: var(--text-primary);
 }

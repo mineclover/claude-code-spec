@@ -60,6 +60,27 @@ export function OptionField({ schema, value, onChange }: OptionFieldProps) {
         );
 
       default:
+        if (schema.choices && schema.choices.length > 0) {
+          const listId = `${id}-choices`;
+          return (
+            <>
+              <input
+                id={id}
+                type="text"
+                className={styles.input}
+                list={listId}
+                value={(value as string) ?? ''}
+                placeholder={schema.placeholder}
+                onChange={(e) => onChange(e.target.value || undefined)}
+              />
+              <datalist id={listId}>
+                {schema.choices.map((choice) => (
+                  <option key={choice.value} value={choice.value} label={choice.label} />
+                ))}
+              </datalist>
+            </>
+          );
+        }
         return (
           <input
             id={id}

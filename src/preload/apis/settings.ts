@@ -5,6 +5,7 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 import type { SettingsAPI, SettingsBackup } from '../../types/api';
+import type { McpDefaultConfigTarget } from '../../types/api/settings';
 import type { MaintenanceRegistryService } from '../../types/maintenance-registry';
 
 export function exposeSettingsAPI(): void {
@@ -50,6 +51,11 @@ export function exposeSettingsAPI(): void {
       ipcRenderer.invoke('settings:get-mcp-servers', projectPath),
     createMcpConfig: (projectPath: string, name: string, servers: string[]) =>
       ipcRenderer.invoke('settings:create-mcp-config', projectPath, name, servers),
+    createMcpDefaultConfig: (
+      projectPath: string,
+      target: McpDefaultConfigTarget,
+      servers: string[],
+    ) => ipcRenderer.invoke('settings:create-mcp-default-config', projectPath, target, servers),
 
     // Backup
     createBackup: (projectPath: string) =>

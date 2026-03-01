@@ -16,7 +16,12 @@ export interface ToolUseContent {
   input: Record<string, unknown>;
 }
 
-export type MessageContent = TextContent | ToolUseContent;
+export interface ThinkingContent {
+  type: 'thinking';
+  thinking: string;
+}
+
+export type MessageContent = TextContent | ToolUseContent | ThinkingContent;
 
 export interface AssistantMessage {
   id: string;

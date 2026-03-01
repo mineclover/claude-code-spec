@@ -50,15 +50,6 @@ export const pathToDashFormat = (fsPath: string): string => {
   return `-${fsPath.replace(/^\//, '').replace(/\//g, '-')}`;
 };
 
-/**
- * Convert Claude project directory name to file system path
- * -Users-junwoobang-project-claude-code-spec -> /Users/junwoobang/project/claude-code-spec
- */
-export const dashFormatToPath = (dashFormat: string): string => {
-  // Remove leading dash and replace remaining dashes with slashes
-  return `/${dashFormat.replace(/^-/, '').replace(/-/g, '/')}`;
-};
-
 // ============================================================================
 // Directory Operations
 // ============================================================================
@@ -73,8 +64,12 @@ export const getClaudeProjectsDir = (): string => {
 };
 
 export const getClaudeProjectDir = (projectPath: string): string => {
-  const dashName = pathToDashFormat(projectPath);
-  return path.join(getClaudeProjectsDir(), dashName);
+  const resolved = resolveClaudeProjectDir(projectPath);
+  if (resolved) {
+    return resolved;
+  }
+  const fallbackDashName = pathToDashFormat(projectPath);
+  return path.join(getClaudeProjectsDir(), fallbackDashName);
 };
 
 /**
@@ -104,7 +99,6 @@ const extractSessionMetadata = (
         // Extract cwd from any block that has it
         if (!cwd && block.cwd) {
           cwd = block.cwd;
-          console.log('[extractSessionMetadata] Found cwd:', cwd);
         }
 
         // Look for first "user" block (blocks can have different types)
@@ -114,19 +108,11 @@ const extractSessionMetadata = (
             const message = block.message as { role?: string; content?: string };
             if (message.role === 'user' && message.content) {
               firstUserMessage = message.content.trim();
-              console.log(
-                '[extractSessionMetadata] Found user message:',
-                firstUserMessage.substring(0, 50),
-              );
             }
           }
           // Some formats might have content directly on the block
           else if (block.role === 'user' && block.content) {
             firstUserMessage = block.content.trim();
-            console.log(
-              '[extractSessionMetadata] Found user message (direct):',
-              firstUserMessage?.substring(0, 50),
-            );
           }
         }
 
@@ -148,6 +134,241 @@ const extractSessionMetadata = (
   }
 };
 
+// ============================================================================
+// Lightweight Project Folder Listing
+// ============================================================================
+
+import type { LatestSessionMeta, ProjectFolder } from '../types/api/sessions';
+import type { ProgressCallback } from './sessionProvider';
+
+interface SessionFileStat {
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  lastModified: number;
+}
+
+interface ClaudeProjectDirectoryInfo {
+  dirName: string;
+  claudeProjectDir: string;
+  projectPath: string | null;
+  latestSessionMtime: number;
+  sessionCount: number;
+}
+
+interface ClaudeProjectDirectoryCache {
+  projectsDir: string;
+  builtAt: number;
+  byDirName: Map<string, ClaudeProjectDirectoryInfo>;
+  byProjectPath: Map<string, ClaudeProjectDirectoryInfo>;
+}
+
+const PROJECT_DIRECTORY_CACHE_TTL_MS = 10_000;
+let projectDirectoryCache: ClaudeProjectDirectoryCache | null = null;
+
+function listSessionFilesFromProjectDir(claudeProjectDir: string): SessionFileStat[] {
+  try {
+    const files = fs.readdirSync(claudeProjectDir);
+    return files
+      .filter((file) => file.endsWith('.jsonl'))
+      .map((file) => {
+        const filePath = path.join(claudeProjectDir, file);
+        const stats = fs.statSync(filePath);
+        return {
+          fileName: file,
+          filePath,
+          fileSize: stats.size,
+          lastModified: stats.mtimeMs,
+        };
+      })
+      .sort((a, b) => b.lastModified - a.lastModified);
+  } catch {
+    return [];
+  }
+}
+
+function resolveProjectPathFromSessionFiles(sessionFiles: SessionFileStat[]): string | null {
+  for (const file of sessionFiles) {
+    const metadata = extractSessionMetadata(file.filePath);
+    if (metadata.cwd) {
+      return metadata.cwd;
+    }
+  }
+  return null;
+}
+
+function buildClaudeProjectDirectoryCache(projectsDir: string): ClaudeProjectDirectoryCache {
+  const byDirName = new Map<string, ClaudeProjectDirectoryInfo>();
+  const byProjectPath = new Map<string, ClaudeProjectDirectoryInfo>();
+
+  let entries: fs.Dirent[] = [];
+  try {
+    entries = fs.readdirSync(projectsDir, { withFileTypes: true });
+  } catch {
+    return {
+      projectsDir,
+      builtAt: Date.now(),
+      byDirName,
+      byProjectPath,
+    };
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const dirName = entry.name;
+    const claudeProjectDir = path.join(projectsDir, dirName);
+    const sessionFiles = listSessionFilesFromProjectDir(claudeProjectDir);
+    if (sessionFiles.length === 0) {
+      continue;
+    }
+
+    const projectPath = resolveProjectPathFromSessionFiles(sessionFiles);
+    const info: ClaudeProjectDirectoryInfo = {
+      dirName,
+      claudeProjectDir,
+      projectPath,
+      latestSessionMtime: sessionFiles[0]?.lastModified ?? 0,
+      sessionCount: sessionFiles.length,
+    };
+
+    byDirName.set(dirName, info);
+
+    if (projectPath) {
+      const existing = byProjectPath.get(projectPath);
+      if (!existing || info.latestSessionMtime >= existing.latestSessionMtime) {
+        byProjectPath.set(projectPath, info);
+      }
+    }
+  }
+
+  return {
+    projectsDir,
+    builtAt: Date.now(),
+    byDirName,
+    byProjectPath,
+  };
+}
+
+function getClaudeProjectDirectoryCache(forceRefresh = false): ClaudeProjectDirectoryCache {
+  const projectsDir = getClaudeProjectsDir();
+  const now = Date.now();
+
+  if (
+    !forceRefresh &&
+    projectDirectoryCache &&
+    projectDirectoryCache.projectsDir === projectsDir &&
+    now - projectDirectoryCache.builtAt < PROJECT_DIRECTORY_CACHE_TTL_MS
+  ) {
+    return projectDirectoryCache;
+  }
+
+  projectDirectoryCache = buildClaudeProjectDirectoryCache(projectsDir);
+  return projectDirectoryCache;
+}
+
+function resolveClaudeProjectDir(projectPath: string): string | null {
+  const cached = getClaudeProjectDirectoryCache().byProjectPath.get(projectPath);
+  if (cached) {
+    return cached.claudeProjectDir;
+  }
+
+  const refreshed = getClaudeProjectDirectoryCache(true).byProjectPath.get(projectPath);
+  if (refreshed) {
+    return refreshed.claudeProjectDir;
+  }
+
+  // Backward-compat fallback for previously stored inferred paths.
+  const fallbackPath = path.join(getClaudeProjectsDir(), pathToDashFormat(projectPath));
+  return fs.existsSync(fallbackPath) ? fallbackPath : null;
+}
+
+function getProjectSessionsFromDir(claudeProjectDir: string): ClaudeSessionInfo[] {
+  const sessionFiles = listSessionFilesFromProjectDir(claudeProjectDir);
+  return sessionFiles.map((file) => ({
+    sessionId: file.fileName.replace('.jsonl', ''),
+    filePath: file.filePath,
+    fileSize: file.fileSize,
+    lastModified: file.lastModified,
+    ...extractSessionMetadata(file.filePath),
+  }));
+}
+
+function getProjectSessionsBasicFromDir(
+  claudeProjectDir: string,
+): Omit<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'>[] {
+  const sessionFiles = listSessionFilesFromProjectDir(claudeProjectDir);
+  return sessionFiles.map((file) => ({
+    sessionId: file.fileName.replace('.jsonl', ''),
+    filePath: file.filePath,
+    fileSize: file.fileSize,
+    lastModified: file.lastModified,
+  }));
+}
+
+/**
+ * List project folders based on actual session metadata (cwd)
+ */
+export const listClaudeProjectFolders = (onProgress?: ProgressCallback): ProjectFolder[] => {
+  const cache = getClaudeProjectDirectoryCache(true);
+  const projectInfos = Array.from(cache.byDirName.values())
+    .filter((info) => info.projectPath && info.sessionCount > 0)
+    .sort((a, b) => b.latestSessionMtime - a.latestSessionMtime);
+
+  const total = projectInfos.length;
+
+  return projectInfos.map((info, i) => {
+    onProgress?.({
+      phase: 'scanning',
+      current: i + 1,
+      total,
+      message: `Scanning directories... ${i + 1}/${total}`,
+    });
+
+    return {
+      projectPath: info.projectPath as string,
+      projectDirName: info.dirName,
+      lastModified: info.latestSessionMtime || undefined,
+      sessionCount: info.sessionCount,
+    };
+  });
+};
+
+/**
+ * Get metadata from the latest session file of a project (reads only 1 file)
+ */
+export const getLatestClaudeSessionMeta = (projectPath: string): LatestSessionMeta | null => {
+  const projectDir = getClaudeProjectDir(projectPath);
+
+  if (!fs.existsSync(projectDir)) {
+    return null;
+  }
+
+  try {
+    const sessionFiles = listSessionFilesFromProjectDir(projectDir);
+    const latest = sessionFiles[0];
+    if (!latest) {
+      return null;
+    }
+    const sessionId = latest.fileName.replace('.jsonl', '');
+    const metadata = extractSessionMetadata(latest.filePath);
+
+    return {
+      sessionId,
+      lastModified: latest.lastModified,
+      fileSize: latest.fileSize,
+      cwd: metadata.cwd,
+      firstUserMessage: metadata.firstUserMessage,
+      hasData: metadata.hasData,
+    };
+  } catch (error) {
+    console.error('[ClaudeSessions] Failed to get latest session meta:', error);
+    return null;
+  }
+};
+
 export const getProjectSessions = (projectPath: string): ClaudeSessionInfo[] => {
   const projectDir = getClaudeProjectDir(projectPath);
 
@@ -156,25 +377,7 @@ export const getProjectSessions = (projectPath: string): ClaudeSessionInfo[] => 
   }
 
   try {
-    const files = fs.readdirSync(projectDir);
-
-    return files
-      .filter((file) => file.endsWith('.jsonl'))
-      .map((file) => {
-        const filePath = path.join(projectDir, file);
-        const stats = fs.statSync(filePath);
-        const sessionId = file.replace('.jsonl', '');
-        const metadata = extractSessionMetadata(filePath);
-
-        return {
-          sessionId,
-          filePath,
-          fileSize: stats.size,
-          lastModified: stats.mtimeMs,
-          ...metadata,
-        };
-      })
-      .sort((a, b) => b.lastModified - a.lastModified); // Most recent first
+    return getProjectSessionsFromDir(projectDir);
   } catch (error) {
     console.error('[ClaudeSessions] Failed to read project sessions:', error);
     return [];
@@ -192,8 +395,7 @@ export const getProjectSessionCount = (projectPath: string): number => {
   }
 
   try {
-    const files = fs.readdirSync(projectDir);
-    return files.filter((file) => file.endsWith('.jsonl')).length;
+    return listSessionFilesFromProjectDir(projectDir).length;
   } catch (error) {
     console.error('[ClaudeSessions] Failed to count sessions:', error);
     return 0;
@@ -213,23 +415,7 @@ export const getProjectSessionsBasic = (
   }
 
   try {
-    const files = fs.readdirSync(projectDir);
-
-    return files
-      .filter((file) => file.endsWith('.jsonl'))
-      .map((file) => {
-        const filePath = path.join(projectDir, file);
-        const stats = fs.statSync(filePath);
-        const sessionId = file.replace('.jsonl', '');
-
-        return {
-          sessionId,
-          filePath,
-          fileSize: stats.size,
-          lastModified: stats.mtimeMs,
-        };
-      })
-      .sort((a, b) => b.lastModified - a.lastModified);
+    return getProjectSessionsBasicFromDir(projectDir);
   } catch (error) {
     console.error('[ClaudeSessions] Failed to read project sessions:', error);
     return [];
@@ -255,23 +441,7 @@ export const getProjectSessionsPaginated = (
   }
 
   try {
-    const files = fs.readdirSync(projectDir);
-
-    const allSessions = files
-      .filter((file) => file.endsWith('.jsonl'))
-      .map((file) => {
-        const filePath = path.join(projectDir, file);
-        const stats = fs.statSync(filePath);
-        const sessionId = file.replace('.jsonl', '');
-
-        return {
-          sessionId,
-          filePath,
-          fileSize: stats.size,
-          lastModified: stats.mtimeMs,
-        };
-      })
-      .sort((a, b) => b.lastModified - a.lastModified);
+    const allSessions = getProjectSessionsBasicFromDir(projectDir);
 
     const total = allSessions.length;
     const start = page * pageSize;
@@ -293,14 +463,13 @@ export const getSessionMetadata = (
   projectPath: string,
   sessionId: string,
 ): Pick<ClaudeSessionInfo, 'cwd' | 'firstUserMessage' | 'hasData'> => {
-  const projectDir = getClaudeProjectDir(projectPath);
-  const sessionFile = path.join(projectDir, `${sessionId}.jsonl`);
-
-  if (!fs.existsSync(sessionFile)) {
+  const sessions = getProjectSessions(projectPath);
+  const target = sessions.find((session) => session.sessionId === sessionId);
+  if (!target?.filePath || !fs.existsSync(target.filePath)) {
     return { hasData: false };
   }
 
-  return extractSessionMetadata(sessionFile);
+  return extractSessionMetadata(target.filePath);
 };
 
 // ============================================================================
@@ -308,16 +477,16 @@ export const getSessionMetadata = (
 // ============================================================================
 
 export const readSessionLog = (projectPath: string, sessionId: string): ClaudeSessionEntry[] => {
-  const projectDir = getClaudeProjectDir(projectPath);
-  const sessionFile = path.join(projectDir, `${sessionId}.jsonl`);
+  const sessions = getProjectSessions(projectPath);
+  const target = sessions.find((session) => session.sessionId === sessionId);
 
-  if (!fs.existsSync(sessionFile)) {
-    console.warn(`[ClaudeSessions] Session file not found: ${sessionFile}`);
+  if (!target?.filePath || !fs.existsSync(target.filePath)) {
+    console.warn(`[ClaudeSessions] Session file not found for ${projectPath}/${sessionId}`);
     return [];
   }
 
   try {
-    const content = fs.readFileSync(sessionFile, 'utf-8');
+    const content = fs.readFileSync(target.filePath, 'utf-8');
     return content
       .split('\n')
       .filter((line) => line.trim())
@@ -332,40 +501,18 @@ export const readSessionLog = (projectPath: string, sessionId: string): ClaudeSe
  * Get all projects that have Claude sessions
  */
 export const getAllClaudeProjects = (): ClaudeProjectInfo[] => {
-  const projectsDir = getClaudeProjectsDir();
-
-  if (!fs.existsSync(projectsDir)) {
-    return [];
-  }
-
   try {
-    const dirs = fs.readdirSync(projectsDir);
+    const cache = getClaudeProjectDirectoryCache();
+    const projectInfos = Array.from(cache.byDirName.values())
+      .filter((info) => info.projectPath && info.sessionCount > 0)
+      .sort((a, b) => b.latestSessionMtime - a.latestSessionMtime);
 
-    return dirs
-      .filter((dir) => {
-        const fullPath = path.join(projectsDir, dir);
-        return fs.statSync(fullPath).isDirectory();
-      })
-      .map((dir) => {
-        const claudeProjectDir = path.join(projectsDir, dir);
-        const inferredPath = dashFormatToPath(dir);
-        const sessions = getProjectSessions(inferredPath);
-
-        // Use actual cwd from first session with data, fallback to inferred path
-        let actualProjectPath = inferredPath;
-        const sessionWithCwd = sessions.find((s) => s.cwd && s.hasData);
-        if (sessionWithCwd?.cwd) {
-          actualProjectPath = sessionWithCwd.cwd;
-        }
-
-        return {
-          projectPath: actualProjectPath,
-          projectDirName: dir,
-          claudeProjectDir,
-          sessions,
-        };
-      })
-      .filter((project) => project.sessions.length > 0); // Only projects with sessions
+    return projectInfos.map((info) => ({
+      projectPath: info.projectPath as string,
+      projectDirName: info.dirName,
+      claudeProjectDir: info.claudeProjectDir,
+      sessions: getProjectSessionsFromDir(info.claudeProjectDir),
+    }));
   } catch (error) {
     console.error('[ClaudeSessions] Failed to get all Claude projects:', error);
     return [];
@@ -376,28 +523,11 @@ export const getAllClaudeProjects = (): ClaudeProjectInfo[] => {
  * Get total count of projects with sessions (no caching)
  */
 export const getTotalProjectCount = (): number => {
-  const projectsDir = getClaudeProjectsDir();
-
-  if (!fs.existsSync(projectsDir)) {
-    return 0;
-  }
-
   try {
-    const dirs = fs.readdirSync(projectsDir);
-
-    // Count only directories that have sessions
-    let count = 0;
-    for (const dir of dirs) {
-      const fullPath = path.join(projectsDir, dir);
-      if (fs.statSync(fullPath).isDirectory()) {
-        const inferredPath = dashFormatToPath(dir);
-        const sessionCount = getProjectSessionCount(inferredPath);
-        if (sessionCount > 0) {
-          count++;
-        }
-      }
-    }
-
+    const cache = getClaudeProjectDirectoryCache();
+    const count = Array.from(cache.byDirName.values()).filter(
+      (info) => info.projectPath && info.sessionCount > 0,
+    ).length;
     console.log('[ClaudeSessions] Total project count:', count);
     return count;
   } catch (error) {
@@ -412,52 +542,17 @@ export const getTotalProjectCount = (): number => {
 export const getAllClaudeProjectsPaginated = (
   page: number = 0,
   pageSize: number = 10,
+  onProgress?: ProgressCallback,
 ): {
   projects: ClaudeProjectInfo[];
   total: number;
   hasMore: boolean;
 } => {
-  const projectsDir = getClaudeProjectsDir();
-
-  if (!fs.existsSync(projectsDir)) {
-    return { projects: [], total: 0, hasMore: false };
-  }
-
   try {
-    const dirs = fs.readdirSync(projectsDir);
-
-    // Get all project directories
-    const allProjectDirs = dirs.filter((dir) => {
-      const fullPath = path.join(projectsDir, dir);
-      return fs.statSync(fullPath).isDirectory();
-    });
-
-    // Get basic project info (without full sessions) and sort by last modified
-    const allProjects = allProjectDirs
-      .map((dir) => {
-        const claudeProjectDir = path.join(projectsDir, dir);
-        const inferredPath = dashFormatToPath(dir);
-
-        // Get only basic session info to determine if project has sessions
-        const sessions = getProjectSessionsBasic(inferredPath);
-
-        if (sessions.length === 0) {
-          return null;
-        }
-
-        // Get latest session timestamp for sorting
-        const latestTimestamp = Math.max(...sessions.map((s) => s.lastModified));
-
-        return {
-          dir,
-          claudeProjectDir,
-          inferredPath,
-          latestTimestamp,
-          sessionCount: sessions.length,
-        };
-      })
-      .filter((p) => p !== null)
-      .sort((a, b) => b?.latestTimestamp - a?.latestTimestamp);
+    const cache = getClaudeProjectDirectoryCache();
+    const allProjects = Array.from(cache.byDirName.values())
+      .filter((info) => info.projectPath && info.sessionCount > 0)
+      .sort((a, b) => b.latestSessionMtime - a.latestSessionMtime);
 
     const total = allProjects.length;
     const start = page * pageSize;
@@ -467,28 +562,32 @@ export const getAllClaudeProjectsPaginated = (
     // Get paginated slice and load full sessions only for these
     const paginatedProjectDirs = allProjects.slice(start, end);
 
-    const projects = paginatedProjectDirs.map((projectInfo) => {
-      if (!projectInfo) {
-        throw new Error('Project info is null after filtering');
-      }
-      const { dir, claudeProjectDir, inferredPath } = projectInfo;
-      const sessions = getProjectSessions(inferredPath);
+    onProgress?.({
+      phase: 'reading',
+      current: 0,
+      total: paginatedProjectDirs.length,
+      message: 'Reading session data...',
+    });
 
-      // Use actual cwd from first session with data, fallback to inferred path
-      let actualProjectPath = inferredPath;
-      const sessionWithCwd = sessions.find((s) => s.cwd && s.hasData);
-      if (sessionWithCwd?.cwd) {
-        actualProjectPath = sessionWithCwd.cwd;
-      }
+    const projects = paginatedProjectDirs.map((projectInfo, i) => {
+      onProgress?.({
+        phase: 'reading',
+        current: i + 1,
+        total: paginatedProjectDirs.length,
+        message: `Reading sessions... ${i + 1}/${paginatedProjectDirs.length}`,
+      });
+
+      const sessions = getProjectSessionsFromDir(projectInfo.claudeProjectDir);
 
       return {
-        projectPath: actualProjectPath,
-        projectDirName: dir,
-        claudeProjectDir,
+        projectPath: projectInfo.projectPath as string,
+        projectDirName: projectInfo.dirName,
+        claudeProjectDir: projectInfo.claudeProjectDir,
         sessions,
       };
     });
 
+    onProgress?.({ phase: 'done', message: 'Done' });
     return { projects, total, hasMore };
   } catch (error) {
     console.error('[ClaudeSessions] Failed to get paginated Claude projects:', error);

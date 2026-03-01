@@ -1,0 +1,156 @@
+.entry {
+  margin-bottom: 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+/* Header row: speaker badge + output type label */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-surface);
+}
+
+.speakerBadge {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.speakerHuman    { background: var(--speaker-human-bg);     color: var(--speaker-human); }
+.speakerAgent    { background: var(--speaker-agent-bg);     color: var(--speaker-agent); }
+.speakerSubAgent { background: var(--speaker-sub-agent-bg); color: var(--speaker-sub-agent); }
+.speakerSystem   { background: var(--speaker-system-bg);    color: var(--speaker-system); }
+
+.outputLabel {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+
+.outputToolCall   { color: var(--output-tool-call); }
+.outputToolOutput { color: var(--output-tool-output); }
+.outputThinking   { color: var(--output-thinking); }
+.outputAnswer     { color: var(--output-answer); }
+.outputSystem     { color: var(--output-system); }
+
+/* Content body */
+.body {
+  padding: 6px 10px;
+}
+
+/* Text answer */
+.textContent {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Tool call */
+.toolCall {
+  margin-bottom: 4px;
+}
+
+.toolName {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--output-tool-call);
+  margin-bottom: 2px;
+}
+
+.toolInput {
+  font-size: var(--text-xs);
+  color: var(--text-dimmed);
+  background: var(--bg-inset);
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* Tool output */
+.toolResult {
+  margin-bottom: 4px;
+}
+
+.toolResultId {
+  font-size: var(--text-xs);
+  color: var(--output-tool-output);
+  margin-bottom: 2px;
+}
+
+.toolResultContent {
+  font-size: var(--text-xs);
+  color: var(--text-dimmed);
+  background: var(--bg-inset);
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  max-height: 80px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Thinking */
+.thinkingContent {
+  font-size: var(--text-sm);
+  font-style: italic;
+  color: var(--output-thinking);
+  opacity: 0.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+/* System text */
+.systemContent {
+  font-size: var(--text-sm);
+  color: var(--text-dimmed);
+}
+
+/* Collapsible toggle */
+.toggleBtn {
+  display: inline-block;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  margin-left: 6px;
+}
+
+.toggleBtn:hover {
+  text-decoration: underline;
+}
+
+/* Collapsed state */
+.collapsed {
+  max-height: 40px;
+  overflow: hidden;
+  position: relative;
+}
+
+.collapsed::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(transparent, var(--bg-base));
+}

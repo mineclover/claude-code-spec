@@ -1,0 +1,43 @@
+.resultText {
+  padding: 10px;
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 12px;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding: 8px 0;
+}
+
+.statItem {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.statValue {
+  font-size: 14px;
+  color: #212529;
+  font-weight: 600;
+  font-family: "SF Mono", Monaco, monospace;
+}
+
+.statMuted {
+  font-size: 11px;
+  color: #adb5bd;
+}

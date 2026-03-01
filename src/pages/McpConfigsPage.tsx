@@ -10,8 +10,23 @@ import { ProgressBar } from '../components/common/ProgressBar';
 import { useProject } from '../contexts/ProjectContext';
 import { useToolContext } from '../contexts/ToolContext';
 import type { ProjectFolder, SessionLoadProgress } from '../types/api/sessions';
-import type { McpConfigFile, McpServer } from '../types/api/settings';
+import type { McpConfigFile, McpDefaultConfigTarget, McpServer } from '../types/api/settings';
 import styles from './McpConfigsPage.module.css';
+
+type CreateMode = 'named' | 'default';
+
+function defaultTargetFromToolId(toolId: string): McpDefaultConfigTarget {
+  if (toolId === 'codex') return 'codex';
+  if (toolId === 'gemini') return 'gemini';
+  return 'claude';
+}
+
+function defaultPathFromTarget(target: McpDefaultConfigTarget): string {
+  if (target === 'codex') return '.codex/.mcp.json';
+  if (target === 'gemini') return '.gemini/.mcp.json';
+  if (target === 'project') return '.mcp.json';
+  return '.claude/.mcp.json';
+}
 
 export function McpConfigsPage() {
   const { projectPath, projectDirName, updateProject } = useProject();
@@ -22,6 +37,7 @@ export function McpConfigsPage() {
   const [selectedConfig, setSelectedConfig] = useState<McpConfigFile | null>(null);
   const [editingContent, setEditingContent] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
+  const [createMode, setCreateMode] = useState<CreateMode>('named');
   const [newConfigName, setNewConfigName] = useState('');
   const [selectedServers, setSelectedServers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,16 +175,25 @@ export function McpConfigsPage() {
   };
 
   const handleCreateConfig = async () => {
-    if (!projectPath || !newConfigName.trim() || selectedServers.length === 0) return;
+    if (!projectPath || selectedServers.length === 0) return;
+    if (createMode === 'named' && !newConfigName.trim()) return;
+
+    const defaultTarget = defaultTargetFromToolId(selectedToolId);
+
     try {
-      const result = await window.settingsAPI.createMcpConfig(
-        projectPath,
-        newConfigName,
-        selectedServers,
-      );
+      const result =
+        createMode === 'named'
+          ? await window.settingsAPI.createMcpConfig(projectPath, newConfigName, selectedServers)
+          : await window.settingsAPI.createMcpDefaultConfig(
+              projectPath,
+              defaultTarget,
+              selectedServers,
+            );
+
       if (result.success) {
         toast.success('Created');
         setIsCreating(false);
+        setCreateMode('named');
         setNewConfigName('');
         setSelectedServers([]);
         loadConfigs();
@@ -217,6 +242,11 @@ export function McpConfigsPage() {
       </div>
     );
   };
+
+  const defaultTarget = defaultTargetFromToolId(selectedToolId);
+  const defaultPathHint = defaultPathFromTarget(defaultTarget);
+  const isCreateDisabled =
+    selectedServers.length === 0 || (createMode === 'named' && !newConfigName.trim());
 
   // -- Project Picker overlay --
   const renderProjectPicker = () => (
@@ -281,7 +311,10 @@ export function McpConfigsPage() {
           {projectPath && (
             <button
               type="button"
-              onClick={() => setIsCreating(true)}
+              onClick={() => {
+                setIsCreating(true);
+                setCreateMode('named');
+              }}
               className={styles.newConfigButton}
             >
               + New Configuration
@@ -335,15 +368,46 @@ export function McpConfigsPage() {
                 <h2 className={styles.contentTitle}>Create New Configuration</h2>
               </div>
               <div className={styles.formGroup}>
-                <div className={styles.formLabel}>Name</div>
-                <input
-                  type="text"
-                  value={newConfigName}
-                  onChange={(e) => setNewConfigName(e.target.value)}
-                  placeholder="e.g., dev, analysis"
-                  className={styles.formInput}
-                />
-                <p className={styles.formHint}>File: .mcp-{newConfigName || 'name'}.json</p>
+                <div className={styles.formLabel}>Create Mode</div>
+                <div className={styles.modeTabs}>
+                  <button
+                    type="button"
+                    className={`${styles.modeTab} ${createMode === 'named' ? styles.modeTabActive : ''}`}
+                    onClick={() => setCreateMode('named')}
+                  >
+                    Named Profile
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.modeTab} ${createMode === 'default' ? styles.modeTabActive : ''}`}
+                    onClick={() => setCreateMode('default')}
+                  >
+                    Package Default
+                  </button>
+                </div>
+              </div>
+              <div className={styles.formGroup}>
+                {createMode === 'named' ? (
+                  <>
+                    <div className={styles.formLabel}>Name</div>
+                    <input
+                      type="text"
+                      value={newConfigName}
+                      onChange={(e) => setNewConfigName(e.target.value)}
+                      placeholder="e.g., dev, analysis"
+                      className={styles.formInput}
+                    />
+                    <p className={styles.formHint}>File: .mcp-{newConfigName || 'name'}.json</p>
+                  </>
+                ) : (
+                  <>
+                    <div className={styles.formLabel}>Default Target (Auto)</div>
+                    <p className={styles.formHint}>
+                      Current CLI: <strong>{selectedToolId}</strong>
+                    </p>
+                    <p className={styles.formHint}>File: {defaultPathHint}</p>
+                  </>
+                )}
               </div>
               <div className={styles.formGroup}>
                 <div className={styles.formLabel}>MCP Servers ({selectedServers.length})</div>
@@ -376,7 +440,7 @@ export function McpConfigsPage() {
                 <button
                   type="button"
                   onClick={handleCreateConfig}
-                  disabled={!newConfigName.trim() || selectedServers.length === 0}
+                  disabled={isCreateDisabled}
                   className={styles.saveButton}
                 >
                   Create
@@ -385,6 +449,7 @@ export function McpConfigsPage() {
                   type="button"
                   onClick={() => {
                     setIsCreating(false);
+                    setCreateMode('named');
                     setNewConfigName('');
                     setSelectedServers([]);
                   }}

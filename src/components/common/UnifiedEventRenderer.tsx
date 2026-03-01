@@ -1,29 +1,19 @@
 /**
  * Unified Event Renderer
- *
- * This component provides a unified rendering system for both stream events
- * and session log entries using the centralized event registry.
+ * Renders stream events using the centralized event registry.
  */
 
 import type React from 'react';
 import { EventType, eventRegistry, type UnifiedEvent } from '../../lib/event-registry';
-import { MessageEvent } from '../sessions/events/MessageEvent';
-// Import session event components
-import { SummaryEvent } from '../sessions/events/SummaryEvent';
 import { AssistantEvent } from '../stream/events/AssistantEvent';
 import { ErrorEvent } from '../stream/events/ErrorEvent';
 import { ResultEvent } from '../stream/events/ResultEvent';
-// Import stream event components
 import { SystemInitEvent } from '../stream/events/SystemInitEvent';
 import { UnknownEvent } from '../stream/events/UnknownEvent';
 import { UserEvent } from '../stream/events/UserEvent';
 import { ErrorBoundary } from './ErrorBoundary';
 
-// ============================================================================
-// Register Event Renderers
-// ============================================================================
-
-// Only register if not already registered (avoid duplicate registration)
+// Register event renderers
 if (!eventRegistry.getRenderer(EventType.SYSTEM_INIT)) {
   eventRegistry.registerRenderer({
     eventType: EventType.SYSTEM_INIT,
@@ -51,42 +41,21 @@ if (!eventRegistry.getRenderer(EventType.SYSTEM_INIT)) {
   });
 
   eventRegistry.registerRenderer({
-    eventType: EventType.SUMMARY,
-    component: SummaryEvent as React.ComponentType<{ event: UnifiedEvent; index?: number }>,
-  });
-
-  eventRegistry.registerRenderer({
-    eventType: EventType.MESSAGE,
-    component: MessageEvent as React.ComponentType<{ event: UnifiedEvent; index?: number }>,
-  });
-
-  eventRegistry.registerRenderer({
     eventType: EventType.UNKNOWN,
     component: UnknownEvent as React.ComponentType<{ event: UnifiedEvent; index?: number }>,
   });
 }
-
-// ============================================================================
-// Unified Event Renderer Component
-// ============================================================================
 
 export interface UnifiedEventRendererProps {
   event: UnifiedEvent;
   index?: number;
 }
 
-/**
- * Unified event renderer that works for both stream events and session log entries
- */
 export const UnifiedEventRenderer: React.FC<UnifiedEventRendererProps> = ({ event, index = 0 }) => {
-  // Detect event type using the registry
   const eventType = eventRegistry.detectEventType(event);
-
-  // Get the appropriate renderer
   const renderer = eventRegistry.getRenderer(eventType);
 
   if (!renderer) {
-    // Fallback to unknown event if no renderer found
     const fallbackRenderer = eventRegistry.getRenderer(EventType.UNKNOWN);
     if (fallbackRenderer) {
       const Component = fallbackRenderer.component;
@@ -96,8 +65,6 @@ export const UnifiedEventRenderer: React.FC<UnifiedEventRendererProps> = ({ even
         </ErrorBoundary>
       );
     }
-
-    // Ultimate fallback
     return (
       <ErrorBoundary key={index}>
         <UnknownEvent event={event} />
@@ -105,7 +72,6 @@ export const UnifiedEventRenderer: React.FC<UnifiedEventRendererProps> = ({ even
     );
   }
 
-  // Render with the appropriate component wrapped in ErrorBoundary
   const Component = renderer.component;
   return (
     <ErrorBoundary key={index}>

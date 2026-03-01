@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "sessionId": "4046228a-df35-4376-a8e6-94d8b329eb90",
+  "status": "running",
+  "startedAt": "2026-03-01T06:20:59.603Z",
+  "updatedAt": "2026-03-01T06:46:20.209Z",
+  "currentIteration": 0,
+  "maxIterations": 0,
+  "tasksCompleted": 0,
+  "isPaused": false,
+  "agentPlugin": "codex",
+  "trackerState": {
+    "plugin": "json",
+    "prdPath": "./tasks/prd.json",
+    "totalTasks": 16,
+    "tasks": [
+      {
+        "id": "US-001",
+        "title": "Capability Matrix 표준 스키마 정의",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-002",
+        "title": "서비스 어댑터 SDK 인터페이스 패키지화",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-003",
+        "title": "내장 서비스 어댑터 SDK 마이그레이션",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-004",
+        "title": "Maintenance Registry 버전 관리 및 마이그레이션",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-005",
+        "title": "CLI 명령 조합 Rule Catalog 고도화",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-006",
+        "title": "CLI별 MCP Launch Strategy 추상화",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-007",
+        "title": "Global/Project MCP Source Aggregator 통합",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-008",
+        "title": "세션 기반 실제 경로 해석 서비스 도입",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-009",
+        "title": "Skill Store Scanner 전략화",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-010",
+        "title": "Skill Version Resolver 체인 추가",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-011",
+        "title": "Skill Activation 트랜잭션 및 감사 로그",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-012",
+        "title": "업데이트 플래너(체크/실행/요약) 워크플로우",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-013",
+        "title": "Registry 설정 UI 폼 모드 추가(JSON 병행)",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-014",
+        "title": "Provider 전용 관리 페이지 확장 프레임워크",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-015",
+        "title": "신규 서비스 온보딩 키트(템플릿/검증/문서)",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-016",
+        "title": "호환성 테스트 매트릭스 및 fixture 파이프라인",
+        "status": "open",
+        "completedInSession": false
+      }
+    ]
+  },
+  "iterations": [],
+  "skippedTaskIds": [],
+  "cwd": "/Users/junwoobang/workflow/claude-code-spec",
+  "activeTaskIds": [],
+  "subagentPanelVisible": false
+}
