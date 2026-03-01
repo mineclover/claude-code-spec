@@ -80,6 +80,12 @@ after each iteration and it's included in prompts for context.
   standardized hooks/output styles/skills cards via
   `ReferenceProviderSectionFramework` so provider-specific section exposure stays
   declarative.
+- Service onboarding kit triangulation pattern:
+  Keep 신규 서비스 온보딩 guidance anchored by three linked artifacts:
+  adapter code template (`adapterTemplate.ts`), executable onboarding examples
+  (`adapterTemplate.test.ts` with registry validation checks), and docs checklist
+  (`docs/features/skills/service-onboarding-standard.md`) so process guidance,
+  contracts, and verification remain synchronized.
 
 ---
 
@@ -460,4 +466,29 @@ after each iteration and it's included in prompts for context.
   - Gotchas encountered
     - Manual UI validation could not be completed in this environment because
       Electron Forge (Vite dev server) could not bind to localhost in sandbox.
+---
+
+## 2026-03-01 - US-015
+- What was implemented
+  - Verified story scope was already implemented in the current branch:
+    - Standardized onboarding kit doc with code template + checklist exists at
+      `docs/features/skills/service-onboarding-standard.md`.
+    - Adapter contract + registry validation examples are included in
+      `src/services/maintenance/adapterTemplate.test.ts` and
+      `src/lib/maintenanceRegistryValidation.test.ts`.
+    - Skills docs index includes the onboarding standard procedure link at
+      `docs/features/skills/index.md`.
+  - Confirmed acceptance checks:
+    - `npx tsc --noEmit`
+    - `npx biome check src/services/maintenance/adapterTemplate.ts src/services/maintenance/adapterTemplate.test.ts src/types/maintenance-adapter-sdk.ts src/types/maintenance-adapter-sdk.typecheck.ts src/lib/maintenanceRegistryValidation.test.ts docs/features/skills/service-onboarding-standard.md docs/features/skills/index.md .ralph-tui/progress.md`
+    - `npx vitest run src/services/maintenance/adapterTemplate.test.ts src/lib/maintenanceRegistryValidation.test.ts`
+- Files changed
+  - `.ralph-tui/progress.md`
+- **Learnings:**
+  - Patterns discovered
+    - Onboarding quality stays stable when template code, contract/validation examples,
+      and checklist documentation are maintained as one linked kit.
+  - Gotchas encountered
+    - Existing implementation already satisfied story requirements; this iteration
+      focused on verification and documentation updates.
 ---
