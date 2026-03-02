@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import styles from '../../pages/SkillsPage.module.css';
 import type {
   CliToolBatchUpdateSummary,
@@ -5,6 +6,7 @@ import type {
   CliToolVersionInfo,
   ManagedCliTool,
 } from '../../types/tool-maintenance';
+import { resolveCommandForPlatform } from '../../types/tool-maintenance';
 
 type Message = { type: 'success' | 'error'; text: string } | null;
 
@@ -26,6 +28,7 @@ interface SkillsCliMaintenanceSectionProps {
   onClearToolSelection: () => void;
   onRunSelectedUpdates: () => void | Promise<void>;
   onRefreshLogs: () => void | Promise<void>;
+  onOpenCliStatusFile?: () => void | Promise<void>;
 }
 
 function buildStatusLine(info?: CliToolVersionInfo): { label: string; ok: boolean } {
@@ -60,6 +63,29 @@ function formatUpdateLogStatus(log: CliToolUpdateLogEntry): string {
   return `${log.success ? 'SUCCESS' : 'FAILED'} (exit ${exitCodeLabel})`;
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  return (
+    <button
+      type="button"
+      className={styles.copyButton}
+      onClick={handleCopy}
+      title="Copy to clipboard"
+    >
+      {copied ? '✓' : '⎘'}
+    </button>
+  );
+}
+
 export function SkillsCliMaintenanceSection({
   maintenanceTools,
   toolVersions,
@@ -78,12 +104,14 @@ export function SkillsCliMaintenanceSection({
   onClearToolSelection,
   onRunSelectedUpdates,
   onRefreshLogs,
+  onOpenCliStatusFile,
 }: SkillsCliMaintenanceSectionProps) {
   return (
     <div className={styles.settingItem}>
       <div className={styles.settingLabel}>CLI Update Planner</div>
       <div className={styles.settingDescription}>
-        Check versions, select tools that need updates, and run batch updates.
+        Check versions, select tools that need updates, and run batch updates. Version check results
+        are saved to <code>cli-status.json</code>.
       </div>
 
       <div className={styles.inlineActions}>
@@ -123,6 +151,16 @@ export function SkillsCliMaintenanceSection({
               ? `Update Selected (${selectedToolCount})`
               : 'Update Selected'}
         </button>
+        {onOpenCliStatusFile && (
+          <button
+            type="button"
+            onClick={onOpenCliStatusFile}
+            className={styles.browseButton}
+            title="Open cli-status.json in system editor"
+          >
+            Open cli-status.json
+          </button>
+        )}
       </div>
 
       <div className={styles.toolGrid}>
@@ -133,6 +171,11 @@ export function SkillsCliMaintenanceSection({
           const selected = selectedToolIds.includes(tool.id);
           const isUpdatingThis = updatingToolId === tool.id;
           const disabled = isBatchUpdating || updatingToolId !== null;
+          const resolvedUpdateCmd = resolveCommandForPlatform(
+            tool.updateCommand,
+            window.osPlatform ?? 'linux',
+          );
+          const resolvedUpdateStr = [resolvedUpdateCmd.command, ...resolvedUpdateCmd.args].join(' ');
 
           return (
             <div
@@ -198,9 +241,11 @@ export function SkillsCliMaintenanceSection({
                     <strong>Version:</strong>{' '}
                     {[tool.versionCommand.command, ...tool.versionCommand.args].join(' ')}
                   </div>
-                  <div>
-                    <strong>Update:</strong>{' '}
-                    {[tool.updateCommand.command, ...tool.updateCommand.args].join(' ')}
+                  <div className={styles.toolCommandRow}>
+                    <span>
+                      <strong>Update:</strong> {resolvedUpdateStr}
+                    </span>
+                    <CopyButton text={resolvedUpdateStr} />
                   </div>
                   {info?.rawOutput && (
                     <div>
@@ -244,8 +289,11 @@ export function SkillsCliMaintenanceSection({
                   <strong>{log.toolId}</strong> {formatUpdateLogStatus(log)}
                 </summary>
                 <div className={styles.toolCommands}>
-                  <div>
-                    <strong>Command:</strong> {log.command.join(' ')}
+                  <div className={styles.toolCommandRow}>
+                    <span>
+                      <strong>Command:</strong> {log.command.join(' ')}
+                    </span>
+                    <CopyButton text={log.command.join(' ')} />
                   </div>
                   <div>
                     <strong>Batch:</strong> {log.batchId ?? 'single'}

@@ -14,6 +14,7 @@ import type {
   ReferenceProvider,
 } from '../reference-assets';
 import type {
+  CliStatusDocument,
   CliToolBatchUpdateSummary,
   CliToolUpdateLogEntry,
   CliToolUpdateResult,
@@ -57,4 +58,6 @@ export interface ToolsAPI {
     active: boolean,
   ) => Promise<InstalledSkillInfo>;
   readSkillContent: (provider: SkillProvider, skillId: string) => Promise<string | null>;
+  getCliStatus: () => Promise<CliStatusDocument>;
+  openCliStatusFile: () => Promise<{ success: boolean; error?: string }>;
 }

@@ -7,6 +7,37 @@ export interface CommandSpec {
   args: string[];
 }
 
+export type OsPlatform = 'darwin' | 'win32' | 'linux';
+
+/** CommandSpec with optional per-OS overrides. Falls back to the base spec when no override matches. */
+export type PlatformCommandSpec = CommandSpec & {
+  platforms?: Partial<Record<OsPlatform, CommandSpec>>;
+};
+
+export function resolveCommandForPlatform(
+  spec: PlatformCommandSpec,
+  platform: string,
+): CommandSpec {
+  const override = spec.platforms?.[platform as OsPlatform];
+  if (override) return override;
+  const { platforms: _platforms, ...base } = spec;
+  return base;
+}
+
+export interface CliToolStatus {
+  lastKnownVersion?: string;
+  lastCheckedAt?: number;
+  customCommands?: {
+    versionCommand?: CommandSpec;
+    updateCommand?: PlatformCommandSpec;
+  };
+}
+
+export interface CliStatusDocument {
+  schemaVersion: number;
+  tools: Record<string, CliToolStatus>;
+}
+
 export interface CliToolUpdatePolicy {
   explicitUpdateRequired?: boolean;
 }
@@ -17,7 +48,7 @@ export interface ManagedCliTool {
   description: string;
   versionCommand: CommandSpec;
   latestVersionCommand?: CommandSpec;
-  updateCommand: CommandSpec;
+  updateCommand: PlatformCommandSpec;
   updatePolicy?: CliToolUpdatePolicy;
   docsUrl?: string;
 }

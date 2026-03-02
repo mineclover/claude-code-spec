@@ -8,6 +8,7 @@ import path from 'node:path';
 import { shell } from 'electron';
 import { settingsService } from '../../services/appSettings';
 import { CliMaintenanceService } from '../../services/CliMaintenanceService';
+import { FileCliStatusStore } from '../../services/maintenance/cliStatusStore';
 import { createMaintenanceAdapters } from '../../services/maintenance/serviceIntegrations';
 import { FileSkillActivationAuditStore } from '../../services/maintenance/skillActivationAuditLog';
 import { FileToolUpdateAuditStore } from '../../services/maintenance/toolUpdateAuditLog';
@@ -22,17 +23,22 @@ import type {
 import type { SkillProvider } from '../../types/tool-maintenance';
 import type { IPCRouter } from '../IPCRouter';
 
+const userDataDir = path.dirname(settingsService.getSettingsPath());
+
 const cliMaintenanceService = new CliMaintenanceService(
   () => createMaintenanceAdapters({ customServices: settingsService.getMaintenanceServices() }),
   {
     activationAuditStore: new FileSkillActivationAuditStore(
-      path.join(path.dirname(settingsService.getSettingsPath()), 'skill-activation-events.json'),
+      path.join(userDataDir, 'skill-activation-events.json'),
     ),
     updateAuditStore: new FileToolUpdateAuditStore(
-      path.join(path.dirname(settingsService.getSettingsPath()), 'tool-update-events.json'),
+      path.join(userDataDir, 'tool-update-events.json'),
     ),
   },
 );
+
+const cliStatusStore = new FileCliStatusStore(path.join(userDataDir, 'cli-status.json'));
+
 const referenceAssetService = new ReferenceAssetService();
 
 export function registerToolsHandlers(router: IPCRouter): void {
@@ -49,7 +55,19 @@ export function registerToolsHandlers(router: IPCRouter): void {
   });
 
   router.handle('check-tool-versions', async (_event, toolIds?: string[]) => {
-    return cliMaintenanceService.checkToolVersions(toolIds);
+    const results = await cliMaintenanceService.checkToolVersions(toolIds);
+    // Persist discovered version info to cli-status.json
+    for (const info of results) {
+      if (info.version) {
+        cliStatusStore
+          .setToolStatus(info.toolId, {
+            lastKnownVersion: info.version,
+            lastCheckedAt: info.checkedAt,
+          })
+          .catch(() => {});
+      }
+    }
+    return results;
   });
 
   router.handle('run-tool-update', async (_event, toolId: string) => {
@@ -163,4 +181,17 @@ export function registerToolsHandlers(router: IPCRouter): void {
       }
     },
   );
+
+  router.handle('get-cli-status', async () => {
+    return cliStatusStore.readAll();
+  });
+
+  router.handle('open-cli-status-file', async () => {
+    const filePath = cliStatusStore.getFilePath();
+    // Ensure the file exists before opening
+    const doc = await cliStatusStore.readAll();
+    await cliStatusStore.writeAll(doc);
+    const openResult = await shell.openPath(filePath);
+    return openResult ? { success: false, error: openResult } : { success: true };
+  });
 }

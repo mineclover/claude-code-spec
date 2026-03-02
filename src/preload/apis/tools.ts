@@ -43,5 +43,7 @@ export function exposeToolsAPI(): void {
       ipcRenderer.invoke('tools:set-skill-activation', { provider, skillId, active }),
     readSkillContent: (provider, skillId) =>
       ipcRenderer.invoke('tools:get-skill-content', { provider, skillId }),
+    getCliStatus: () => ipcRenderer.invoke('tools:get-cli-status'),
+    openCliStatusFile: () => ipcRenderer.invoke('tools:open-cli-status-file'),
   } as ToolsAPI);
 }

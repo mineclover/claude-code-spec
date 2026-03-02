@@ -111,6 +111,7 @@ export function CliMaintenancePage() {
             onClearToolSelection={clearToolSelection}
             onRunSelectedUpdates={runSelectedToolUpdates}
             onRefreshLogs={loadToolUpdateLogs}
+            onOpenCliStatusFile={() => { window.toolsAPI.openCliStatusFile(); }}
           />
         ) : (
           <div className={styles.settingDescription}>
