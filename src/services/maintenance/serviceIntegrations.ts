@@ -27,7 +27,11 @@ import {
   type ToolAdapter,
 } from '../../types/maintenance-adapter-sdk';
 import type { MaintenanceRegistryService } from '../../types/maintenance-registry';
-import type { CommandSpec, SkillInstallPathInfo } from '../../types/tool-maintenance';
+import type {
+  CommandSpec,
+  PlatformCommandSpec,
+  SkillInstallPathInfo,
+} from '../../types/tool-maintenance';
 
 export type {
   ExecutionAdapter,
@@ -42,6 +46,7 @@ const SKILLS_REFERENCE = 'references/vercel-labs-skills/src/agents.ts';
 interface CustomCommandSpecLike {
   command?: unknown;
   args?: unknown;
+  platforms?: unknown;
 }
 
 interface CustomManagedToolLike {
@@ -94,7 +99,7 @@ function readString(value: unknown): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
-function normalizeCommandSpec(raw: unknown, env: NodeJS.ProcessEnv): CommandSpec | null {
+function normalizeBaseCommandSpec(raw: unknown, env: NodeJS.ProcessEnv): CommandSpec | null {
   if (!isRecord(raw)) {
     return null;
   }
@@ -114,6 +119,34 @@ function normalizeCommandSpec(raw: unknown, env: NodeJS.ProcessEnv): CommandSpec
     command: resolvePathTemplate(command, env),
     args,
   };
+}
+
+function normalizeCommandSpec(raw: unknown, env: NodeJS.ProcessEnv): CommandSpec | null {
+  return normalizeBaseCommandSpec(raw, env);
+}
+
+function normalizePlatformCommandSpec(
+  raw: unknown,
+  env: NodeJS.ProcessEnv,
+): PlatformCommandSpec | null {
+  const base = normalizeBaseCommandSpec(raw, env);
+  if (!base) return null;
+
+  const source = isRecord(raw) ? (raw as CustomCommandSpecLike) : null;
+  if (!source || !isRecord(source.platforms)) {
+    return base;
+  }
+
+  const platforms: PlatformCommandSpec['platforms'] = {};
+  for (const key of ['darwin', 'win32', 'linux'] as const) {
+    const override = normalizeBaseCommandSpec(
+      (source.platforms as Record<string, unknown>)[key],
+      env,
+    );
+    if (override) platforms[key] = override;
+  }
+
+  return Object.keys(platforms).length > 0 ? { ...base, platforms } : base;
 }
 
 function createRuntimeAdapter({
@@ -184,7 +217,7 @@ function normalizeCustomTool(
   const id = readString(source.id);
   const name = readString(source.name);
   const versionCommand = normalizeCommandSpec(source.versionCommand, env);
-  const updateCommand = normalizeCommandSpec(source.updateCommand, env);
+  const updateCommand = normalizePlatformCommandSpec(source.updateCommand, env);
 
   if (!id || !name || !versionCommand || !updateCommand) {
     return null;
@@ -545,6 +578,9 @@ export function createDefaultMaintenanceAdapters(
           updateCommand: {
             command: 'npm',
             args: ['install', '-g', '@google/gemini-cli@latest'],
+            platforms: {
+              darwin: { command: 'brew', args: ['upgrade', 'gemini-cli'] },
+            },
           },
           docsUrl: 'https://github.com/google-gemini/gemini-cli',
         },

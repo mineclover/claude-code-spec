@@ -25,6 +25,7 @@ import type {
   SkillInstallPathInfo,
   SkillProvider,
 } from '../types/tool-maintenance';
+import { resolveCommandForPlatform } from '../types/tool-maintenance';
 import {
   createMaintenanceAdapters,
   type MaintenanceServiceAdapter,
@@ -431,12 +432,13 @@ export class CliMaintenanceService {
     batchId: string | null,
   ): Promise<CliToolUpdateResult> {
     const startedAt = Date.now();
-    const result = await this.executeCommand(tool.updateCommand);
+    const resolvedUpdateCommand = resolveCommandForPlatform(tool.updateCommand, process.platform);
+    const result = await this.executeCommand(resolvedUpdateCommand);
     const completedAt = Date.now();
     const updateResult: CliToolUpdateResult = {
       toolId: tool.id,
       success: result.exitCode === 0 && !result.error,
-      command: [tool.updateCommand.command, ...tool.updateCommand.args],
+      command: [resolvedUpdateCommand.command, ...resolvedUpdateCommand.args],
       exitCode: result.exitCode,
       stdout: result.stdout,
       stderr: result.stderr,
