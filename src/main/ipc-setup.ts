@@ -7,6 +7,7 @@ import {
   registerExecuteHandlers,
   setupExecutionEventForwarding,
 } from '../ipc/handlers/executeHandlers';
+import { registerMoaiHandlers } from '../ipc/handlers/moaiHandlers';
 import { registerSessionsHandlers } from '../ipc/handlers/sessionsHandlers';
 import { registerSettingsHandlers } from '../ipc/handlers/settingsHandlers';
 import { registerToolsHandlers } from '../ipc/handlers/toolsHandlers';
@@ -34,6 +35,10 @@ export function setupIPCHandlers(): void {
   // Tools
   const toolsRouter = ipcRegistry.router('tools');
   registerToolsHandlers(toolsRouter);
+
+  // MoAI
+  const moaiRouter = ipcRegistry.router('moai');
+  registerMoaiHandlers(moaiRouter);
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }

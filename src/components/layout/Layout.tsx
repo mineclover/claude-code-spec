@@ -39,6 +39,7 @@ const navGroups: NavGroup[] = [
     items: [
       { path: '/skills', label: 'Skills', icon: '%' },
       { path: '/cli-maintenance', label: 'CLI Maintenance', icon: '⚒' },
+      { path: '/moai-statusline', label: 'Status Bar', icon: 'M' },
     ],
   },
   {

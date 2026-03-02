@@ -17,6 +17,7 @@ import { ReferenceSkillsPage } from './pages/ReferenceSkillsPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { CliMaintenancePage } from './pages/CliMaintenancePage';
+import { MoaiStatuslinePage } from './pages/MoaiStatuslinePage';
 import { SkillsPage } from './pages/SkillsPage';
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
               <Route path="/mcp-configs" element={<McpConfigsPage />} />
               <Route path="/skills" element={<SkillsPage />} />
               <Route path="/cli-maintenance" element={<CliMaintenancePage />} />
+              <Route path="/moai-statusline" element={<MoaiStatuslinePage />} />
               <Route path="/hooks" element={<ActiveHooksPage />} />
               <Route path="/references" element={<ReferenceProvidersPage />} />
               <Route path="/references/hooks" element={<ReferenceHooksPage />} />
