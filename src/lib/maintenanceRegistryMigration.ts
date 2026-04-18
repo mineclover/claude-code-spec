@@ -2,6 +2,7 @@ import {
   MAINTENANCE_REGISTRY_SCHEMA_VERSION,
   type MaintenanceRegistryDocument,
 } from '../types/maintenance-registry';
+import { isRecord } from './typeGuards';
 
 const LEGACY_REGISTRY_SCHEMA_VERSION = 1;
 
@@ -51,10 +52,6 @@ export interface MaintenanceRegistryMigrationTransactionResult {
   migrated: boolean;
   rolledBack: boolean;
   error?: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 function toErrorMessage(error: unknown): string {

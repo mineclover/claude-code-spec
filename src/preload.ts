@@ -4,8 +4,10 @@
  */
 
 import { contextBridge } from 'electron';
+import { exposeAppAPI } from './preload/apis/app';
 import { exposeDialogAPI } from './preload/apis/dialog';
 import { exposeExecuteAPI } from './preload/apis/execute';
+import { exposeMcpAPI } from './preload/apis/mcp';
 import { exposeMoaiAPI } from './preload/apis/moai';
 import { exposeSessionsAPI } from './preload/apis/sessions';
 import { exposeSettingsAPI } from './preload/apis/settings';
@@ -19,3 +21,5 @@ exposeSessionsAPI();
 exposeSettingsAPI();
 exposeToolsAPI();
 exposeMoaiAPI();
+exposeMcpAPI();
+exposeAppAPI();

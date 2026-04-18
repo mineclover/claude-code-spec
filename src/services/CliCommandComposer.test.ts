@@ -142,19 +142,19 @@ describe('CliCommandComposer', () => {
     expect(snapshots).toMatchInlineSnapshot(`
       [
         {
-          "command": "claude -p ping --output-format stream-json --verbose --model claude-sonnet-4-5-20250514",
+          "command": "claude -p ping --output-format stream-json --verbose --model claude-sonnet-4-6",
           "name": "default",
         },
         {
-          "command": "claude -p ping --output-format stream-json --verbose --model claude-sonnet-4-5-20250514 --mcp-config .claude/.mcp-dev.json --strict-mcp-config --permission-mode plan",
+          "command": "claude -p ping --output-format stream-json --verbose --model claude-sonnet-4-6 --mcp-config .claude/.mcp-dev.json --strict-mcp-config --permission-mode plan",
           "name": "mcp-plan",
         },
         {
-          "command": "claude -p ping --output-format stream-json --verbose --model claude-sonnet-4-5-20250514 --strict-mcp-config --dangerously-skip-permissions",
+          "command": "claude -p ping --output-format stream-json --verbose --model claude-sonnet-4-6 --strict-mcp-config --dangerously-skip-permissions",
           "name": "strict-only-bypass",
         },
         {
-          "command": "claude -p ping --output-format stream-json --verbose --model claude-sonnet-4-5-20250514 --mcp-config .claude/.mcp-dev.json --strict-mcp-config --permission-mode full-auto",
+          "command": "claude -p ping --output-format stream-json --verbose --model claude-sonnet-4-6 --mcp-config .claude/.mcp-dev.json --strict-mcp-config --permission-mode full-auto",
           "name": "mcp-strict-full-auto",
         },
       ]

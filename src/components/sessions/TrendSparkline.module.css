@@ -1,0 +1,50 @@
+.wrapper {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+}
+
+.title {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.meta {
+  color: var(--text-dimmed);
+}
+
+.empty {
+  color: var(--text-dimmed);
+  font-style: italic;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 36px;
+}
+
+.barColumn {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  min-width: 4px;
+}
+
+.bar {
+  width: 100%;
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
+  border-radius: 2px 2px 0 0;
+}

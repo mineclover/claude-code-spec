@@ -1,4 +1,6 @@
 import type { ExecuteAPI, SessionsAPI, SettingsAPI, ToolsAPI } from './types/api';
+import type { AppAPI } from './types/api/app';
+import type { McpAPI } from './types/api/mcp';
 import type { MoaiAPI } from './types/api/moai';
 import type { DialogAPI } from './preload/apis/dialog';
 import type { OsPlatform } from './types/tool-maintenance';
@@ -11,6 +13,8 @@ declare global {
     toolsAPI: ToolsAPI;
     dialogAPI: DialogAPI;
     moaiAPI: MoaiAPI;
+    mcpAPI: McpAPI;
+    appAPI: AppAPI;
     osPlatform: OsPlatform;
   }
 }

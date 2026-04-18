@@ -1,0 +1,165 @@
+.panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+}
+
+.summaryRow:hover {
+  background: var(--bg-hover);
+}
+
+.summaryLabel {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.summaryHash {
+  font-family: var(--font-mono, monospace);
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.overrideBadge {
+  padding: 1px 6px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chevron {
+  margin-left: auto;
+  color: var(--text-secondary);
+}
+
+.body {
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.presetsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.presetsLabel {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.presetChip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-muted);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.presetApply {
+  background: transparent;
+  border: none;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.presetApply:hover {
+  background: var(--bg-hover);
+}
+
+.presetDelete {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--border-default);
+  padding: 2px 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.presetDelete:hover {
+  color: var(--danger, #b33);
+}
+
+.savePresetRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.presetNameInput {
+  flex: 1;
+  padding: 4px 8px;
+  background: var(--bg-input, var(--bg-surface));
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.savePresetRow button {
+  padding: 4px 10px;
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.savePresetRow button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--bg-hover);
+}
+
+.rowId {
+  font-family: var(--font-mono, monospace);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.disallowed {
+  font-size: 11px;
+  color: var(--danger, #b33);
+  margin: 0;
+}

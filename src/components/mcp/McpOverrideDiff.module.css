@@ -1,0 +1,71 @@
+.wrapper {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-xs);
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 90px;
+  gap: 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dimmed);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-default);
+  margin-bottom: 4px;
+}
+
+.heading {
+  font-weight: 600;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 90px;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 0;
+  border-radius: 2px;
+}
+
+.row_added {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.row_removed {
+  background: color-mix(in srgb, var(--accent-danger, #d33) 8%, transparent);
+}
+
+.row_unchanged {
+  background: transparent;
+}
+
+.cell {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cellMuted {
+  color: var(--text-placeholder);
+}
+
+.badgeCol {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.empty {
+  font-style: italic;
+  color: var(--text-dimmed);
+  padding: 4px 0;
+}

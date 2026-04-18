@@ -5,6 +5,7 @@ import {
 } from '../types/maintenance-registry';
 import { createEmptyMaintenanceRegistry } from './maintenanceRegistryMigration';
 import type { MaintenanceRegistryValidationIssue } from './maintenanceRegistryValidation';
+import { isPlainObject } from './typeGuards';
 
 interface ResolveMaintenanceRegistryFormDocumentOptions {
   explicitValue?: MaintenanceRegistryDocument;
@@ -22,12 +23,8 @@ export interface MaintenanceRegistryFormErrors {
   services: Record<number, MaintenanceRegistryServiceFormErrors>;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function coerceServiceCandidate(value: unknown): MaintenanceRegistryService {
-  if (isRecord(value)) {
+  if (isPlainObject(value)) {
     return value as unknown as MaintenanceRegistryService;
   }
   return {} as MaintenanceRegistryService;
@@ -38,7 +35,7 @@ function inferServices(value: unknown): MaintenanceRegistryService[] | null {
     return value.map((item) => coerceServiceCandidate(item));
   }
 
-  if (!isRecord(value) || !Array.isArray(value.services)) {
+  if (!isPlainObject(value) || !Array.isArray(value.services)) {
     return null;
   }
 

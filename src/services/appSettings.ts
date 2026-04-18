@@ -6,6 +6,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { app } from 'electron';
+import { errorReporter } from './errorReporter';
 import {
   createEmptyMaintenanceRegistry,
   runMaintenanceRegistryMigrationTransaction,
@@ -117,8 +118,10 @@ export class SettingsService {
         this.writeSettingsToDisk(this.settings);
       } catch (rollbackError) {
         console.error('Failed to rollback settings snapshot:', rollbackError);
+        errorReporter.report('appSettings.saveSettingsWithRollback.rollback', rollbackError);
       }
       console.error('Failed to save migrated settings. Restored previous snapshot:', error);
+      errorReporter.report('appSettings.saveSettingsWithRollback', error);
     }
   }
 
@@ -182,6 +185,7 @@ export class SettingsService {
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
+      errorReporter.report('appSettings.loadSettings', error);
       this.settings = {};
     }
   }
@@ -191,6 +195,7 @@ export class SettingsService {
       this.writeSettingsToDisk(this.settings);
     } catch (error) {
       console.error('Failed to save settings:', error);
+      errorReporter.report('appSettings.saveSettings', error);
     }
   }
 

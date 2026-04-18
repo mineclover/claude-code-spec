@@ -67,7 +67,7 @@ const AssistantEventSchema = z.object({
           type: z.literal('tool_use'),
           id: z.string(),
           name: z.string(),
-          input: z.record(z.unknown()),
+          input: z.record(z.string(), z.unknown()),
         }),
       ]),
     ),
@@ -118,6 +118,7 @@ const ResultEventSchema = z.object({
       .optional(),
   }),
   modelUsage: z.record(
+    z.string(),
     z.object({
       inputTokens: z.number(),
       outputTokens: z.number(),
@@ -131,7 +132,7 @@ const ResultEventSchema = z.object({
   permission_denials: z.array(
     z.object({
       tool_name: z.string(),
-      tool_input: z.record(z.unknown()),
+      tool_input: z.record(z.string(), z.unknown()),
     }),
   ),
   uuid: z.string(),

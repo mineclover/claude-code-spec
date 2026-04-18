@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { McpBanner } from '../components/mcp/McpBanner';
 import { useProject } from '../contexts/ProjectContext';
 import { useToolContext } from '../contexts/ToolContext';
 import type { McpConfigFile, McpDefaultConfigTarget, McpServer } from '../types/api/settings';
@@ -229,7 +230,14 @@ export function McpConfigsPage() {
     selectedServers.length === 0 || (createMode === 'named' && !newConfigName.trim());
 
   return (
-    <div className={styles.container}>
+    <div className={styles.pageWrapper}>
+      <McpBanner
+        variant="legacy"
+        linkTo="/mcp-registry"
+        linkLabel="Go to Registry →"
+        text="Legacy: file-based .claude/.mcp.json management. For dynamic per-execution composition, use MCP Registry + Policy + the Compose panel on Execute."
+      />
+      <div className={styles.container}>
       <div className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <h2 className={styles.sidebarTitle}>MCP Configurations</h2>
@@ -511,6 +519,7 @@ export function McpConfigsPage() {
         </div>
       </div>
 
+      </div>
     </div>
   );
 }

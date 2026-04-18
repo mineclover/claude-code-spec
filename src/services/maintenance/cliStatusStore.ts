@@ -6,13 +6,10 @@
 
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { isRecord } from '../../lib/typeGuards';
 import type { CliStatusDocument, CliToolStatus, CommandSpec } from '../../types/tool-maintenance';
 
 const CLI_STATUS_SCHEMA_VERSION = 1;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 function normalizeCommandSpec(raw: unknown): CommandSpec | undefined {
   if (!isRecord(raw)) return undefined;

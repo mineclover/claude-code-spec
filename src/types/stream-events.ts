@@ -1,6 +1,6 @@
 /**
- * Stream event types - Universal with toolId stamp
- * Migrated from src-old, extended with toolId for multi-CLI support
+ * Stream event types — universal shape stamped with `toolId` so the same
+ * reducers handle Claude, Gemini, and Codex streams.
  */
 
 // Base stream event
@@ -69,6 +69,10 @@ export interface AssistantEvent extends StreamEvent {
       input_tokens: number;
       cache_creation_input_tokens?: number;
       cache_read_input_tokens?: number;
+      cache_creation?: {
+        ephemeral_5m_input_tokens: number;
+        ephemeral_1h_input_tokens: number;
+      };
       output_tokens: number;
       service_tier: string;
     };
@@ -98,6 +102,10 @@ export interface ResultEvent extends StreamEvent {
     input_tokens: number;
     cache_creation_input_tokens?: number;
     cache_read_input_tokens?: number;
+    cache_creation?: {
+      ephemeral_5m_input_tokens: number;
+      ephemeral_1h_input_tokens: number;
+    };
     output_tokens: number;
     server_tool_use?: {
       web_search_requests: number;

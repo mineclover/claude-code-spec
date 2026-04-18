@@ -4,12 +4,15 @@
 
 import { Toaster } from 'react-hot-toast';
 import { HashRouter, Route, Routes } from 'react-router-dom';
+import { ErrorToaster } from './components/app/ErrorToaster';
 import { Layout } from './components/layout/Layout';
 import { ProjectProvider } from './contexts/ProjectContext';
 import { ToolProvider } from './contexts/ToolContext';
 import { ActiveHooksPage } from './pages/ActiveHooksPage';
 import { ExecutePage } from './pages/ExecutePage';
 import { McpConfigsPage } from './pages/McpConfigsPage';
+import { McpPolicyPage } from './pages/McpPolicyPage';
+import { McpRegistryPage } from './pages/McpRegistryPage';
 import { ReferenceHooksPage } from './pages/ReferenceHooksPage';
 import { ReferenceOutputStylesPage } from './pages/ReferenceOutputStylesPage';
 import { ReferenceProvidersPage } from './pages/ReferenceProvidersPage';
@@ -26,11 +29,14 @@ function App() {
       <ProjectProvider>
         <HashRouter>
           <Toaster position="top-right" />
+          <ErrorToaster />
           <Layout>
             <Routes>
               <Route path="/" element={<ExecutePage />} />
               <Route path="/sessions" element={<SessionsPage />} />
               <Route path="/mcp-configs" element={<McpConfigsPage />} />
+              <Route path="/mcp-registry" element={<McpRegistryPage />} />
+              <Route path="/mcp-policy" element={<McpPolicyPage />} />
               <Route path="/skills" element={<SkillsPage />} />
               <Route path="/cli-maintenance" element={<CliMaintenancePage />} />
               <Route path="/moai-statusline" element={<MoaiStatuslinePage />} />

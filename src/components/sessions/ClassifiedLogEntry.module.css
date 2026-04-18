@@ -14,6 +14,43 @@
   background: var(--bg-surface);
 }
 
+.address {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dimmed);
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: var(--bg-inset);
+  user-select: text;
+  min-width: 28px;
+  text-align: center;
+}
+
+.subAddress {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dimmed);
+  margin-right: 6px;
+  user-select: text;
+}
+
+.copyAddressBtn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dimmed);
+  font-size: 11px;
+  line-height: 1;
+  padding: 1px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-right: 2px;
+}
+
+.copyAddressBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .speakerBadge {
   padding: 1px 6px;
   border-radius: 3px;
@@ -142,6 +179,116 @@
 .systemContent {
   font-size: var(--text-sm);
   color: var(--text-dimmed);
+}
+
+/* Hook summary block */
+.hookBlock {
+  margin-top: 6px;
+  border: 1px solid var(--border-default);
+  border-radius: 3px;
+  padding: 6px 8px;
+  background: var(--bg-inset);
+}
+
+.hookHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: var(--text-xs);
+}
+
+.hookPhase {
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hookMeta {
+  color: var(--text-dimmed);
+}
+
+.hookBlocked {
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, #ef4444 20%, transparent);
+  color: #ef4444;
+  border: 1px solid color-mix(in srgb, #ef4444 40%, transparent);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+
+.hookList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hookItem {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: var(--text-xs);
+  padding: 2px 0;
+}
+
+.hookItemError {
+  color: #ef4444;
+}
+
+.hookDuration {
+  flex-shrink: 0;
+  min-width: 56px;
+  text-align: right;
+  color: var(--text-dimmed);
+  font-variant-numeric: tabular-nums;
+}
+
+.hookCommand {
+  flex: 1;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+.hookError {
+  color: #ef4444;
+  font-size: var(--text-xs);
+}
+
+.hookErrorList {
+  list-style: disc;
+  margin: 4px 0 0 18px;
+  padding: 0;
+}
+
+.hookStopReason {
+  margin-top: 4px;
+  font-size: var(--text-xs);
+  color: var(--text-dimmed);
+  font-style: italic;
+}
+
+/* Raw JSON (system events, opt-in) */
+.rawJson {
+  font-size: var(--text-xs);
+  color: var(--text-dimmed);
+  background: var(--bg-inset);
+  padding: 6px 8px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  margin-top: 6px;
+  max-height: 400px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 /* Collapsible toggle */

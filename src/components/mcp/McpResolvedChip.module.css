@@ -1,0 +1,92 @@
+/* Compact chip: shows the resolved MCP hash + enabled count. Mirrors the
+ * visual weight of the cache/model chips (inherited from the parent badge
+ * style) but with a distinct accent so it is scannable in a long session
+ * list. Applied on top of a host `.badge` class. */
+.badgeMcp {
+  font-family: var(--font-mono, monospace);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.badgeMcpOverride {
+  background: #2a7;
+  color: #fff;
+  border-color: #2a7;
+  font-weight: 700;
+}
+
+/* Standalone badge used by the compact variant: encapsulates the base badge
+ * look so the chip can be used outside a row that already provides a
+ * `.badge` class. */
+.badgeBase {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 500;
+  background: var(--bg-elevated);
+  color: var(--text-dimmed);
+  border: 1px solid var(--border-default);
+}
+
+/* Expanded MCP breakdown rendered inside the selected session's detail
+ * header. Kept compact so it doesn't crowd the log view. */
+.mcpDetail {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-xs);
+  background: var(--bg-surface);
+}
+
+.mcpDetailRow {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.mcpDetailLabel {
+  color: var(--text-dimmed);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 10px;
+  min-width: 68px;
+}
+
+.mcpDetailHash {
+  font-family: var(--font-mono, monospace);
+  color: var(--text-secondary);
+}
+
+.mcpChip {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-dimmed);
+  font-size: 10px;
+  font-family: var(--font-mono, monospace);
+}
+
+.mcpChipAdded {
+  background: color-mix(in srgb, #2a7 20%, transparent);
+  color: #2a7;
+  border-color: color-mix(in srgb, #2a7 40%, transparent);
+}
+
+.mcpChipRemoved {
+  background: color-mix(in srgb, #b33 20%, transparent);
+  color: #b33;
+  border-color: color-mix(in srgb, #b33 40%, transparent);
+}
+
+.mcpDetailOverrideBadge {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+}

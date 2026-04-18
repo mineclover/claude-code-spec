@@ -2,11 +2,13 @@
  * IPC handlers setup - 5 domain routers
  */
 
+import { setupAppErrorBroadcast } from '../ipc/handlers/appHandlers';
 import { registerDialogHandlers } from '../ipc/handlers/dialogHandlers';
 import {
   registerExecuteHandlers,
   setupExecutionEventForwarding,
 } from '../ipc/handlers/executeHandlers';
+import { registerMcpHandlers } from '../ipc/handlers/mcpHandlers';
 import { registerMoaiHandlers } from '../ipc/handlers/moaiHandlers';
 import { registerSessionsHandlers } from '../ipc/handlers/sessionsHandlers';
 import { registerSettingsHandlers } from '../ipc/handlers/settingsHandlers';
@@ -39,6 +41,13 @@ export function setupIPCHandlers(): void {
   // MoAI
   const moaiRouter = ipcRegistry.router('moai');
   registerMoaiHandlers(moaiRouter);
+
+  // MCP (Registry + Policy + Resolver)
+  const mcpRouter = ipcRegistry.router('mcp');
+  registerMcpHandlers(mcpRouter);
+
+  // App-wide error broadcast — bridges errorReporter to renderer toasts.
+  setupAppErrorBroadcast();
 
   console.log('[Main] Registered IPC channels:', ipcRegistry.getAllChannels());
 }

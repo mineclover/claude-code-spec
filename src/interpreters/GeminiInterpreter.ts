@@ -3,12 +3,9 @@
  * Parses gemini stream-json output and builds non-interactive command args.
  */
 
+import { isRecord } from '../lib/typeGuards';
 import type { CLIToolInterpreter } from '../types/cli-tool';
 import type { StreamEvent } from '../types/stream-events';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 function makeId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;

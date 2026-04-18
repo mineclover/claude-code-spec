@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { isRecord } from '../../lib/typeGuards';
 import type {
   SkillActivationAuditEvent,
   SkillActivationStateSnapshot,
@@ -17,10 +18,6 @@ interface SkillActivationAuditLogDocument {
 export interface SkillActivationAuditStore {
   append(event: SkillActivationAuditEvent): Promise<void>;
   listRecent(limit?: number): Promise<SkillActivationAuditEvent[]>;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 function cloneSnapshot(snapshot: SkillActivationStateSnapshot): SkillActivationStateSnapshot {

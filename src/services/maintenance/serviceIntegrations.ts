@@ -13,6 +13,7 @@ import {
   normalizeDir,
   resolvePathTemplate,
 } from '../../lib/pathTemplateUtils';
+import { isRecord } from '../../lib/typeGuards';
 import type { CapabilityMatrixDeclaration } from '../../types/capability-matrix';
 import {
   defineMaintenanceServiceAdapter,
@@ -85,10 +86,6 @@ interface CustomServiceLike {
   skillStore?: unknown;
   execution?: unknown;
   mcp?: unknown;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 function readString(value: unknown): string | null {

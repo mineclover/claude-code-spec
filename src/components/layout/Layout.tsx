@@ -32,6 +32,8 @@ const navGroups: NavGroup[] = [
       { path: '/', label: 'Execute', icon: '▶', end: true },
       { path: '/sessions', label: 'Sessions', icon: '#' },
       { path: '/mcp-configs', label: 'MCP Configs', icon: '@' },
+      { path: '/mcp-registry', label: 'MCP Registry', icon: 'R' },
+      { path: '/mcp-policy', label: 'MCP Policy', icon: 'P' },
     ],
   },
   {

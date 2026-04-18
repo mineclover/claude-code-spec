@@ -3,11 +3,11 @@
  * Reads/writes .moai/config/sections/statusline.yaml and .claude/settings.json statusLine (project-level)
  */
 
-import { spawn } from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import yaml from 'js-yaml';
+import { runBuffered } from '../../lib/cliRunner';
 import { settingsService } from '../../services/appSettings';
 import type {
   MoaiSegmentsConfig,
@@ -38,7 +38,7 @@ const PREVIEW_SAMPLE_INPUT = JSON.stringify({
 });
 
 function stripAnsi(str: string): string {
-  // eslint-disable-next-line no-control-regex
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: ESC(0x1b) is the ANSI control prefix we want to strip.
   return str.replace(/\x1b\[[0-9;]*m/g, '');
 }
 
@@ -55,43 +55,23 @@ async function resolveMoaiBinary(): Promise<string | null> {
   return null;
 }
 
-function runMoaiStatusline(
+async function runMoaiStatusline(
   binaryPath: string,
   cwd: string,
 ): Promise<{ output: string | null; error?: string }> {
-  return new Promise((resolve) => {
-    const child = spawn(binaryPath, ['statusline'], {
-      cwd,
-      env: process.env,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (chunk: Buffer) => (stdout += chunk.toString()));
-    child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
-
-    child.on('close', (code) => {
-      const raw = stdout.trim();
-      if (code !== 0 && !raw) {
-        resolve({ output: null, error: stderr.trim() || `exit code ${String(code)}` });
-      } else {
-        resolve({ output: stripAnsi(raw) || null });
-      }
-    });
-
-    child.on('error', (err) => {
-      resolve({ output: null, error: err.message });
-    });
-
-    child.stdin.write(PREVIEW_SAMPLE_INPUT);
-    child.stdin.end();
-
-    setTimeout(() => {
-      child.kill();
-      resolve({ output: null, error: 'timeout' });
-    }, 5000);
+  const { exitCode, stdout, stderr, error } = await runBuffered(binaryPath, ['statusline'], {
+    cwd,
+    input: PREVIEW_SAMPLE_INPUT,
+    timeoutMs: 5000,
   });
+  if (error) {
+    return { output: null, error };
+  }
+  const raw = stdout.trim();
+  if (exitCode !== 0 && !raw) {
+    return { output: null, error: stderr.trim() || `exit code ${String(exitCode)}` };
+  }
+  return { output: stripAnsi(raw) || null };
 }
 const PROJECT_CLAUDE_SETTINGS_RELATIVE = '.claude/settings.json';
 
@@ -186,7 +166,10 @@ async function readProjectSettingsStatusLine(projectPath: string): Promise<strin
   }
 }
 
-async function writeProjectSettingsStatusLine(projectPath: string, enabled: boolean): Promise<void> {
+async function writeProjectSettingsStatusLine(
+  projectPath: string,
+  enabled: boolean,
+): Promise<void> {
   const settingsPath = path.join(projectPath, PROJECT_CLAUDE_SETTINGS_RELATIVE);
   let doc: Record<string, unknown> = {};
   try {

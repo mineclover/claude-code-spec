@@ -57,6 +57,12 @@ export function exposeSessionsAPI(): void {
       ipcRenderer.invoke('sessions:get-auto-generated-requests', projectPath, sessionId),
     getSessionAnalysis: (projectPath: string, sessionId: string) =>
       ipcRenderer.invoke('sessions:get-session-analysis', projectPath, sessionId),
+    getSessionMeta: (projectPath: string, sessionId: string) =>
+      ipcRenderer.invoke('sessions:get-session-meta', projectPath, sessionId),
+    getProjectSessionMetas: (projectPath: string) =>
+      ipcRenderer.invoke('sessions:get-project-session-metas', projectPath),
+    getProjectSessionViews: (projectPath: string) =>
+      ipcRenderer.invoke('sessions:get-project-session-views', projectPath),
     openLogsFolder: () => ipcRenderer.invoke('sessions:open-logs-folder'),
     openProjectFolder: (projectPath: string) =>
       ipcRenderer.invoke('sessions:open-project-folder', projectPath),

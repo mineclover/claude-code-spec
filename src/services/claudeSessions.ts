@@ -13,6 +13,7 @@ import {
   resolveSessionPath,
 } from '../lib/sessionPathResolver';
 import { settingsService } from './appSettings';
+import { errorReporter } from './errorReporter';
 
 // ============================================================================
 // Types
@@ -138,6 +139,7 @@ const extractSessionMetadata = (
     };
   } catch (error) {
     console.error('[ClaudeSessions] Failed to extract session metadata:', error);
+    errorReporter.report('claudeSessions.extractSessionMetadata', error);
     return { hasData: false };
   }
 };
@@ -196,12 +198,15 @@ function listSessionFilesFromProjectDir(claudeProjectDir: string): SessionFileSt
 }
 
 /**
- * Read only the first 4KB of a session file to extract cwd.
- * Avoids reading entire large session files just to find the project path.
+ * Scan the first ~32KB of a session file, line by line, until a cwd-bearing
+ * event is found. Early events (permission-mode, file-history-snapshot) carry
+ * no cwd; user/assistant events do. Stopping at the first match keeps this
+ * fast on large files while tolerating the fact that cwd usually appears
+ * around line 3+.
  */
 function extractCwdFromSessionFileHead(filePath: string): string | null {
   try {
-    const CHUNK_SIZE = 4096;
+    const CHUNK_SIZE = 32 * 1024;
     const buffer = Buffer.alloc(CHUNK_SIZE);
     const fd = fs.openSync(filePath, 'r');
     let bytesRead = 0;
@@ -211,10 +216,25 @@ function extractCwdFromSessionFileHead(filePath: string): string | null {
       fs.closeSync(fd);
     }
     const chunk = buffer.subarray(0, bytesRead).toString('utf-8');
-    const newlineIdx = chunk.indexOf('\n');
-    const firstLine = newlineIdx !== -1 ? chunk.slice(0, newlineIdx) : chunk;
-    if (!firstLine.trim()) return null;
-    return extractSessionPathFromEvent(JSON.parse(firstLine));
+    // Drop a trailing partial line so we never attempt to parse an incomplete
+    // JSON object at the chunk boundary.
+    const lastNewline = chunk.lastIndexOf('\n');
+    const parseable = lastNewline === -1 ? chunk : chunk.slice(0, lastNewline);
+    for (const rawLine of parseable.split('\n')) {
+      const line = rawLine.trim();
+      if (!line || (line[0] !== '{' && line[0] !== '[')) continue;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      const cwd = extractSessionPathFromEvent(parsed);
+      if (cwd) {
+        return cwd;
+      }
+    }
+    return null;
   } catch {
     return null;
   }
@@ -224,23 +244,14 @@ function resolveProjectPathFromSessionFiles(
   sessionFiles: SessionFileStat[],
   projectDirName: string,
 ): string | null {
-  const inferredPath = inferProjectPathFromDashDirName(projectDirName);
-
-  // Fast path: inferred path from dirName is accurate when it exists on disk.
-  // Skip file reads entirely in this case.
-  if (inferredPath) {
-    try {
-      if (fs.existsSync(inferredPath)) {
-        return inferredPath;
-      }
-    } catch {}
-  }
-
-  // Slow path: read only the first chunk of the most recent session file.
-  // This covers projects with hyphens in their paths where the inferred path is wrong.
+  // Always prefer the explicit cwd recorded inside a session file. Claude's
+  // dash-directory naming is lossy (a dirname like `-a-b-c` can mean either
+  // /a/b/c or /a-b/c or /a/b-c, etc.), so any inference from the dirname is
+  // unreliable for filesystem paths that contain dashes.
   const explicitPath = sessionFiles.length > 0
     ? extractCwdFromSessionFileHead(sessionFiles[0].filePath)
     : null;
+  const inferredPath = inferProjectPathFromDashDirName(projectDirName);
 
   return resolveSessionPath({
     explicitPath,
@@ -417,6 +428,7 @@ export const getLatestClaudeSessionMeta = (projectPath: string): LatestSessionMe
     };
   } catch (error) {
     console.error('[ClaudeSessions] Failed to get latest session meta:', error);
+    errorReporter.report('claudeSessions.getLatestSessionMeta', error);
     return null;
   }
 };
@@ -432,6 +444,7 @@ export const getProjectSessions = (projectPath: string): ClaudeSessionInfo[] => 
     return getProjectSessionsFromDir(projectDir);
   } catch (error) {
     console.error('[ClaudeSessions] Failed to read project sessions:', error);
+    errorReporter.report('claudeSessions.getProjectSessions', error);
     return [];
   }
 };
@@ -450,6 +463,7 @@ export const getProjectSessionCount = (projectPath: string): number => {
     return listSessionFilesFromProjectDir(projectDir).length;
   } catch (error) {
     console.error('[ClaudeSessions] Failed to count sessions:', error);
+    errorReporter.report('claudeSessions.countSessions', error);
     return 0;
   }
 };
@@ -470,6 +484,7 @@ export const getProjectSessionsBasic = (
     return getProjectSessionsBasicFromDir(projectDir);
   } catch (error) {
     console.error('[ClaudeSessions] Failed to read project sessions:', error);
+    errorReporter.report('claudeSessions.getProjectSessionsBasic', error);
     return [];
   }
 };
@@ -504,6 +519,7 @@ export const getProjectSessionsPaginated = (
     return { sessions, total, hasMore };
   } catch (error) {
     console.error('[ClaudeSessions] Failed to read project sessions:', error);
+    errorReporter.report('claudeSessions.getProjectSessionsPaginated', error);
     return { sessions: [], total: 0, hasMore: false };
   }
 };
@@ -545,6 +561,7 @@ export const readSessionLog = (projectPath: string, sessionId: string): ClaudeSe
       .map((line) => JSON.parse(line) as ClaudeSessionEntry);
   } catch (error) {
     console.error('[ClaudeSessions] Failed to read session log:', error);
+    errorReporter.report('claudeSessions.readSessionLog', error);
     return [];
   }
 };
@@ -567,6 +584,7 @@ export const getAllClaudeProjects = (): ClaudeProjectInfo[] => {
     }));
   } catch (error) {
     console.error('[ClaudeSessions] Failed to get all Claude projects:', error);
+    errorReporter.report('claudeSessions.getAllProjects', error);
     return [];
   }
 };
@@ -584,6 +602,7 @@ export const getTotalProjectCount = (): number => {
     return count;
   } catch (error) {
     console.error('[ClaudeSessions] Failed to get total project count:', error);
+    errorReporter.report('claudeSessions.getTotalProjectCount', error);
     return 0;
   }
 };
@@ -643,6 +662,7 @@ export const getAllClaudeProjectsPaginated = (
     return { projects, total, hasMore };
   } catch (error) {
     console.error('[ClaudeSessions] Failed to get paginated Claude projects:', error);
+    errorReporter.report('claudeSessions.getPaginatedProjects', error);
     return { projects: [], total: 0, hasMore: false };
   }
 };

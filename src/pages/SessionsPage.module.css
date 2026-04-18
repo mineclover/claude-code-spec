@@ -102,8 +102,244 @@
   color: var(--text-dimmed);
 }
 
+.logWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.filterChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-default);
+  align-items: center;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--text-dimmed);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.filterChip:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.filterChip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.filterChipActive {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.filterChipCount {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+  font-size: 10px;
+}
+
+.filterMeta {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--text-dimmed);
+  font-variant-numeric: tabular-nums;
+}
+
 .logContent {
   flex: 1;
   overflow-y: auto;
   padding: 12px;
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fpDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.fpDotDerived {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 2px var(--bg-surface);
+  opacity: 0.8;
+}
+
+.fpDotEmpty {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px dashed var(--border-default);
+  background: transparent;
+}
+
+.itemBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.badges {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 500;
+  background: var(--bg-elevated);
+  color: var(--text-dimmed);
+  border: 1px solid var(--border-default);
+}
+
+.badgeHot {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.badgeDrift {
+  background: color-mix(in srgb, #f59e0b 20%, transparent);
+  color: #f59e0b;
+  border-color: color-mix(in srgb, #f59e0b 40%, transparent);
+}
+
+.groupsSummary {
+  font-size: var(--text-sm);
+  color: var(--text-dimmed);
+  margin-right: 8px;
+}
+
+.sessionsHeaderRight {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow: hidden;
+}
+
+.legendIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-dimmed);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+  user-select: none;
+}
+
+.legendIcon:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.metaProgress {
+  font-size: 11px;
+  color: var(--text-dimmed);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.jumpForm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.jumpInput {
+  width: 100px;
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.jumpInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.jumpBtn {
+  padding: 2px 8px;
+  font-size: 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dimmed);
+  cursor: pointer;
+}
+
+.jumpBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.jumpError {
+  font-size: 11px;
+  color: var(--accent-danger, #d33);
+}
+
+:global(.session-entry-highlight) {
+  animation: address-flash 1.6s ease-out;
+}
+
+@keyframes address-flash {
+  0% {
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
 }

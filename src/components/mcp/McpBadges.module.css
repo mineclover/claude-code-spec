@@ -1,0 +1,44 @@
+/**
+ * Shared badge styles for the MCP domain.
+ *
+ * `.base` defines the common pill shape (font size, padding, radius, casing);
+ * variant classes layer on color only. Consumers compose `base` with one
+ * variant: `<span class="base scopeUser">…</span>`.
+ *
+ * Two component wrappers in this folder use these classes:
+ *   - ScopeBadge   → scopeUser / scopeProject
+ *   - OverrideBadge → baseline / added / removed
+ */
+
+.base {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.scopeUser {
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+}
+
+.scopeProject {
+  background: var(--accent);
+  color: #fff;
+}
+
+.baseline {
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+}
+
+.added {
+  background: #2a7;
+  color: #fff;
+}
+
+.removed {
+  background: var(--danger, #b33);
+  color: #fff;
+}

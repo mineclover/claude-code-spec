@@ -4,14 +4,15 @@
  * - Local installed skill inventory with version hints
  */
 
-import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import matter from 'gray-matter';
+import { runBuffered } from '../lib/cliRunner';
 import { dedupeByLast } from '../lib/collectionUtils';
 import { resolveSkillVersionInfo } from '../lib/skillVersionResolver';
+import { isRecord } from '../lib/typeGuards';
 import type {
   CliToolBatchUpdateSummary,
   CliToolUpdateLogEntry,
@@ -50,6 +51,7 @@ import {
   resolveToolUpdateLogLimit,
   type ToolUpdateAuditStore,
 } from './maintenance/toolUpdateAuditLog';
+import { errorReporter } from './errorReporter';
 
 interface CommandExecutionResult {
   exitCode: number | null;
@@ -89,41 +91,9 @@ interface CliMaintenanceServiceOptions {
 
 const SKILL_LOCK_PATH = path.join(os.homedir(), '.agents', '.skill-lock.json');
 
-/**
- * Electron apps launched from Finder / .app bundle do not inherit the user's
- * login-shell PATH (.zshrc / .bash_profile), so commands like `claude`, `npm`,
- * `bun`, `npx` etc. are not found even when they are installed.
- *
- * Strategy: prepend well-known global-bin directories that are missing from
- * the current process.env.PATH, then fall back to the existing PATH so the
- * order is: additions first (highest priority) → original PATH.
- */
-function buildSpawnEnv(): NodeJS.ProcessEnv {
-  const home = os.homedir();
-  const existingSegments = new Set((process.env.PATH ?? '').split(':').filter(Boolean));
-  const candidates = [
-    `${home}/.local/bin`, // pipx, claude code
-    `${home}/.bun/bin`, // bun global
-    `${home}/.deno/bin`, // deno
-    '/opt/homebrew/bin', // Apple-Silicon Homebrew
-    '/opt/homebrew/sbin',
-    '/usr/local/bin', // Intel Homebrew / traditional npm global
-    '/usr/local/sbin',
-  ];
-  const additions = candidates.filter((p) => !existingSegments.has(p));
-  const enhancedPath = [...additions, ...existingSegments].join(':');
-  return { ...process.env, PATH: enhancedPath };
-}
-
-const SPAWN_ENV = buildSpawnEnv();
-
 function limitText(raw: string, max = 12000): string {
   if (raw.length <= max) return raw;
   return `${raw.slice(0, max)}\n... (truncated)`;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 function ensureNoPathTraversal(skillId: string): string {
@@ -472,6 +442,7 @@ export class CliMaintenanceService {
       await this.updateAuditStore.append(entry);
     } catch (error) {
       console.error('Failed to persist tool update log:', error);
+      errorReporter.report('cliMaintenance.persistToolUpdateLog', error);
     }
   }
 
@@ -730,51 +701,14 @@ export class CliMaintenanceService {
   }
 
   private async executeCommand(spec: CommandSpec): Promise<CommandExecutionResult> {
-    return new Promise((resolve) => {
-      const child = spawn(spec.command, spec.args, {
-        env: SPAWN_ENV,
-      });
-
-      let settled = false;
-      let stdout = '';
-      let stderr = '';
-
-      const settle = (payload: CommandExecutionResult) => {
-        if (settled) return;
-        settled = true;
-        resolve({
-          ...payload,
-          stdout: limitText(payload.stdout),
-          stderr: limitText(payload.stderr),
-        });
-      };
-
-      child.stdout?.on('data', (chunk: Buffer | string) => {
-        stdout += chunk.toString();
-      });
-
-      child.stderr?.on('data', (chunk: Buffer | string) => {
-        stderr += chunk.toString();
-      });
-
-      child.on('error', (error: NodeJS.ErrnoException) => {
-        settle({
-          exitCode: null,
-          stdout,
-          stderr,
-          error: error.message,
-          spawnErrorCode: error.code,
-        });
-      });
-
-      child.on('close', (exitCode) => {
-        settle({
-          exitCode,
-          stdout,
-          stderr,
-        });
-      });
-    });
+    const result = await runBuffered(spec.command, spec.args);
+    return {
+      exitCode: result.exitCode,
+      stdout: limitText(result.stdout),
+      stderr: limitText(result.stderr),
+      error: result.error,
+      spawnErrorCode: result.spawnErrorCode,
+    };
   }
 
   private async readSkillLockMap(): Promise<Record<string, SkillLockEntryLike>> {

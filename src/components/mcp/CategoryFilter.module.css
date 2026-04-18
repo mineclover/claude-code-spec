@@ -1,0 +1,43 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+.input {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: var(--text-sm);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.clearBtn {
+  padding: 2px 6px;
+  font-size: 12px;
+  line-height: 1;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dimmed);
+  cursor: pointer;
+}
+
+.clearBtn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.resultLabel {
+  font-size: 11px;
+  color: var(--text-dimmed);
+  white-space: nowrap;
+}

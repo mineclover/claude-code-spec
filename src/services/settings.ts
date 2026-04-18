@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { isRecord } from '../lib/typeGuards';
 
 // ============================================================================
 // Types
@@ -266,10 +267,6 @@ const MCP_SOURCE_PRIORITY: Record<McpServerSourceScope, number> = {
   project: 1,
   projectLocal: 2,
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 function normalizeConfigPath(targetPath: string, homeDir?: string): string {
   const expandedPath =

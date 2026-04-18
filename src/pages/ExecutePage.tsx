@@ -4,12 +4,14 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { McpComposePanel } from '../components/mcp/McpComposePanel';
 import { OptionPanel } from '../components/options/OptionPanel';
 import { StreamOutput } from '../components/stream/StreamOutput';
 import { useProject } from '../contexts/ProjectContext';
 import { useToolContext } from '../contexts/ToolContext';
 import type { McpConfigFile } from '../types/api/settings';
 import type { CLIOptionSchema, CLIToolDefinition } from '../types/cli-tool';
+import type { McpExecutionOverride } from '../types/mcp-policy';
 import type { InstalledSkillInfo } from '../types/tool-maintenance';
 import type { StreamEvent } from '../types/stream-events';
 import styles from './ExecutePage.module.css';
@@ -68,6 +70,7 @@ export function ExecutePage() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [allSkills, setAllSkills] = useState<InstalledSkillInfo[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
+  const [mcpOverride, setMcpOverride] = useState<McpExecutionOverride | null>(null);
   const cleanupRef = useRef<Array<() => void>>([]);
 
   // Load registered tools and select the one matching sidebar
@@ -182,13 +185,14 @@ export function ExecutePage() {
         projectPath,
         query: finalQuery,
         options,
+        mcpOverride: mcpOverride ?? undefined,
       });
       setCurrentSessionId(sessionId);
     } catch (error) {
       setIsRunning(false);
       console.error('[ExecutePage] Failed to start execution:', error);
     }
-  }, [selectedTool, query, projectPath, options, selectedSkillId, selectedToolId]);
+  }, [selectedTool, query, projectPath, options, selectedSkillId, selectedToolId, mcpOverride]);
 
   const handleStop = useCallback(() => {
     if (currentSessionId) {
@@ -273,6 +277,12 @@ export function ExecutePage() {
             <OptionPanel options={optionSchemas} values={options} onChange={handleOptionChange} />
           </div>
         )}
+
+        {/* MCP Compose — overrides options.mcpConfig when used */}
+        <div className={styles.section}>
+          <label className={styles.sectionLabel}>MCP Compose</label>
+          <McpComposePanel projectPath={projectPath} onOverrideChange={setMcpOverride} />
+        </div>
 
         {/* Query input */}
         <div className={styles.section}>

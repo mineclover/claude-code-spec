@@ -34,7 +34,7 @@ const skillStoreSchema = z.object({
 const executionSchema = z
   .object({
     toolId: nonEmptyString.optional(),
-    defaultOptions: z.record(z.unknown()).optional(),
+    defaultOptions: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
 
@@ -107,14 +107,31 @@ function formatIssuePath(path: PathSegment[]): string {
   return output;
 }
 
+function normalizePath(path: ReadonlyArray<PropertyKey>): PathSegment[] {
+  const segments: PathSegment[] = [];
+  for (const segment of path) {
+    if (typeof segment === 'string' || typeof segment === 'number') {
+      segments.push(segment);
+    } else {
+      // Symbols are legal keys in `PropertyKey[]` but never appear in JSON
+      // schemas. Coerce to string for display stability.
+      segments.push(String(segment));
+    }
+  }
+  return segments;
+}
+
 function toValidationIssues(
-  issues: Array<{ path: PathSegment[]; message: string }>,
+  issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }>,
 ): MaintenanceRegistryValidationIssue[] {
-  return issues.map((issue) => ({
-    path: issue.path,
-    message: issue.message,
-    formatted: `${formatIssuePath(issue.path)}: ${issue.message}`,
-  }));
+  return issues.map((issue) => {
+    const path = normalizePath(issue.path);
+    return {
+      path,
+      message: issue.message,
+      formatted: `${formatIssuePath(path)}: ${issue.message}`,
+    };
+  });
 }
 
 export interface MaintenanceRegistryValidationResult<TValue = MaintenanceRegistryService[]> {

@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { isRecord } from '../../lib/typeGuards';
 import type { CliToolUpdateLogEntry } from '../../types/tool-maintenance';
 
 const TOOL_UPDATE_AUDIT_SCHEMA_VERSION = 1;
@@ -20,10 +21,6 @@ export interface ToolUpdateLogQuery {
 export interface ToolUpdateAuditStore {
   append(entry: CliToolUpdateLogEntry): Promise<void>;
   listRecent(query?: ToolUpdateLogQuery): Promise<CliToolUpdateLogEntry[]>;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 function cloneEntry(entry: CliToolUpdateLogEntry): CliToolUpdateLogEntry {

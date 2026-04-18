@@ -1,0 +1,75 @@
+.wrapper {
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--text-xs);
+}
+
+.title {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+
+.baseline {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dimmed);
+}
+
+.baselineLabel {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 10px;
+}
+
+.baselineValue {
+  color: var(--text-secondary);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.table th {
+  font-weight: 600;
+  color: var(--text-dimmed);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.override {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  width: 64px;
+}
