@@ -5,7 +5,8 @@
   "description": "Claude CLI Analytics & Control Platform",
   "main": ".vite/build/main.js",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "start": "electron-forge start",

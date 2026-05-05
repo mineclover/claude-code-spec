@@ -1,0 +1,27 @@
+{
+  "name": "@apps/session-viewer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Cache-preserving session viewer (PoC). Vite + React 19 today; Electrobun-ready transport-agnostic data source.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@context-action/code-api": "*",
+    "@context-action/session-core": "*",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.8",
+    "vitest": "^4.1.4"
+  }
+}
