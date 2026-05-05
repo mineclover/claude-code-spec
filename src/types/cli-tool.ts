@@ -106,7 +106,7 @@ export interface CLIToolDefinition {
   stdinOptionKey?: string;
 }
 
-export interface CLIToolInterpreter {
-  toolId: string;
-  parseStreamLine(line: string): unknown | null;
-}
+// CLIToolInterpreter is the runtime parsing contract; canonical definition
+// lives in @context-action/session-core. Re-exported here so existing imports
+// from '../types/cli-tool' keep working.
+export type { CLIToolInterpreter } from '@context-action/session-core';

@@ -1,11 +1,11 @@
 /**
- * Gemini CLI JSON event interpreter
- * Parses gemini stream-json output and builds non-interactive command args.
+ * Gemini CLI JSON event interpreter.
+ * Parses gemini stream-json output into the universal StreamEvent shape.
  */
 
-import { isRecord } from '../lib/typeGuards';
-import type { CLIToolInterpreter } from '../types/cli-tool';
-import type { StreamEvent } from '../types/stream-events';
+import type { StreamEvent } from '@context-action/code-api';
+import { isRecord } from '../typeGuards';
+import type { CLIToolInterpreter } from './types';
 
 function makeId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;

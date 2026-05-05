@@ -62,6 +62,8 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.71",
     "@anthropic-ai/claude-agent-sdk": "^0.1.77",
+    "@context-action/code-api": "*",
+    "@context-action/session-core": "*",
     "@codemirror/commands": "^6.10.3",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lint": "^6.9.5",

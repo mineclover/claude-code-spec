@@ -1,0 +1,46 @@
+{
+  "name": "@context-action/session-core",
+  "version": "0.1.0",
+  "description": "Cache-preserving session analytics and prefix-hash domain logic, transport-agnostic and Electron-free.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "session",
+    "cache",
+    "prefix-hash",
+    "claude",
+    "codex",
+    "gemini"
+  ],
+  "author": {
+    "name": "mineclover",
+    "email": "mineclover@naver.com"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@context-action/code-api": "*"
+  },
+  "devDependencies": {
+    "@context-action/code-api": "*",
+    "@types/node": "^25.6.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.4"
+  }
+}

@@ -7,7 +7,7 @@
  * - Output-style은 힌트, 실제 검증은 Zod
  */
 
-import type { ZodType, ZodTypeDef } from 'zod';
+import type { ZodType } from 'zod';
 import { z } from 'zod';
 
 /**
@@ -317,8 +317,8 @@ export const CommonSchemas = {
  */
 export function validateWithZod<T>(
   data: unknown,
-  schema: ZodType<T, ZodTypeDef, any>,
-): { success: true; data: T } | { success: false; error: string; issues: z.ZodIssue[] } {
+  schema: ZodType<T>,
+): { success: true; data: T } | { success: false; error: string; issues: z.core.$ZodIssue[] } {
   const result = schema.safeParse(data);
 
   if (result.success) {
@@ -330,8 +330,8 @@ export function validateWithZod<T>(
 
   return {
     success: false,
-    error: result.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join('; '),
-    issues: result.error.errors,
+    error: result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; '),
+    issues: result.error.issues,
   };
 }
 

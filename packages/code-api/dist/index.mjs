@@ -3,7 +3,7 @@ import {
   validateWithStandardSchema,
   validateWithZod,
   zodSchemaToPrompt
-} from "./chunk-VIGXA6WX.mjs";
+} from "./chunk-CQ6SU4S4.mjs";
 
 // src/client/ClaudeClient.ts
 import { spawn } from "child_process";
@@ -12,7 +12,9 @@ import { spawn } from "child_process";
 import { z } from "zod";
 var BaseStreamEventSchema = z.object({
   type: z.string(),
-  isSidechain: z.boolean().optional()
+  subtype: z.string().optional(),
+  isSidechain: z.boolean().optional(),
+  toolId: z.string().optional()
 });
 var SystemInitEventSchema = z.object({
   type: z.literal("system"),
@@ -33,7 +35,8 @@ var SystemInitEventSchema = z.object({
   output_style: z.string(),
   agents: z.array(z.string()),
   uuid: z.string(),
-  isSidechain: z.boolean().optional()
+  isSidechain: z.boolean().optional(),
+  toolId: z.string().optional()
 });
 var ToolResultContentSchema = z.object({
   type: z.literal("tool_result"),
@@ -50,7 +53,8 @@ var UserEventSchema = z.object({
   session_id: z.string(),
   parent_tool_use_id: z.string().nullable(),
   uuid: z.string(),
-  isSidechain: z.boolean().optional()
+  isSidechain: z.boolean().optional(),
+  toolId: z.string().optional()
 });
 var TextContentSchema = z.object({
   type: z.literal("text"),
@@ -60,9 +64,17 @@ var ToolUseContentSchema = z.object({
   type: z.literal("tool_use"),
   id: z.string(),
   name: z.string(),
-  input: z.record(z.unknown())
+  input: z.record(z.string(), z.unknown())
 });
-var MessageContentSchema = z.union([TextContentSchema, ToolUseContentSchema]);
+var ThinkingContentSchema = z.object({
+  type: z.literal("thinking"),
+  thinking: z.string()
+});
+var MessageContentSchema = z.union([
+  TextContentSchema,
+  ToolUseContentSchema,
+  ThinkingContentSchema
+]);
 var AssistantMessageSchema = z.object({
   id: z.string(),
   type: z.literal("message"),
@@ -89,7 +101,8 @@ var AssistantEventSchema = z.object({
   parent_tool_use_id: z.string().nullable(),
   session_id: z.string(),
   uuid: z.string(),
-  isSidechain: z.boolean().optional()
+  isSidechain: z.boolean().optional(),
+  toolId: z.string().optional()
 });
 var ModelUsageSchema = z.object({
   inputTokens: z.number(),
@@ -102,7 +115,13 @@ var ModelUsageSchema = z.object({
 });
 var ResultEventSchema = z.object({
   type: z.literal("result"),
-  subtype: z.union([z.literal("success"), z.literal("error")]),
+  subtype: z.union([
+    z.literal("success"),
+    z.literal("error"),
+    z.literal("error_during_execution"),
+    z.literal("error_max_turns"),
+    z.literal("error_max_budget_usd")
+  ]),
   is_error: z.boolean(),
   duration_ms: z.number(),
   duration_api_ms: z.number(),
@@ -124,15 +143,16 @@ var ResultEventSchema = z.object({
       ephemeral_5m_input_tokens: z.number()
     }).optional()
   }),
-  modelUsage: z.record(ModelUsageSchema),
+  modelUsage: z.record(z.string(), ModelUsageSchema),
   permission_denials: z.array(
     z.object({
       tool_name: z.string(),
-      tool_input: z.record(z.unknown())
+      tool_input: z.record(z.string(), z.unknown())
     })
   ),
   uuid: z.string(),
-  isSidechain: z.boolean().optional()
+  isSidechain: z.boolean().optional(),
+  toolId: z.string().optional()
 });
 var ErrorEventSchema = z.object({
   type: z.literal("error"),
@@ -140,7 +160,8 @@ var ErrorEventSchema = z.object({
     type: z.string(),
     message: z.string()
   }),
-  isSidechain: z.boolean().optional()
+  isSidechain: z.boolean().optional(),
+  toolId: z.string().optional()
 });
 var StreamEventSchema = z.union([
   SystemInitEventSchema,
@@ -976,7 +997,7 @@ ${query}`;
    * ```
    */
   async queryWithZod(projectPath, instruction, schema, options = {}) {
-    const { zodSchemaToPrompt: zodSchemaToPrompt2, validateWithZod: validateWithZod2 } = await import("./zodSchemaBuilder-O2NJUWMP.mjs");
+    const { zodSchemaToPrompt: zodSchemaToPrompt2, validateWithZod: validateWithZod2 } = await import("./zodSchemaBuilder-OAQYBORN.mjs");
     console.info("Executing query with Zod schema", {
       module: "ClaudeQueryAPI",
       projectPath,
@@ -1053,7 +1074,7 @@ ${query}`;
    * ```
    */
   async queryWithStandardSchema(projectPath, instruction, schema, options = {}) {
-    const { zodSchemaToPrompt: zodSchemaToPrompt2, validateWithStandardSchema: validateWithStandardSchema2, isStandardSchema } = await import("./zodSchemaBuilder-O2NJUWMP.mjs");
+    const { zodSchemaToPrompt: zodSchemaToPrompt2, validateWithStandardSchema: validateWithStandardSchema2, isStandardSchema } = await import("./zodSchemaBuilder-OAQYBORN.mjs");
     console.info("Executing query with Standard Schema", {
       module: "ClaudeQueryAPI",
       projectPath

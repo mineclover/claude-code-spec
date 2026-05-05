@@ -1,10 +1,10 @@
 /**
  * Claude CLI JSONL stream interpreter
- * Parses stream-json output from Claude CLI into StreamEvent objects
+ * Parses stream-json output from Claude CLI into StreamEvent objects.
  */
 
-import type { CLIToolInterpreter } from '../types/cli-tool';
-import type { StreamEvent } from '../types/stream-events';
+import type { StreamEvent } from '@context-action/code-api';
+import type { CLIToolInterpreter } from './types';
 
 export class ClaudeInterpreter implements CLIToolInterpreter {
   toolId = 'claude';

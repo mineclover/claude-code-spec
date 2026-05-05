@@ -1,17 +1,22 @@
 import { ChildProcess } from 'node:child_process';
 import * as zod from 'zod';
-import { z, ZodType, ZodTypeDef } from 'zod';
+import { z, ZodType } from 'zod';
 
 /**
- * Type definitions for Claude CLI stream-json output
- * Based on: https://docs.claude.com/en/docs/claude-code/headless.md
+ * Stream event types for Claude / Codex / Gemini CLIs.
+ *
+ * Universal envelope: every event carries an optional `toolId` so reducers
+ * can attribute the event to its source CLI without per-provider branching.
+ * Reference for Claude shape: https://docs.claude.com/en/docs/claude-code/headless.md
  */
 interface BaseStreamEvent {
     type: string;
+    subtype?: string;
     isSidechain?: boolean;
+    toolId?: string;
     [key: string]: unknown;
 }
-interface SystemInitEvent {
+interface SystemInitEvent extends BaseStreamEvent {
     type: 'system';
     subtype: 'init';
     cwd: string;
@@ -28,7 +33,6 @@ interface SystemInitEvent {
     output_style: string;
     agents: string[];
     uuid: string;
-    isSidechain?: boolean;
 }
 interface ToolResultContent {
     type: 'tool_result';
@@ -39,13 +43,12 @@ interface UserMessage {
     role: 'user';
     content: string | ToolResultContent[];
 }
-interface UserEvent {
+interface UserEvent extends BaseStreamEvent {
     type: 'user';
     message: UserMessage;
     session_id: string;
     parent_tool_use_id: string | null;
     uuid: string;
-    isSidechain?: boolean;
 }
 interface TextContent {
     type: 'text';
@@ -57,7 +60,11 @@ interface ToolUseContent {
     name: string;
     input: Record<string, unknown>;
 }
-type MessageContent = TextContent | ToolUseContent;
+interface ThinkingContent {
+    type: 'thinking';
+    thinking: string;
+}
+type MessageContent = TextContent | ToolUseContent | ThinkingContent;
 interface AssistantMessage {
     id: string;
     type: 'message';
@@ -78,13 +85,12 @@ interface AssistantMessage {
         service_tier: string;
     };
 }
-interface AssistantEvent {
+interface AssistantEvent extends BaseStreamEvent {
     type: 'assistant';
     message: AssistantMessage;
     parent_tool_use_id: string | null;
     session_id: string;
     uuid: string;
-    isSidechain?: boolean;
 }
 interface ModelUsage {
     inputTokens: number;
@@ -95,9 +101,9 @@ interface ModelUsage {
     costUSD: number;
     contextWindow: number;
 }
-interface ResultEvent {
+interface ResultEvent extends BaseStreamEvent {
     type: 'result';
-    subtype: 'success' | 'error';
+    subtype: 'success' | 'error' | 'error_during_execution' | 'error_max_turns' | 'error_max_budget_usd';
     is_error: boolean;
     duration_ms: number;
     duration_api_ms: number;
@@ -125,15 +131,13 @@ interface ResultEvent {
         tool_input: Record<string, unknown>;
     }>;
     uuid: string;
-    isSidechain?: boolean;
 }
-interface ErrorEvent {
+interface ErrorEvent extends BaseStreamEvent {
     type: 'error';
     error: {
         type: string;
         message: string;
     };
-    isSidechain?: boolean;
 }
 type StreamEvent$1 = SystemInitEvent | UserEvent | AssistantEvent | ResultEvent | ErrorEvent | BaseStreamEvent;
 declare function isSystemInitEvent(event: StreamEvent$1): event is SystemInitEvent;
@@ -462,82 +466,33 @@ declare const CommonSchemas: {
         complexity: z.ZodNumber;
         maintainability: z.ZodNumber;
         issues: z.ZodArray<z.ZodObject<{
-            severity: z.ZodEnum<["low", "medium", "high"]>;
+            severity: z.ZodEnum<{
+                low: "low";
+                medium: "medium";
+                high: "high";
+            }>;
             message: z.ZodString;
             line: z.ZodOptional<z.ZodNumber>;
-        }, "strip", z.ZodTypeAny, {
-            message: string;
-            severity: "low" | "medium" | "high";
-            line?: number | undefined;
-        }, {
-            message: string;
-            severity: "low" | "medium" | "high";
-            line?: number | undefined;
-        }>, "many">;
-        suggestions: z.ZodArray<z.ZodString, "many">;
-    }, "strip", z.ZodTypeAny, {
-        issues: {
-            message: string;
-            severity: "low" | "medium" | "high";
-            line?: number | undefined;
-        }[];
-        file: string;
-        review: number;
-        complexity: number;
-        maintainability: number;
-        suggestions: string[];
-    }, {
-        issues: {
-            message: string;
-            severity: "low" | "medium" | "high";
-            line?: number | undefined;
-        }[];
-        file: string;
-        review: number;
-        complexity: number;
-        maintainability: number;
-        suggestions: string[];
-    }>;
+        }, z.core.$strip>>;
+        suggestions: z.ZodArray<z.ZodString>;
+    }, z.core.$strip>;
     /**
      * Agent statistics schema
      */
     agentStats: () => z.ZodObject<{
         agentName: z.ZodString;
-        status: z.ZodEnum<["idle", "busy"]>;
+        status: z.ZodEnum<{
+            idle: "idle";
+            busy: "busy";
+        }>;
         tasksCompleted: z.ZodNumber;
         currentTask: z.ZodOptional<z.ZodString>;
         uptime: z.ZodNumber;
         performance: z.ZodObject<{
             avgDuration: z.ZodNumber;
             avgCost: z.ZodNumber;
-        }, "strip", z.ZodTypeAny, {
-            avgDuration: number;
-            avgCost: number;
-        }, {
-            avgDuration: number;
-            avgCost: number;
-        }>;
-    }, "strip", z.ZodTypeAny, {
-        status: "idle" | "busy";
-        agentName: string;
-        tasksCompleted: number;
-        uptime: number;
-        performance: {
-            avgDuration: number;
-            avgCost: number;
-        };
-        currentTask?: string | undefined;
-    }, {
-        status: "idle" | "busy";
-        agentName: string;
-        tasksCompleted: number;
-        uptime: number;
-        performance: {
-            avgDuration: number;
-            avgCost: number;
-        };
-        currentTask?: string | undefined;
-    }>;
+        }, z.core.$strip>;
+    }, z.core.$strip>;
     /**
      * Task execution plan schema
      */
@@ -547,63 +502,29 @@ declare const CommonSchemas: {
             stepNumber: z.ZodNumber;
             description: z.ZodString;
             estimatedDuration: z.ZodString;
-        }, "strip", z.ZodTypeAny, {
-            stepNumber: number;
-            description: string;
-            estimatedDuration: string;
-        }, {
-            stepNumber: number;
-            description: string;
-            estimatedDuration: string;
-        }>, "many">;
+        }, z.core.$strip>>;
         total_estimated_duration: z.ZodString;
-        risks: z.ZodArray<z.ZodString, "many">;
-    }, "strip", z.ZodTypeAny, {
-        taskId: string;
-        steps: {
-            stepNumber: number;
-            description: string;
-            estimatedDuration: string;
-        }[];
-        total_estimated_duration: string;
-        risks: string[];
-    }, {
-        taskId: string;
-        steps: {
-            stepNumber: number;
-            description: string;
-            estimatedDuration: string;
-        }[];
-        total_estimated_duration: string;
-        risks: string[];
-    }>;
+        risks: z.ZodArray<z.ZodString>;
+    }, z.core.$strip>;
     /**
      * Simple review (like structured-json)
      */
     simpleReview: () => z.ZodObject<{
         review: z.ZodNumber;
         name: z.ZodString;
-        tags: z.ZodArray<z.ZodString, "many">;
-    }, "strip", z.ZodTypeAny, {
-        name: string;
-        review: number;
-        tags: string[];
-    }, {
-        name: string;
-        review: number;
-        tags: string[];
-    }>;
+        tags: z.ZodArray<z.ZodString>;
+    }, z.core.$strip>;
 };
 /**
  * Zod 스키마로 데이터 검증
  */
-declare function validateWithZod<T>(data: unknown, schema: ZodType<T, ZodTypeDef, any>): {
+declare function validateWithZod<T>(data: unknown, schema: ZodType<T>): {
     success: true;
     data: T;
 } | {
     success: false;
     error: string;
-    issues: z.ZodIssue[];
+    issues: z.core.$ZodIssue[];
 };
 /**
  * Standard Schema로 데이터 검증
@@ -1224,4 +1145,4 @@ declare class SessionManager {
     getSessionCount(): number;
 }
 
-export { type AssistantEvent, ClaudeClient, type ClaudeClientOptions, ClaudeQueryAPI, CommonSchemas, type EntryPointConfig, type EntryPointDetail, EntryPointExecutor, EntryPointManager, type EntryPointResult, type EntryPointsConfig, type ErrorEvent, type ExecuteEntryPointParams, type ExecutionInfo, ExecutionNotFoundError, type ExecutionStatus, type JSONExtractionResult, type JSONSchema, MaxConcurrentError, type OutputFormat, ProcessKillError, ProcessManager, type ProcessManagerOptions, ProcessStartError, type QueryOptions, type QueryResult, type ResultEvent, type SchemaDefinition, SchemaManager, type SessionInfo, SessionManager, StandardSchemaV1, type StartExecutionParams, type StreamEvent$1 as StreamEvent, StreamParser, type SystemInitEvent, type SystemPromptConfig, type UserEvent, ValidationError, type ValidationResult, buildSchemaPrompt, extractAndValidate, extractJSON, extractSessionId, extractTextFromMessage, extractToolUsesFromMessage, isAssistantEvent, isErrorEvent, isResultEvent, isSystemInitEvent, isUserEvent, processManager, validateAgainstSchema, validateWithStandardSchema, validateWithZod, zodSchemaToPrompt };
+export { type AssistantEvent, type AssistantMessage, type BaseStreamEvent, ClaudeClient, type ClaudeClientOptions, ClaudeQueryAPI, CommonSchemas, type EntryPointConfig, type EntryPointDetail, EntryPointExecutor, EntryPointManager, type EntryPointResult, type EntryPointsConfig, type ErrorEvent, type ExecuteEntryPointParams, type ExecutionInfo, ExecutionNotFoundError, type ExecutionStatus, type JSONExtractionResult, type JSONSchema, MaxConcurrentError, type MessageContent, type ModelUsage, type OutputFormat, ProcessKillError, ProcessManager, type ProcessManagerOptions, ProcessStartError, type QueryOptions, type QueryResult, type ResultEvent, type SchemaDefinition, SchemaManager, type SessionInfo, SessionManager, StandardSchemaV1, type StartExecutionParams, type StreamEvent$1 as StreamEvent, StreamParser, type SystemInitEvent, type SystemPromptConfig, type TextContent, type ThinkingContent, type ToolResultContent, type ToolUseContent, type UserEvent, type UserMessage, ValidationError, type ValidationResult, buildSchemaPrompt, extractAndValidate, extractJSON, extractSessionId, extractTextFromMessage, extractToolUsesFromMessage, isAssistantEvent, isErrorEvent, isResultEvent, isSystemInitEvent, isUserEvent, processManager, validateAgainstSchema, validateWithStandardSchema, validateWithZod, zodSchemaToPrompt };

@@ -1,6 +1,9 @@
 /**
- * Type definitions for Claude CLI stream-json output
- * Based on: https://docs.claude.com/en/docs/claude-code/headless.md
+ * Stream event types for Claude / Codex / Gemini CLIs.
+ *
+ * Universal envelope: every event carries an optional `toolId` so reducers
+ * can attribute the event to its source CLI without per-provider branching.
+ * Reference for Claude shape: https://docs.claude.com/en/docs/claude-code/headless.md
  */
 
 // ============================================================================
@@ -9,7 +12,9 @@
 
 export interface BaseStreamEvent {
   type: string;
-  isSidechain?: boolean; // Indicates if this event is from a sub-agent
+  subtype?: string;
+  isSidechain?: boolean;
+  toolId?: string; // which CLI produced this event (claude | codex | gemini | ...)
   [key: string]: unknown;
 }
 
@@ -17,7 +22,7 @@ export interface BaseStreamEvent {
 // System Events
 // ============================================================================
 
-export interface SystemInitEvent {
+export interface SystemInitEvent extends BaseStreamEvent {
   type: 'system';
   subtype: 'init';
   cwd: string;
@@ -34,7 +39,6 @@ export interface SystemInitEvent {
   output_style: string;
   agents: string[];
   uuid: string;
-  isSidechain?: boolean;
 }
 
 // ============================================================================
@@ -52,13 +56,12 @@ export interface UserMessage {
   content: string | ToolResultContent[];
 }
 
-export interface UserEvent {
+export interface UserEvent extends BaseStreamEvent {
   type: 'user';
   message: UserMessage;
   session_id: string;
   parent_tool_use_id: string | null;
   uuid: string;
-  isSidechain?: boolean;
 }
 
 // ============================================================================
@@ -77,7 +80,12 @@ export interface ToolUseContent {
   input: Record<string, unknown>;
 }
 
-export type MessageContent = TextContent | ToolUseContent;
+export interface ThinkingContent {
+  type: 'thinking';
+  thinking: string;
+}
+
+export type MessageContent = TextContent | ToolUseContent | ThinkingContent;
 
 export interface AssistantMessage {
   id: string;
@@ -100,13 +108,12 @@ export interface AssistantMessage {
   };
 }
 
-export interface AssistantEvent {
+export interface AssistantEvent extends BaseStreamEvent {
   type: 'assistant';
   message: AssistantMessage;
   parent_tool_use_id: string | null;
   session_id: string;
   uuid: string;
-  isSidechain?: boolean;
 }
 
 // ============================================================================
@@ -123,9 +130,14 @@ export interface ModelUsage {
   contextWindow: number;
 }
 
-export interface ResultEvent {
+export interface ResultEvent extends BaseStreamEvent {
   type: 'result';
-  subtype: 'success' | 'error';
+  subtype:
+    | 'success'
+    | 'error'
+    | 'error_during_execution'
+    | 'error_max_turns'
+    | 'error_max_budget_usd';
   is_error: boolean;
   duration_ms: number;
   duration_api_ms: number;
@@ -153,20 +165,18 @@ export interface ResultEvent {
     tool_input: Record<string, unknown>;
   }>;
   uuid: string;
-  isSidechain?: boolean;
 }
 
 // ============================================================================
 // Error Events
 // ============================================================================
 
-export interface ErrorEvent {
+export interface ErrorEvent extends BaseStreamEvent {
   type: 'error';
   error: {
     type: string;
     message: string;
   };
-  isSidechain?: boolean;
 }
 
 // ============================================================================

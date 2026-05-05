@@ -35,11 +35,20 @@ export {
 export { StreamParser } from './parser/StreamParser';
 export type {
   AssistantEvent,
+  AssistantMessage,
+  BaseStreamEvent,
   ErrorEvent,
+  MessageContent,
+  ModelUsage,
   ResultEvent,
   StreamEvent,
   SystemInitEvent,
+  TextContent,
+  ThinkingContent,
+  ToolResultContent,
+  ToolUseContent,
   UserEvent,
+  UserMessage,
 } from './parser/types';
 export {
   extractSessionId,

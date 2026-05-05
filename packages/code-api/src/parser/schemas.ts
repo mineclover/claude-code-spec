@@ -13,7 +13,9 @@ import { z } from 'zod';
 
 export const BaseStreamEventSchema = z.object({
   type: z.string(),
+  subtype: z.string().optional(),
   isSidechain: z.boolean().optional(),
+  toolId: z.string().optional(),
 });
 
 // ============================================================================
@@ -40,6 +42,7 @@ export const SystemInitEventSchema = z.object({
   agents: z.array(z.string()),
   uuid: z.string(),
   isSidechain: z.boolean().optional(),
+  toolId: z.string().optional(),
 });
 
 // ============================================================================
@@ -64,6 +67,7 @@ export const UserEventSchema = z.object({
   parent_tool_use_id: z.string().nullable(),
   uuid: z.string(),
   isSidechain: z.boolean().optional(),
+  toolId: z.string().optional(),
 });
 
 // ============================================================================
@@ -79,10 +83,19 @@ export const ToolUseContentSchema = z.object({
   type: z.literal('tool_use'),
   id: z.string(),
   name: z.string(),
-  input: z.record(z.unknown()),
+  input: z.record(z.string(), z.unknown()),
 });
 
-export const MessageContentSchema = z.union([TextContentSchema, ToolUseContentSchema]);
+export const ThinkingContentSchema = z.object({
+  type: z.literal('thinking'),
+  thinking: z.string(),
+});
+
+export const MessageContentSchema = z.union([
+  TextContentSchema,
+  ToolUseContentSchema,
+  ThinkingContentSchema,
+]);
 
 export const AssistantMessageSchema = z.object({
   id: z.string(),
@@ -114,6 +127,7 @@ export const AssistantEventSchema = z.object({
   session_id: z.string(),
   uuid: z.string(),
   isSidechain: z.boolean().optional(),
+  toolId: z.string().optional(),
 });
 
 // ============================================================================
@@ -132,7 +146,13 @@ export const ModelUsageSchema = z.object({
 
 export const ResultEventSchema = z.object({
   type: z.literal('result'),
-  subtype: z.union([z.literal('success'), z.literal('error')]),
+  subtype: z.union([
+    z.literal('success'),
+    z.literal('error'),
+    z.literal('error_during_execution'),
+    z.literal('error_max_turns'),
+    z.literal('error_max_budget_usd'),
+  ]),
   is_error: z.boolean(),
   duration_ms: z.number(),
   duration_api_ms: z.number(),
@@ -158,15 +178,16 @@ export const ResultEventSchema = z.object({
       })
       .optional(),
   }),
-  modelUsage: z.record(ModelUsageSchema),
+  modelUsage: z.record(z.string(), ModelUsageSchema),
   permission_denials: z.array(
     z.object({
       tool_name: z.string(),
-      tool_input: z.record(z.unknown()),
+      tool_input: z.record(z.string(), z.unknown()),
     }),
   ),
   uuid: z.string(),
   isSidechain: z.boolean().optional(),
+  toolId: z.string().optional(),
 });
 
 // ============================================================================
@@ -180,6 +201,7 @@ export const ErrorEventSchema = z.object({
     message: z.string(),
   }),
   isSidechain: z.boolean().optional(),
+  toolId: z.string().optional(),
 });
 
 // ============================================================================

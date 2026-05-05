@@ -156,8 +156,8 @@ function validateWithZod(data, schema) {
   }
   return {
     success: false,
-    error: result.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join("; "),
-    issues: result.error.errors
+    error: result.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`).join("; "),
+    issues: result.error.issues
   };
 }
 async function validateWithStandardSchema(data, schema) {
@@ -288,7 +288,9 @@ var import_node_child_process = require("child_process");
 var import_zod = require("zod");
 var BaseStreamEventSchema = import_zod.z.object({
   type: import_zod.z.string(),
-  isSidechain: import_zod.z.boolean().optional()
+  subtype: import_zod.z.string().optional(),
+  isSidechain: import_zod.z.boolean().optional(),
+  toolId: import_zod.z.string().optional()
 });
 var SystemInitEventSchema = import_zod.z.object({
   type: import_zod.z.literal("system"),
@@ -309,7 +311,8 @@ var SystemInitEventSchema = import_zod.z.object({
   output_style: import_zod.z.string(),
   agents: import_zod.z.array(import_zod.z.string()),
   uuid: import_zod.z.string(),
-  isSidechain: import_zod.z.boolean().optional()
+  isSidechain: import_zod.z.boolean().optional(),
+  toolId: import_zod.z.string().optional()
 });
 var ToolResultContentSchema = import_zod.z.object({
   type: import_zod.z.literal("tool_result"),
@@ -326,7 +329,8 @@ var UserEventSchema = import_zod.z.object({
   session_id: import_zod.z.string(),
   parent_tool_use_id: import_zod.z.string().nullable(),
   uuid: import_zod.z.string(),
-  isSidechain: import_zod.z.boolean().optional()
+  isSidechain: import_zod.z.boolean().optional(),
+  toolId: import_zod.z.string().optional()
 });
 var TextContentSchema = import_zod.z.object({
   type: import_zod.z.literal("text"),
@@ -336,9 +340,17 @@ var ToolUseContentSchema = import_zod.z.object({
   type: import_zod.z.literal("tool_use"),
   id: import_zod.z.string(),
   name: import_zod.z.string(),
-  input: import_zod.z.record(import_zod.z.unknown())
+  input: import_zod.z.record(import_zod.z.string(), import_zod.z.unknown())
 });
-var MessageContentSchema = import_zod.z.union([TextContentSchema, ToolUseContentSchema]);
+var ThinkingContentSchema = import_zod.z.object({
+  type: import_zod.z.literal("thinking"),
+  thinking: import_zod.z.string()
+});
+var MessageContentSchema = import_zod.z.union([
+  TextContentSchema,
+  ToolUseContentSchema,
+  ThinkingContentSchema
+]);
 var AssistantMessageSchema = import_zod.z.object({
   id: import_zod.z.string(),
   type: import_zod.z.literal("message"),
@@ -365,7 +377,8 @@ var AssistantEventSchema = import_zod.z.object({
   parent_tool_use_id: import_zod.z.string().nullable(),
   session_id: import_zod.z.string(),
   uuid: import_zod.z.string(),
-  isSidechain: import_zod.z.boolean().optional()
+  isSidechain: import_zod.z.boolean().optional(),
+  toolId: import_zod.z.string().optional()
 });
 var ModelUsageSchema = import_zod.z.object({
   inputTokens: import_zod.z.number(),
@@ -378,7 +391,13 @@ var ModelUsageSchema = import_zod.z.object({
 });
 var ResultEventSchema = import_zod.z.object({
   type: import_zod.z.literal("result"),
-  subtype: import_zod.z.union([import_zod.z.literal("success"), import_zod.z.literal("error")]),
+  subtype: import_zod.z.union([
+    import_zod.z.literal("success"),
+    import_zod.z.literal("error"),
+    import_zod.z.literal("error_during_execution"),
+    import_zod.z.literal("error_max_turns"),
+    import_zod.z.literal("error_max_budget_usd")
+  ]),
   is_error: import_zod.z.boolean(),
   duration_ms: import_zod.z.number(),
   duration_api_ms: import_zod.z.number(),
@@ -400,15 +419,16 @@ var ResultEventSchema = import_zod.z.object({
       ephemeral_5m_input_tokens: import_zod.z.number()
     }).optional()
   }),
-  modelUsage: import_zod.z.record(ModelUsageSchema),
+  modelUsage: import_zod.z.record(import_zod.z.string(), ModelUsageSchema),
   permission_denials: import_zod.z.array(
     import_zod.z.object({
       tool_name: import_zod.z.string(),
-      tool_input: import_zod.z.record(import_zod.z.unknown())
+      tool_input: import_zod.z.record(import_zod.z.string(), import_zod.z.unknown())
     })
   ),
   uuid: import_zod.z.string(),
-  isSidechain: import_zod.z.boolean().optional()
+  isSidechain: import_zod.z.boolean().optional(),
+  toolId: import_zod.z.string().optional()
 });
 var ErrorEventSchema = import_zod.z.object({
   type: import_zod.z.literal("error"),
@@ -416,7 +436,8 @@ var ErrorEventSchema = import_zod.z.object({
     type: import_zod.z.string(),
     message: import_zod.z.string()
   }),
-  isSidechain: import_zod.z.boolean().optional()
+  isSidechain: import_zod.z.boolean().optional(),
+  toolId: import_zod.z.string().optional()
 });
 var StreamEventSchema = import_zod.z.union([
   SystemInitEventSchema,
