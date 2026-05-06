@@ -13,6 +13,7 @@ import {
 } from '@context-action/session-core';
 import {
   BranchUnsupportedError,
+  type BranchProgressEvent,
   type BranchRequest,
   type BranchResult,
   type ProjectListItem,
@@ -151,5 +152,22 @@ export class MockSessionDataSource implements SessionDataSource {
 
   async branch(_request: BranchRequest): Promise<BranchResult> {
     throw new BranchUnsupportedError(ADAPTER_NAME);
+  }
+
+  subscribeProgress(_listener: (event: BranchProgressEvent) => void): () => void {
+    // The mock adapter never spawns a CLI, so no progress to surface.
+    return () => undefined;
+  }
+
+  async listSummaries() {
+    return [];
+  }
+
+  async getSummary() {
+    return null;
+  }
+
+  async deleteSummary() {
+    /* no-op */
   }
 }

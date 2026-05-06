@@ -15,8 +15,14 @@
 
 import type {
   SessionMetaView,
+  SummaryLanguage,
   SummaryResult,
 } from '@context-action/session-core';
+import type { BranchProgressEvent } from './rpc-schema';
+
+export type { SummaryLanguage };
+
+export type { BranchProgressEvent };
 
 /**
  * One project = one cwd that contains many sessions. Adapters group sessions
@@ -48,6 +54,12 @@ export interface BranchRequest {
    */
   kind?: 'summarize';
   /**
+   * Language the model should answer in (oneLiner, narrative, decisions, …).
+   * Defaults to `'en'` when omitted. The JSON envelope itself is always
+   * the same shape — only the human-readable strings switch language.
+   */
+  language?: SummaryLanguage;
+  /**
    * Operator-supplied free-form prompt. Optional — the host applies a
    * canonical template per `kind` when omitted. Provided text is appended
    * after the canonical template so operators can refine the eval without
@@ -62,6 +74,35 @@ export interface BranchRequest {
  * branch kinds will return discriminated variants.
  */
 export type BranchResult = SummaryResult;
+
+/**
+ * Persisted record of a past branch evaluation. The host writes one of these
+ * to disk after a successful `branch` resolves; the renderer fetches them
+ * back through `listSummaries` / `getSummary` to show history per session.
+ */
+export interface SummaryRecord {
+  /** Stable id — matches `summary.cacheInvariants.forkSessionId` when set. */
+  id: string;
+  /** Source session this branch was produced from. */
+  sourceSessionId: string;
+  /** Which CLI ran the fork. */
+  toolId: string;
+  /** cwd of the source session at fork time. */
+  cwd: string;
+  /** ISO timestamp of when the host materialised the record. */
+  createdAt: string;
+  /** Optional operator-supplied prompt override (if any). */
+  promptOverride?: string;
+  /** Language the model wrote the summary in (best-effort label). */
+  language?: SummaryLanguage;
+  /** The full structured summary as returned by the runner. */
+  summary: SummaryResult;
+}
+
+export interface ListSummariesFilter {
+  /** Restrict to summaries forked from this source session. */
+  sourceSessionId?: string;
+}
 
 export interface SessionDataSource {
   /**
@@ -83,6 +124,23 @@ export interface SessionDataSource {
    * (mock, HTTP read-only) should throw a `BranchUnsupportedError`.
    */
   branch(request: BranchRequest): Promise<BranchResult>;
+
+  /**
+   * Subscribe to fork progress events emitted while a `branch` request is
+   * in flight. Adapters that can't observe (mock, HTTP) should accept the
+   * callback and return a no-op unsubscribe. Returns a function the caller
+   * invokes to unregister the listener.
+   */
+  subscribeProgress(listener: (event: BranchProgressEvent) => void): () => void;
+
+  /** List persisted past summaries, newest-first. */
+  listSummaries(filter?: ListSummariesFilter): Promise<SummaryRecord[]>;
+
+  /** Fetch a specific past summary by id. Resolves to `null` if missing. */
+  getSummary(id: string): Promise<SummaryRecord | null>;
+
+  /** Remove a persisted summary. Idempotent — missing ids are silently OK. */
+  deleteSummary(id: string): Promise<void>;
 }
 
 export class BranchUnsupportedError extends Error {

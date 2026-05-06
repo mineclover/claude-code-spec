@@ -35,23 +35,36 @@ async function pickDataSource(): Promise<SessionDataSource> {
 
   try {
     const { Electroview } = await import('electrobun/view');
+    // Forward reference: the message handler needs to call methods on the
+    // data source, but the data source is constructed AFTER the rpc proxy
+    // is built (the rpc handlers are part of the rpc config). The
+    // assignment below the `defineRPC` call closes the loop.
+    let dataSourceRef: ElectrobunSessionDataSource | null = null;
     const rpc = Electroview.defineRPC<SessionViewerRPC>({
-      // Default is 1 s; bumped here to match the bun-side timeout because
-      // initial multi-CLI scans (especially the codex tree) easily exceed
-      // a second on a cold cache.
-      maxRequestTime: 60_000,
+      // Default is 1 s; bumped to match the bun-side timeout. Two ops can
+      // legitimately take a long time: the cold multi-CLI scan (~2 s) and
+      // Branch & Summarize (a real CLI round-trip — easily minutes on a
+      // large source thread).
+      maxRequestTime: 5 * 60_000,
       handlers: {
         requests: {},
         messages: {
           sessionsChanged: ({ projectId }) => {
             console.log('[renderer] sessionsChanged', projectId);
           },
+          branchProgress: (event) => {
+            dataSourceRef?.dispatchProgress(event);
+          },
         },
       },
     });
     new Electroview({ rpc });
+    const dataSource = new ElectrobunSessionDataSource(
+      rpc as unknown as ElectrobunRpcClient,
+    );
+    dataSourceRef = dataSource;
     console.log('[main] electrobun adapter wired');
-    return new ElectrobunSessionDataSource(rpc as unknown as ElectrobunRpcClient);
+    return dataSource;
   } catch (err) {
     console.error('[main] electrobun init failed; falling back to mock', err);
     return new MockSessionDataSource();

@@ -1,4 +1,11 @@
 /**
+ * ISO 639-1 language tag for the human-readable strings the model writes
+ * into a `SummaryResult`. Kept narrow at v1; expanded by adding new tags
+ * here and updating the prompt clause in cli-runner/prompts.ts.
+ */
+export type SummaryLanguage = 'en' | 'ko';
+
+/**
  * Branched-summary contract.
  *
  * The Session Viewer's signature operation is "fork the active session's

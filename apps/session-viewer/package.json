@@ -16,6 +16,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@context-action/cli-runner": "*",
     "@context-action/code-api": "*",
     "@context-action/session-core": "*",
     "react": "^19.2.5",

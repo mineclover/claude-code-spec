@@ -1,0 +1,52 @@
+{
+  "name": "@context-action/cli-runner",
+  "version": "0.1.0",
+  "description": "Cache-preserving fork-and-summarize runners for Claude / Codex / Gemini CLIs.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "claude",
+    "codex",
+    "gemini",
+    "cli",
+    "fork",
+    "cache",
+    "summarize"
+  ],
+  "author": {
+    "name": "mineclover",
+    "email": "mineclover@naver.com"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@context-action/code-api": "*",
+    "@context-action/session-core": "*",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@context-action/code-api": "*",
+    "@context-action/session-core": "*",
+    "@types/node": "^25.6.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.4",
+    "zod": "^4.3.6"
+  }
+}

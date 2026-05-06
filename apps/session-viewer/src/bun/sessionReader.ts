@@ -63,6 +63,34 @@ export async function listSessions(projectId: string): Promise<SessionMetaView[]
   return project ? project.sessions : [];
 }
 
+export interface ResolvedSession {
+  toolId: ProjectScan['toolId'];
+  cwd: string;
+  sessionId: string;
+}
+
+/**
+ * Find which CLI / cwd a sessionId belongs to. Used by the branch RPC
+ * handler to decide which runner to dispatch and which project space the
+ * fork should land in.
+ */
+export async function resolveSession(
+  sessionId: string,
+): Promise<ResolvedSession | null> {
+  const scans = cache ?? (await refreshCache());
+  for (const scan of scans) {
+    const match = scan.sessions.find((s) => s.sessionId === sessionId);
+    if (match) {
+      return {
+        toolId: scan.toolId,
+        cwd: scan.path,
+        sessionId,
+      };
+    }
+  }
+  return null;
+}
+
 export async function invalidateCache(): Promise<void> {
   cache = null;
 }

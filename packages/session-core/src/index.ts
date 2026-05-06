@@ -78,6 +78,7 @@ export { isPlainObject, isRecord } from './typeGuards';
 export type {
   SummaryCacheInvariants,
   SummaryDecision,
+  SummaryLanguage,
   SummaryNextAction,
   SummaryOpenItem,
   SummaryReference,

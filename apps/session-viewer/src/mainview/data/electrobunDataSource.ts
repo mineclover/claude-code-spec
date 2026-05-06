@@ -13,6 +13,7 @@
 import type { SessionMetaView } from '@context-action/session-core';
 import {
   BranchUnsupportedError,
+  type BranchProgressEvent,
   type BranchRequest,
   type BranchResult,
   type ProjectListItem,
@@ -34,6 +35,13 @@ export interface ElectrobunRpcClient {
     listProjects(): Promise<ProjectListItem[]>;
     listSessions(params: { projectId: string }): Promise<SessionMetaView[]>;
     branch(params: BranchRequest): Promise<BranchResult>;
+    listSummaries(
+      params: import('../../shared/dataSource').ListSummariesFilter,
+    ): Promise<import('../../shared/dataSource').SummaryRecord[]>;
+    getSummary(params: {
+      id: string;
+    }): Promise<import('../../shared/dataSource').SummaryRecord | null>;
+    deleteSummary(params: { id: string }): Promise<void>;
   };
   send: {
     logToBun(payload: SessionViewerRPC['bun']['messages']['logToBun']): void;
@@ -42,6 +50,7 @@ export interface ElectrobunRpcClient {
 
 export class ElectrobunSessionDataSource implements SessionDataSource {
   private cachedDescription: { adapter: string; readonly: boolean } | null = null;
+  private readonly progressListeners = new Set<(e: BranchProgressEvent) => void>();
 
   constructor(private readonly rpc: ElectrobunRpcClient) {}
 
@@ -52,6 +61,42 @@ export class ElectrobunSessionDataSource implements SessionDataSource {
         readonly: false,
       }
     );
+  }
+
+  /**
+   * Called by main.tsx when a `branchProgress` message arrives from bun.
+   * Public so the Electroview message handler — which has to be defined
+   * outside this class — can fan it out to subscribers.
+   */
+  dispatchProgress(event: BranchProgressEvent): void {
+    for (const fn of this.progressListeners) {
+      try {
+        fn(event);
+      } catch (err) {
+        console.error('[electrobunDataSource] progress listener threw', err);
+      }
+    }
+  }
+
+  subscribeProgress(listener: (event: BranchProgressEvent) => void): () => void {
+    this.progressListeners.add(listener);
+    return () => {
+      this.progressListeners.delete(listener);
+    };
+  }
+
+  listSummaries(
+    filter: import('../../shared/dataSource').ListSummariesFilter = {},
+  ) {
+    return this.rpc.request.listSummaries(filter);
+  }
+
+  getSummary(id: string) {
+    return this.rpc.request.getSummary({ id });
+  }
+
+  async deleteSummary(id: string): Promise<void> {
+    await this.rpc.request.deleteSummary({ id });
   }
 
   async listProjects(): Promise<ProjectListItem[]> {

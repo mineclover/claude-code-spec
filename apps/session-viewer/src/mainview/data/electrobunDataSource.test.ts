@@ -33,8 +33,20 @@ function makeRpc(overrides: Partial<ElectrobunRpcClient['request']> = {}): {
   const branch = vi.fn(async () => {
     throw new Error('branch: not implemented in PoC adapter');
   });
+  const listSummaries = vi.fn(async () => []);
+  const getSummary = vi.fn(async () => null);
+  const deleteSummary = vi.fn(async () => undefined);
   const rpc: ElectrobunRpcClient = {
-    request: { describeAdapter, listProjects, listSessions, branch, ...overrides },
+    request: {
+      describeAdapter,
+      listProjects,
+      listSessions,
+      branch,
+      listSummaries,
+      getSummary,
+      deleteSummary,
+      ...overrides,
+    },
     send: { logToBun: vi.fn() },
   };
   return { rpc, describeAdapter, listProjects, listSessions, branch };
