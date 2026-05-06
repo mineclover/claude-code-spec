@@ -13,7 +13,10 @@
  * needs — so adapters are cheap to write and the contract is auditable.
  */
 
-import type { SessionMetaView } from '@context-action/session-core';
+import type {
+  SessionMetaView,
+  SummaryResult,
+} from '@context-action/session-core';
 
 /**
  * One project = one cwd that contains many sessions. Adapters group sessions
@@ -32,25 +35,33 @@ export interface ProjectListItem {
 
 /**
  * Cache-preserving "branch" candidate for a session. Carrying the parent's
- * thread id and prefix invariants here lets the viewer trigger a fork through
- * the data source without exposing CLI plumbing to the UI.
+ * thread id and a high-level evaluation kind here lets the viewer trigger a
+ * fork through the data source without exposing CLI plumbing to the UI.
  */
 export interface BranchRequest {
   /** The session whose tail prefix the branch should share. */
   sessionId: string;
-  /** Operator-supplied evaluation prompt that runs only on the fork. */
-  evaluationPrompt: string;
+  /**
+   * What the sidecar should do once it shares the prefix.
+   * v1 supports `summarize` only; later modes (e.g. `eval`, `next-step`)
+   * extend this discriminator.
+   */
+  kind?: 'summarize';
+  /**
+   * Operator-supplied free-form prompt. Optional — the host applies a
+   * canonical template per `kind` when omitted. Provided text is appended
+   * after the canonical template so operators can refine the eval without
+   * having to re-state the JSON envelope expectations.
+   */
+  promptOverride?: string;
 }
 
-export interface BranchResult {
-  /** Newly minted thread/session id; same prefix bytes as the source. */
-  forkSessionId: string;
-  /** Cache_read tokens reported on the first turn — key invariant check. */
-  cacheReadTokens: number;
-  /** Whether the run completed without producing the operator's prompt
-   *  invalidating any prior cached blocks. */
-  prefixPreserved: boolean;
-}
+/**
+ * v1 result shape: the structured summary the renderer can render directly.
+ * `cacheInvariants` inside it carries the prefix-preservation proof. Future
+ * branch kinds will return discriminated variants.
+ */
+export type BranchResult = SummaryResult;
 
 export interface SessionDataSource {
   /**

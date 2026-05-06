@@ -74,6 +74,16 @@ export {
 // Runtime type guards
 export { isPlainObject, isRecord } from './typeGuards';
 
+// Branched-summary contract — shape of what `branch()` resolves to.
+export type {
+  SummaryCacheInvariants,
+  SummaryDecision,
+  SummaryNextAction,
+  SummaryOpenItem,
+  SummaryReference,
+  SummaryResult,
+} from './summary/types';
+
 // Interpreter registry (Claude / Codex / Gemini stream parsers)
 export { ClaudeInterpreter } from './interpreters/ClaudeInterpreter';
 export { CodexInterpreter } from './interpreters/CodexInterpreter';

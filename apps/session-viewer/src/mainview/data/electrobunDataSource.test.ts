@@ -69,7 +69,7 @@ describe('ElectrobunSessionDataSource', () => {
     const { rpc } = makeRpc();
     const ds = new ElectrobunSessionDataSource(rpc);
     await expect(
-      ds.branch({ sessionId: 'S-1', evaluationPrompt: 'eval' }),
+      ds.branch({ sessionId: 'S-1' }),
     ).rejects.toBeInstanceOf(BranchUnsupportedError);
   });
 
@@ -80,7 +80,7 @@ describe('ElectrobunSessionDataSource', () => {
     });
     const ds = new ElectrobunSessionDataSource(rpc);
     await expect(
-      ds.branch({ sessionId: 'S-1', evaluationPrompt: 'eval' }),
+      ds.branch({ sessionId: 'S-1' }),
     ).rejects.toThrow('socket disconnected');
   });
 });

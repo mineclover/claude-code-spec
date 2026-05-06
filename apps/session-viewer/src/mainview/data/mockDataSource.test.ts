@@ -53,7 +53,7 @@ describe('MockSessionDataSource', () => {
 
   it('throws BranchUnsupportedError on branch()', async () => {
     await expect(
-      ds.branch({ sessionId: 'whatever', evaluationPrompt: 'eval' }),
+      ds.branch({ sessionId: 'whatever' }),
     ).rejects.toBeInstanceOf(BranchUnsupportedError);
   });
 });
