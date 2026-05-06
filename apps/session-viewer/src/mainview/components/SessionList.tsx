@@ -38,7 +38,12 @@ export function SessionList({ sessions, activeSessionId, onSelect }: Props) {
               onClick={() => onSelect(s.sessionId)}
             >
               <div className="session-row-1">
-                <span className="session-id">{s.sessionId}</span>
+                <span className="session-id">
+                  {s.toolId && (
+                    <span className={`pill tool tool-${s.toolId}`}>{s.toolId}</span>
+                  )}
+                  {s.sessionId}
+                </span>
                 <span
                   className={`pill cache ${m.cacheHitRatio >= 0.5 ? 'good' : m.cacheHitRatio > 0 ? 'warn' : 'bad'}`}
                 >

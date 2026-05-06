@@ -185,6 +185,14 @@ export interface SessionMetaView {
   model?: string;
   toolCount?: number;
   /**
+   * Which CLI produced this session, e.g. 'claude' | 'codex' | 'gemini'.
+   * Optional because legacy sidecars predate the multi-CLI surface; absent
+   * means "treat as Claude" for backwards compatibility.
+   */
+  toolId?: string;
+  /** Last-modified timestamp from the source log file, ms since epoch. */
+  lastModifiedMs?: number;
+  /**
    * Resolved MCP composition for sessions driven by this app. Only populated
    * when `source === 'sidecar'` and the execution went through the Phase 2
    * resolver. `canonicalJson` is intentionally omitted from the view: it is

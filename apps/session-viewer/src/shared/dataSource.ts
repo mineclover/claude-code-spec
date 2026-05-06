@@ -26,6 +26,8 @@ export interface ProjectListItem {
   sessionCount: number;
   /** Most recent session timestamp, ms. Optional for adapters that don't track. */
   lastSeenAt?: number;
+  /** CLI that owns this project, e.g. 'claude' | 'codex' | 'gemini'. */
+  toolId?: string;
 }
 
 /**

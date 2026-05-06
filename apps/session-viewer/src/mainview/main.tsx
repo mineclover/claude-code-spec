@@ -36,6 +36,10 @@ async function pickDataSource(): Promise<SessionDataSource> {
   try {
     const { Electroview } = await import('electrobun/view');
     const rpc = Electroview.defineRPC<SessionViewerRPC>({
+      // Default is 1 s; bumped here to match the bun-side timeout because
+      // initial multi-CLI scans (especially the codex tree) easily exceed
+      // a second on a cold cache.
+      maxRequestTime: 60_000,
       handlers: {
         requests: {},
         messages: {

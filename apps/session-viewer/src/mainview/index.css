@@ -33,6 +33,15 @@ body {
   font-size: 14px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  /* Pin the document to the viewport so the inner pane scroll regions
+     (project sidebar, session list, detail) own their own overflow rather
+     than escaping into a single page-level scroll. */
+  height: 100vh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
 }
 
 button {
@@ -44,7 +53,7 @@ button {
 }
 
 .app-shell {
-  min-height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -120,56 +129,146 @@ button {
   color: var(--danger);
 }
 
-.agg-bar {
+/* Three-pane layout: project sidebar | sessions list | session detail. */
+.grid-3 {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(260px, 360px) 1fr;
+  gap: 0;
+  overflow: hidden;
+}
+
+.project-sidebar {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: var(--bg-1);
+  overflow: hidden;
+}
+
+.sidebar-search {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 12px 24px;
+  gap: 8px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--line);
-  background: var(--bg-1);
-  flex-wrap: wrap;
+  background: var(--bg);
 }
 
-.project-tabs {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.project-tab {
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid transparent;
+.sidebar-search input {
+  flex: 1;
   font-family: var(--mono);
   font-size: 11.5px;
-  color: var(--ink-3);
-  display: inline-flex;
-  align-items: center;
-}
-
-.project-tab:hover {
-  color: var(--ink-2);
   background: var(--bg-2);
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  padding: 5px 9px;
+  outline: none;
 }
 
-.project-tab.active {
-  color: var(--ink);
+.sidebar-search input:focus {
+  border-color: var(--ink-3);
+}
+
+.sidebar-search input::placeholder {
+  color: var(--ink-4);
+}
+
+.sidebar-search .dim {
+  font-size: 10.5px;
+}
+
+.sidebar-groups {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0 24px;
+}
+
+.sidebar-group {
+  margin-top: 8px;
+}
+
+.sidebar-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 14px;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--ink-3);
+  font-family: var(--mono);
+  position: sticky;
+  top: 0;
+  background: var(--bg-1);
+  z-index: 1;
+}
+
+.sidebar-group-title .count {
+  margin-left: auto;
+  font-size: 10px;
+}
+
+.project-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.project-row.active .project-row-button {
   background: var(--bg-3);
   border-color: var(--line-2);
 }
 
-.project-tab .path {
-  color: inherit;
+.project-row-button {
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
 }
 
-.project-tab .count {
-  margin-left: 4px;
+.project-row-button:hover {
+  background: var(--bg-2);
 }
 
+.project-row-button .path {
+  font-size: 11.5px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-row-button .meta {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+/* Inline aggregate strip used inside the detail pane. */
 .agg-stats {
   display: flex;
   gap: 24px;
-  margin-left: auto;
+}
+
+.agg-stats.inline {
+  margin-top: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-1);
 }
 
 .agg-cell {
@@ -202,32 +301,50 @@ button {
   font-family: var(--mono);
 }
 
-.grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: minmax(280px, 360px) 1fr;
-  gap: 0;
-  overflow: hidden;
-}
-
 .pane {
   padding: 18px 22px;
   overflow: auto;
 }
 
-.pane.sessions {
+.pane.sessions-pane {
   border-right: 1px solid var(--line);
   background: var(--bg-1);
 }
 
+.pane-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
 .pane-title {
-  margin: 0 0 14px;
+  margin: 0;
   font-family: var(--mono);
   font-size: 11px;
   letter-spacing: 0.08em;
   color: var(--ink-3);
   text-transform: uppercase;
   font-weight: 500;
+}
+
+.pane-subhead {
+  margin: 24px 0 8px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.pane-subtitle {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
 }
 
 .empty {
@@ -304,6 +421,30 @@ button {
 .pill.cache.bad {
   color: var(--danger);
   border-color: color-mix(in oklch, var(--danger), transparent 60%);
+}
+
+.pill.tool {
+  margin-right: 6px;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  font-size: 9.5px;
+  padding: 1px 6px;
+  vertical-align: 1px;
+}
+
+.pill.tool.tool-claude {
+  color: #d97757;
+  border-color: rgba(217, 119, 87, 0.4);
+}
+
+.pill.tool.tool-codex {
+  color: #10a37f;
+  border-color: rgba(16, 163, 127, 0.4);
+}
+
+.pill.tool.tool-gemini {
+  color: #4285f4;
+  border-color: rgba(66, 133, 244, 0.4);
 }
 
 .cache-gauge {

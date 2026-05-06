@@ -3,8 +3,9 @@ import {
   type SessionMetaView,
 } from '@context-action/session-core';
 import { useEffect, useMemo, useState } from 'react';
+import { AggregateStats } from './components/AggregateStats';
 import { CacheGauge } from './components/CacheGauge';
-import { ProjectAggregateBar } from './components/ProjectAggregateBar';
+import { ProjectSidebar } from './components/ProjectSidebar';
 import { SessionDetail } from './components/SessionDetail';
 import { SessionList } from './components/SessionList';
 import type { ProjectListItem, SessionDataSource } from '../shared/dataSource';
@@ -64,6 +65,10 @@ export function App({ dataSource }: AppProps) {
   }, [dataSource, activeProjectId]);
 
   const aggregate = useMemo(() => aggregateSessionMetas(sessions), [sessions]);
+  const activeProject = useMemo(
+    () => projects.find((p) => p.id === activeProjectId) ?? null,
+    [projects, activeProjectId],
+  );
   const activeSession = useMemo(
     () => sessions.find((s) => s.sessionId === activeSessionId) ?? null,
     [sessions, activeSessionId],
@@ -86,16 +91,26 @@ export function App({ dataSource }: AppProps) {
 
       {error && <div className="banner error">{error}</div>}
 
-      <ProjectAggregateBar
-        projects={projects}
-        activeProjectId={activeProjectId}
-        onSelectProject={setActiveProjectId}
-        aggregate={aggregate}
-      />
+      <main className="grid-3">
+        <ProjectSidebar
+          projects={projects}
+          activeProjectId={activeProjectId}
+          onSelect={(id) => {
+            setActiveProjectId(id);
+            setActiveSessionId(null);
+          }}
+        />
 
-      <main className="grid">
-        <section className="pane sessions">
-          <h2 className="pane-title">Sessions</h2>
+        <section className="pane sessions-pane">
+          <header className="pane-header">
+            <h2 className="pane-title">Sessions</h2>
+            {activeProject && (
+              <span className="pane-subtitle mono dim">
+                {activeProject.toolId ? `${activeProject.toolId} · ` : ''}
+                {activeProject.path}
+              </span>
+            )}
+          </header>
           <SessionList
             sessions={sessions}
             activeSessionId={activeSessionId}
@@ -103,12 +118,17 @@ export function App({ dataSource }: AppProps) {
           />
         </section>
 
-        <section className="pane detail">
+        <section className="pane detail-pane">
           <h2 className="pane-title">Cache invariants</h2>
           {activeSession ? (
             <>
               <CacheGauge metrics={activeSession.metrics} />
               <SessionDetail session={activeSession} />
+              <h3 className="pane-subhead">Project rollup</h3>
+              <AggregateStats
+                aggregate={aggregate}
+                scope={activeProject?.toolId}
+              />
             </>
           ) : (
             <p className="empty">Select a session.</p>

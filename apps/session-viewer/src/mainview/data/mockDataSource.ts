@@ -24,6 +24,7 @@ const ADAPTER_NAME = 'mock';
 interface SyntheticSession {
   sessionId: string;
   projectId: string;
+  toolId: 'claude' | 'codex' | 'gemini';
   fingerprintHash: string;
   inputTokens: number;
   cacheReadInputTokens: number;
@@ -51,20 +52,37 @@ function buildView(s: SyntheticSession): SessionMetaView {
     sessionId: s.sessionId,
     fingerprintHash: s.fingerprintHash,
     metrics,
+    toolId: s.toolId,
   };
 }
 
 const PROJECTS: ProjectListItem[] = [
-  { id: 'proj-billing', path: '/Users/dev/work/billing-service', sessionCount: 4 },
-  { id: 'proj-ios-e2e', path: '/Users/dev/work/ios-e2e', sessionCount: 3 },
-  { id: 'proj-rfc-cache', path: '/Users/dev/notes/rfc-cache-sidecar', sessionCount: 2 },
+  {
+    id: 'proj-billing',
+    path: '/Users/dev/work/billing-service',
+    sessionCount: 4,
+    toolId: 'claude',
+  },
+  {
+    id: 'proj-ios-e2e',
+    path: '/Users/dev/work/ios-e2e',
+    sessionCount: 3,
+    toolId: 'codex',
+  },
+  {
+    id: 'proj-rfc-cache',
+    path: '/Users/dev/notes/rfc-cache-sidecar',
+    sessionCount: 2,
+    toolId: 'gemini',
+  },
 ];
 
 const SESSIONS: SyntheticSession[] = [
-  // High cache-hit, long live session
+  // High cache-hit, long live session (Claude)
   {
     sessionId: 'S-104A',
     projectId: 'proj-billing',
+    toolId: 'claude',
     fingerprintHash: 'fp-billing-stripe-outbox',
     inputTokens: 3439,
     cacheReadInputTokens: 24902,
@@ -74,10 +92,11 @@ const SESSIONS: SyntheticSession[] = [
     turns: 24,
     durationMs: 1_047_000,
   },
-  // Medium cache-hit, mid session
+  // Medium cache-hit, mid session (Codex)
   {
     sessionId: 'S-103F',
     projectId: 'proj-ios-e2e',
+    toolId: 'codex',
     fingerprintHash: 'fp-ios-fixtures',
     inputTokens: 12898,
     cacheReadInputTokens: 39220,
@@ -87,10 +106,11 @@ const SESSIONS: SyntheticSession[] = [
     turns: 36,
     durationMs: 1_352_000,
   },
-  // Low cache-hit (cold start)
+  // Low cache-hit (cold start, Gemini — no cache data on disk so synthetic)
   {
     sessionId: 'S-102B',
     projectId: 'proj-rfc-cache',
+    toolId: 'gemini',
     fingerprintHash: 'fp-rfc-cache-sidecar',
     inputTokens: 11204,
     cacheReadInputTokens: 9180,
@@ -100,10 +120,11 @@ const SESSIONS: SyntheticSession[] = [
     turns: 9,
     durationMs: 132_000,
   },
-  // No cache (regression case)
+  // No cache (regression case, Claude)
   {
     sessionId: 'S-101C',
     projectId: 'proj-billing',
+    toolId: 'claude',
     fingerprintHash: 'fp-billing-stripe-outbox',
     inputTokens: 18800,
     cacheReadInputTokens: 0,

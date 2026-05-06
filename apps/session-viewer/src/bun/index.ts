@@ -38,7 +38,10 @@ async function resolveMainViewUrl(): Promise<string> {
 }
 
 const rpc = BrowserView.defineRPC<SessionViewerRPC>({
-  maxRequestTime: 5000,
+  // Long-tail readers (codex with 80k+ rollouts) easily exceed the 5s
+  // default. Bumped well above the worst-case observed load to keep first
+  // paint reliable; readers cap their own scan windows for fairness.
+  maxRequestTime: 60_000,
   handlers: {
     requests: {
       describeAdapter: () => ({
