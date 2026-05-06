@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { BranchUnsupportedError } from './dataSource';
+import { BranchUnsupportedError } from '../../shared/dataSource';
 import {
   ElectrobunSessionDataSource,
   type ElectrobunRpcClient,

@@ -1,37 +1,24 @@
 /**
- * @context-action/session-core
+ * @context-action/session-core — main entry (browser-safe).
  *
- * Cache-preserving session analytics primitives.
+ * This file deliberately omits modules that depend on Node builtins
+ * (`node:crypto`, `node:fs`, `node:path`) so it can be imported from a
+ * webview/renderer bundle without tripping over Vite/Rolldown's externalized
+ * stubs. Node-only modules live behind subpath exports:
  *
- * - prefix-hashing: deterministic content-addressable hashing for cache invariants
- * - cacheMetrics: cache_read / cache_write / cache_creation reducer
- * - observedFingerprint: extract and diff prefix fingerprints from system/init
- * - session: addressing, event signal extraction, project-level aggregation
- * - sessionPathResolver: cwd/projectPath inference from event records
- * - typeGuards: shared runtime guards
+ *   - `@context-action/session-core/hash`        — sha256/canonicalJson primitives
+ *   - `@context-action/session-core/fingerprint` — observed fingerprint + drift
  *
- * All modules are Electron-free; node:fs/path/crypto are the only environment
- * dependencies (works under Bun, Node, and Electrobun).
+ * Importers that need the hashing/fingerprint helpers (e.g. the bun-side
+ * session reader) should pull from those subpaths directly.
  */
 
-// Prefix hashing primitives
-export {
-  canonicalJson,
-  sha256Hex,
-  sha256OfCanonicalJson,
-  sha256OfNamedContents,
-  sha256OfSortedList,
-} from './prefixHashing';
-
-// Cache metrics reducer
+// Cache metrics reducer (pure)
 export {
   aggregateCacheMetrics,
   emptyCacheMetrics,
   updateCacheMetrics,
 } from './cacheMetrics';
-
-// Observed-side fingerprint extraction + drift detection
-export { detectDrift, extractObservedFingerprint } from './observedFingerprint';
 
 // Domain types (prefix fingerprint + session meta + view)
 export type {
@@ -76,7 +63,7 @@ export {
   type TrendPoint,
 } from './session/aggregate';
 
-// Session path resolution
+// Session path resolution (pure string parsing)
 export {
   extractSessionPathFromEvent,
   inferProjectPathFromDashDirName,

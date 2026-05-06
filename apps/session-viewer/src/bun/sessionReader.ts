@@ -18,15 +18,15 @@ import {
   extractModel,
   extractToolDelta,
   inferProjectPathFromDashDirName,
-  sha256OfCanonicalJson,
   updateCacheMetrics,
   type SessionMetaView,
 } from '@context-action/session-core';
+import { sha256OfCanonicalJson } from '@context-action/session-core/hash';
 import type { StreamEvent } from '@context-action/code-api';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type { ProjectListItem } from '../src/data/dataSource';
+import type { ProjectListItem } from '../shared/dataSource';
 
 const CLAUDE_PROJECTS_DIR = join(homedir(), '.claude', 'projects');
 

@@ -1,7 +1,8 @@
 /**
- * Re-exported from @context-action/session-core. Canonical source lives in
- * packages/session-core/src/prefixHashing.ts. New code should import directly
- * from '@context-action/session-core'.
+ * Re-exported from @context-action/session-core/hash. The hashing helpers
+ * sit behind a node-only subpath because they pull in node:crypto; keeping
+ * them off the package's main barrel lets the browser-side session-viewer
+ * import the package without tripping a bundler stub on createHash.
  */
 
 export {
@@ -10,4 +11,4 @@ export {
   sha256OfCanonicalJson,
   sha256OfNamedContents,
   sha256OfSortedList,
-} from '@context-action/session-core';
+} from '@context-action/session-core/hash';

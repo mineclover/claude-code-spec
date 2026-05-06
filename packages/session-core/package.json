@@ -10,11 +10,22 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./hash": {
+      "types": "./dist/prefixHashing.d.ts",
+      "import": "./dist/prefixHashing.mjs",
+      "require": "./dist/prefixHashing.js"
+    },
+    "./fingerprint": {
+      "types": "./dist/observedFingerprint.d.ts",
+      "import": "./dist/observedFingerprint.mjs",
+      "require": "./dist/observedFingerprint.js"
     }
   },
+  "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "build": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts --format cjs,esm --dts --splitting",
+    "dev": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts --format cjs,esm --dts --splitting --watch",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

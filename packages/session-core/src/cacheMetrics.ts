@@ -21,14 +21,23 @@
  *     track the highest observed value.
  */
 
-import {
-  type AssistantEvent,
-  isAssistantEvent,
-  isResultEvent,
-  type ResultEvent,
-  type StreamEvent,
+import type {
+  AssistantEvent,
+  ResultEvent,
+  StreamEvent,
 } from '@context-action/code-api';
 import type { CacheMetrics } from './types/prefix-fingerprint';
+
+// Inline type guards — keeping these here (instead of importing from
+// @context-action/code-api) ensures session-core's bundle never pulls in
+// code-api's runtime (which imports node:child_process via ProcessManager
+// and would explode in any browser-style bundler such as Vite/Rolldown).
+function isAssistantEvent(event: StreamEvent): event is AssistantEvent {
+  return event.type === 'assistant' && 'message' in event;
+}
+function isResultEvent(event: StreamEvent): event is ResultEvent {
+  return event.type === 'result' && 'result' in event;
+}
 
 export function emptyCacheMetrics(): CacheMetrics {
   return {

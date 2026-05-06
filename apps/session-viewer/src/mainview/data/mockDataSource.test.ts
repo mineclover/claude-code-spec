@@ -9,7 +9,7 @@ import {
   groupByFingerprint,
 } from '@context-action/session-core';
 import { describe, expect, it } from 'vitest';
-import { BranchUnsupportedError } from './dataSource';
+import { BranchUnsupportedError } from '../../shared/dataSource';
 import { MockSessionDataSource } from './mockDataSource';
 
 describe('MockSessionDataSource', () => {

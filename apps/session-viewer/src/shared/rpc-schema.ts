@@ -13,7 +13,7 @@ import type {
   BranchRequest,
   BranchResult,
   ProjectListItem,
-} from '../data/dataSource';
+} from './dataSource';
 
 export interface AdapterDescription {
   adapter: string;

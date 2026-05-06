@@ -91,6 +91,9 @@ typings/
 # Build artifacts
 dist/
 packages/*/dist/
+apps/*/dist/
+apps/*/build/
+apps/*/artifacts/
 
 # Electron-Forge
 out/

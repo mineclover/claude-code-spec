@@ -17,7 +17,7 @@ import {
   type BranchResult,
   type ProjectListItem,
   type SessionDataSource,
-} from './dataSource';
+} from '../../shared/dataSource';
 
 const ADAPTER_NAME = 'mock';
 

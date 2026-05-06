@@ -14,7 +14,16 @@
     "ignoreDeprecations": "6.0",
     "resolveJsonModule": true,
     "strict": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@context-action/session-core/hash": [
+        "node_modules/@context-action/session-core/dist/prefixHashing.d.ts"
+      ],
+      "@context-action/session-core/fingerprint": [
+        "node_modules/@context-action/session-core/dist/observedFingerprint.d.ts"
+      ]
+    }
   },
   "include": ["src/**/*"]
 }

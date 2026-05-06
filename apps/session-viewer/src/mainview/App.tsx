@@ -7,7 +7,7 @@ import { CacheGauge } from './components/CacheGauge';
 import { ProjectAggregateBar } from './components/ProjectAggregateBar';
 import { SessionDetail } from './components/SessionDetail';
 import { SessionList } from './components/SessionList';
-import type { ProjectListItem, SessionDataSource } from './data/dataSource';
+import type { ProjectListItem, SessionDataSource } from '../shared/dataSource';
 
 interface AppProps {
   dataSource: SessionDataSource;

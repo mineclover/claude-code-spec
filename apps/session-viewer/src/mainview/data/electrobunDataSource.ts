@@ -17,8 +17,8 @@ import {
   type BranchResult,
   type ProjectListItem,
   type SessionDataSource,
-} from './dataSource';
-import type { SessionViewerRPC } from '../rpc/schema';
+} from '../../shared/dataSource';
+import type { SessionViewerRPC } from '../../shared/rpc-schema';
 
 /**
  * Shape of the renderer-side rpc proxy that Electroview exposes once

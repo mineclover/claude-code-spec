@@ -6,8 +6,11 @@
   "description": "Cache-preserving session viewer (PoC). Vite + React 19 today; Electrobun-ready transport-agnostic data source.",
   "scripts": {
     "dev": "vite",
-    "dev:bun": "bun run bun/main.ts",
+    "dev:vite": "vite",
+    "dev:bun": "electrobun dev",
+    "dev:hmr": "concurrently -k -n vite,bun -c green,blue \"npm:dev:vite\" \"vite build && electrobun dev\"",
     "build": "tsc --noEmit && vite build",
+    "build:electrobun": "vite build && electrobun build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "test": "vitest run"
@@ -22,6 +25,8 @@
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
     "electrobun": "^1.18.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.8",

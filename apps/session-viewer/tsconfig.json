@@ -23,6 +23,6 @@
 
     "noEmit": true
   },
-  "include": ["src/**/*", "bun/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

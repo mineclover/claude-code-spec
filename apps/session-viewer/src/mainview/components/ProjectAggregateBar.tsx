@@ -1,5 +1,5 @@
 import type { ProjectAggregate } from '@context-action/session-core';
-import type { ProjectListItem } from '../data/dataSource';
+import type { ProjectListItem } from '../../shared/dataSource';
 
 interface Props {
   projects: ProjectListItem[];
