@@ -11,8 +11,14 @@ export {
   dashEncodeCwd,
   readClaudeSessionRaw,
 } from './server/readers/claudeReader';
-export { codexReader } from './server/readers/codexReader';
-export { geminiReader } from './server/readers/geminiReader';
+export {
+  codexReader,
+  readCodexSessionRaw,
+} from './server/readers/codexReader';
+export {
+  geminiReader,
+  readGeminiSessionRaw,
+} from './server/readers/geminiReader';
 export type { CliSessionReader, ProjectScan } from './server/readers/types';
 export {
   invalidateCache,

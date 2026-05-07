@@ -177,6 +177,85 @@ async function parseGeminiSession(
   };
 }
 
+/**
+ * Load the raw JSON document for one Gemini session. Gemini stores
+ * each session as a single JSON file under
+ * `~/.gemini/tmp/<projectHash>/chats/session-*.json`. The internal
+ * `sessionId` field on the JSON is the canonical id; the filename
+ * contains a partial id and a timestamp prefix.
+ *
+ * Strategy: hash the supplied `cwd` to find the matching tmp dir
+ * (avoiding a global scan), list its `chats/` files, and search by
+ * filename hint first. If none match, parse each file's `sessionId`
+ * field. Falls back to scanning every tmp dir when cwd doesn't map.
+ */
+export async function readGeminiSessionRaw(
+  sourceSessionId: string,
+  cwd: string,
+): Promise<string | null> {
+  // Search a single tmp dir's chats for a file whose internal
+  // sessionId matches. Returns the raw JSON string when found.
+  const searchDir = async (dirName: string): Promise<string | null> => {
+    const chatsDir = join(TMP_ROOT, dirName, 'chats');
+    const files = await listJsonFiles(chatsDir);
+    if (files.length === 0) return null;
+
+    // Filename heuristic: Gemini files end in `-<8-hex>.json`. The
+    // internal sessionId is a UUID — its tail commonly correlates
+    // with that suffix, so we try those first to avoid parsing every
+    // file in the directory.
+    const tail = sourceSessionId.split('-').pop() ?? '';
+    const ranked = [...files].sort((a, b) => {
+      const aHit = tail && a.includes(tail) ? 1 : 0;
+      const bHit = tail && b.includes(tail) ? 1 : 0;
+      return bHit - aHit;
+    });
+
+    for (const f of ranked) {
+      const fp = join(chatsDir, f);
+      try {
+        const raw = await readFile(fp, 'utf8');
+        // Cheap pre-check before JSON.parse — only parse files
+        // that mention the id at all.
+        if (!raw.includes(sourceSessionId)) continue;
+        let parsed: { sessionId?: string };
+        try {
+          parsed = JSON.parse(raw) as { sessionId?: string };
+        } catch {
+          continue;
+        }
+        if (parsed.sessionId === sourceSessionId) return raw;
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  };
+
+  // 1) Direct cwd → tmp dir lookup via sha256.
+  const direct = sha256Hex(cwd);
+  const directHit = await searchDir(direct);
+  if (directHit) return directHit;
+
+  // 2) Try the projects.json label form (some installs name tmp dirs
+  // by the project label rather than the hash).
+  const projectMap = await loadProjectMap();
+  for (const [dirName, knownCwd] of projectMap.entries()) {
+    if (knownCwd === cwd) {
+      const hit = await searchDir(dirName);
+      if (hit) return hit;
+    }
+  }
+
+  // 3) Last resort: scan every tmp dir. Safe but slow on large installs.
+  const tmpDirs = await listDirs(TMP_ROOT);
+  for (const dirName of tmpDirs) {
+    const hit = await searchDir(dirName);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 export const geminiReader: CliSessionReader = {
   toolId: TOOL_ID,
   async scanAll(): Promise<ProjectScan[]> {

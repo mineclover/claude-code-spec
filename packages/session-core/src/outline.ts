@@ -20,6 +20,8 @@ export {
   extractClaudeOutline,
   groupIntoSegments,
 } from './outline/extract';
+export { extractCodexOutline } from './outline/extract-codex';
+export { extractGeminiOutline } from './outline/extract-gemini';
 export {
   AnnotateBatchSchema,
   ANNOTATE_PROMPT_HEADER,

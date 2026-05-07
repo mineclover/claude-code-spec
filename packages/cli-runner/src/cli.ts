@@ -21,6 +21,8 @@ import {
   listProjects,
   listSessions as readListSessions,
   readClaudeSessionRaw,
+  readCodexSessionRaw,
+  readGeminiSessionRaw,
   resolveSession,
 } from '@context-action/session-core/server/readers';
 import {
@@ -35,7 +37,11 @@ import {
   listOutlines,
   saveOutline,
 } from '@context-action/session-core/server/outline-store';
-import { extractClaudeOutline } from '@context-action/session-core/outline';
+import {
+  extractClaudeOutline,
+  extractCodexOutline,
+  extractGeminiOutline,
+} from '@context-action/session-core/outline';
 import type { SessionOutline } from '@context-action/session-core/outline';
 import { annotateOutline } from './annotateRunner';
 import type {
@@ -293,6 +299,54 @@ async function cmdSessions(parsed: ParsedArgs): Promise<number> {
   return 0;
 }
 
+/**
+ * Resolve a session's outline by dispatching to the per-CLI raw reader
+ * + extractor. Returns either the outline or a structured error so the
+ * caller (cmdOutline, cmdAnnotate) can emit a useful exit message.
+ */
+async function loadOutlineForSession(opts: {
+  toolId: ForkContext['toolId'];
+  sessionId: string;
+  cwd: string;
+  language?: 'en' | 'ko';
+}): Promise<{ outline: SessionOutline } | { error: string }> {
+  const { toolId, sessionId, cwd, language } = opts;
+  if (toolId === 'claude') {
+    const raw = await readClaudeSessionRaw(sessionId, cwd);
+    if (raw === null) {
+      return {
+        error: `claude JSONL not found at ~/.claude/projects/<dash>/${sessionId}.jsonl (cwd=${cwd})`,
+      };
+    }
+    return {
+      outline: extractClaudeOutline({ raw, sourceSessionId: sessionId, cwd, language }),
+    };
+  }
+  if (toolId === 'codex') {
+    const raw = await readCodexSessionRaw(sessionId, cwd);
+    if (raw === null) {
+      return {
+        error: `codex rollout not found for ${sessionId} within recent partitions (set SESSION_VIEWER_CODEX_DAYS to widen)`,
+      };
+    }
+    return {
+      outline: extractCodexOutline({ raw, sourceSessionId: sessionId, cwd, language }),
+    };
+  }
+  if (toolId === 'gemini') {
+    const raw = await readGeminiSessionRaw(sessionId, cwd);
+    if (raw === null) {
+      return {
+        error: `gemini session.json not found for ${sessionId} (cwd=${cwd})`,
+      };
+    }
+    return {
+      outline: extractGeminiOutline({ raw, sourceSessionId: sessionId, cwd, language }),
+    };
+  }
+  return { error: `Unsupported toolId: ${toolId as string}` };
+}
+
 async function cmdOutline(parsed: ParsedArgs): Promise<number> {
   const [toolIdRaw, sessionId] = parsed.positional;
   if (!toolIdRaw || !sessionId) {
@@ -301,12 +355,6 @@ async function cmdOutline(parsed: ParsedArgs): Promise<number> {
   }
   if (!isToolId(toolIdRaw)) {
     process.stderr.write(`Unknown toolId: ${toolIdRaw}\n`);
-    return 2;
-  }
-  if (toolIdRaw !== 'claude') {
-    process.stderr.write(
-      `outline: only the claude extractor is implemented in v1; codex and gemini outlines are TBD.\n`,
-    );
     return 2;
   }
 
@@ -324,27 +372,23 @@ async function cmdOutline(parsed: ParsedArgs): Promise<number> {
     cwd = resolved.cwd;
   }
 
-  const raw = await readClaudeSessionRaw(sessionId, cwd);
-  if (raw === null) {
-    process.stderr.write(
-      `outline: source JSONL not found at ~/.claude/projects/<dash>/${sessionId}.jsonl (cwd=${cwd})\n`,
-    );
+  const result = await loadOutlineForSession({
+    toolId: toolIdRaw,
+    sessionId,
+    cwd,
+  });
+  if ('error' in result) {
+    process.stderr.write(`outline: ${result.error}\n`);
     return 2;
   }
 
-  const outline = extractClaudeOutline({
-    raw,
-    sourceSessionId: sessionId,
-    cwd,
-  });
-
   if (parsed.flags.json === true) {
-    process.stdout.write(`${JSON.stringify(outline, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(result.outline, null, 2)}\n`);
     return 0;
   }
 
   const segmentsOnly = parsed.flags['segments-only'] === true;
-  process.stdout.write(formatOutline(outline, { segmentsOnly }));
+  process.stdout.write(formatOutline(result.outline, { segmentsOnly }));
   return 0;
 }
 
@@ -405,7 +449,9 @@ async function cmdAnnotate(parsed: ParsedArgs): Promise<number> {
   }
   if (toolIdRaw !== 'claude') {
     process.stderr.write(
-      `annotate: only the claude annotator is implemented in v1.\n`,
+      `annotate: cache-preserving fork annotation is currently claude-only.\n` +
+        `(codex / gemini outlines are extractable via \`cli-runner outline\`,\n` +
+        ` but their fork mechanisms don't preserve prefix bytes the same way.)\n`,
     );
     return 2;
   }
@@ -435,14 +481,6 @@ async function cmdAnnotate(parsed: ParsedArgs): Promise<number> {
       return 2;
     }
     cwd = resolved.cwd;
-  }
-
-  const raw = await readClaudeSessionRaw(sessionId, cwd);
-  if (raw === null) {
-    process.stderr.write(
-      `annotate: source JSONL not found at ~/.claude/projects/<dash>/${sessionId}.jsonl (cwd=${cwd})\n`,
-    );
-    return 2;
   }
 
   const lang = parsed.flags.language;
@@ -485,12 +523,17 @@ async function cmdAnnotate(parsed: ParsedArgs): Promise<number> {
       }
     : undefined;
 
-  const baseOutline = extractClaudeOutline({
-    raw,
-    sourceSessionId: sessionId,
+  const baseResult = await loadOutlineForSession({
+    toolId: toolIdRaw,
+    sessionId,
     cwd,
     language: lang as 'en' | 'ko' | undefined,
   });
+  if ('error' in baseResult) {
+    process.stderr.write(`annotate: ${baseResult.error}\n`);
+    return 2;
+  }
+  const baseOutline = baseResult.outline;
 
   try {
     const { outline } = await annotateOutline(baseOutline, cwd, {

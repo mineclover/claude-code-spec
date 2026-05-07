@@ -16,7 +16,7 @@
 import { emptyCacheMetrics } from '../../cacheMetrics';
 import type { SessionMetaView } from '../../types/prefix-fingerprint';
 import { sha256OfCanonicalJson } from '../../prefixHashing';
-import { open, readdir, stat } from 'node:fs/promises';
+import { open, readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import type { CliSessionReader, ProjectScan } from './types';
@@ -210,6 +210,53 @@ async function parseRolloutFast(filePath: string): Promise<ParsedSession | null>
       lastModifiedMs: stats.mtimeMs,
     },
   };
+}
+
+/**
+ * Load the raw rollout JSONL for one Codex session. We walk the recent
+ * day partitions (newest first) and check filenames — the session id is
+ * the trailing UUID-7 suffix of `rollout-<timestamp>-<id>.jsonl`. Falls
+ * back to a head-byte check on `payload.id` if no filename matches,
+ * which covers older naming conventions.
+ *
+ * Returns null when the file isn't found within the scan window. The
+ * caller can surface a "session not in the recent window" hint or
+ * widen `SESSION_VIEWER_CODEX_DAYS`.
+ */
+export async function readCodexSessionRaw(
+  sourceSessionId: string,
+  _cwd: string,
+): Promise<string | null> {
+  void _cwd; // cwd isn't part of Codex's filesystem layout — kept for parity.
+  const days = Number.isFinite(WINDOW_DAYS) && WINDOW_DAYS > 0 ? WINDOW_DAYS : 30;
+  const partitions = recentDayPartitions(days);
+
+  for (const dir of partitions) {
+    const files = await listJsonlFiles(dir);
+    // 1) Filename match — fastest path.
+    const direct = files.find((f) => f.includes(sourceSessionId));
+    if (direct) {
+      try {
+        return await readFile(join(dir, direct), 'utf8');
+      } catch {
+        return null;
+      }
+    }
+    // 2) Head-byte fallback for files whose name doesn't carry the id.
+    for (const f of files) {
+      if (!f.startsWith('rollout-') || !f.endsWith('.jsonl')) continue;
+      const filePath = join(dir, f);
+      const head = await extractHead(filePath);
+      if (head.sessionId === sourceSessionId) {
+        try {
+          return await readFile(filePath, 'utf8');
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+  return null;
 }
 
 export const codexReader: CliSessionReader = {
