@@ -215,6 +215,48 @@ button {
   overflow: auto;
 }
 
+.summaries-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.summaries-controls select {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 8px;
+  background: var(--bg-2);
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+}
+
+.summaries-layout-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-left: auto;
+}
+
+.summaries-layout-toggle button {
+  padding: 4px 10px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  background: transparent;
+  border: 0;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+.summaries-layout-toggle button.on {
+  background: var(--bg-3);
+  color: var(--ink);
+}
+
 .summaries-toolfilter {
   display: flex;
   gap: 6px;

@@ -71,6 +71,7 @@ interface SpawnResult {
   usage: CodexUsage;
   durationMs: number;
   exitCode: number | null;
+  forkThreadId: string | null;
 }
 
 /**
@@ -98,6 +99,7 @@ async function spawnCodexStream(opts: SpawnOpts): Promise<SpawnResult> {
     let totalDurationMs = 0;
     let lineBuffer = '';
     let stderrBuf = '';
+    let forkThreadId: string | null = null;
     // Cumulative streaming text — we accumulate from item.completed
     // agent_message events because Codex doesn't reliably emit per-token
     // deltas the way Claude does, but the user still wants to see the
@@ -114,41 +116,38 @@ async function spawnCodexStream(opts: SpawnOpts): Promise<SpawnResult> {
         return;
       }
       const evType = typeof event.type === 'string' ? event.type : '';
-      const payload =
-        event.payload && typeof event.payload === 'object'
-          ? (event.payload as Record<string, unknown>)
-          : null;
 
-      if (evType === 'session_meta' && payload) {
-        // Codex assigns the resumed thread a new id under --ephemeral; we
-        // surface it the same way Claude's system_init is surfaced.
-        const id = typeof payload.id === 'string' ? payload.id : undefined;
+      // `codex exec resume --json --ephemeral` emits a flat event shape
+      // (thread.started / turn.completed / item.completed) with the
+      // usage block sitting directly on `turn.completed`. The legacy
+      // `event_msg.token_count` envelope that older docs describe is
+      // not present on this CLI build, so we don't bother looking for
+      // it — that mismatch is what made cacheInvariants report 0/0/0
+      // in the previous revision.
+      if (evType === 'thread.started') {
+        const id =
+          typeof event.thread_id === 'string' ? event.thread_id : undefined;
+        if (id) forkThreadId = id;
         emit({
           sourceSessionId,
           phase: 'system-init',
-          message: id ? `fork thread ${id.slice(0, 8)}…` : 'fork thread initialised',
+          message: id
+            ? `fork thread ${id.slice(0, 8)}…`
+            : 'fork thread initialised',
           elapsedMs: Date.now() - startedAt,
           forkSessionId: id,
         });
-      } else if (evType === 'event_msg' && payload?.type === 'token_count') {
-        const info =
-          payload.info && typeof payload.info === 'object'
-            ? (payload.info as Record<string, unknown>)
+      } else if (evType === 'turn.completed') {
+        const u =
+          event.usage && typeof event.usage === 'object'
+            ? (event.usage as Record<string, unknown>)
             : null;
-        const total =
-          info?.total_token_usage && typeof info.total_token_usage === 'object'
-            ? (info.total_token_usage as Record<string, unknown>)
-            : null;
-        if (total) {
-          usage.inputTokens = num(total.input_tokens);
-          usage.cacheReadTokens = num(total.cached_input_tokens);
-          usage.outputTokens = num(total.output_tokens);
+        if (u) {
+          usage.inputTokens = num(u.input_tokens);
+          usage.cacheReadTokens = num(u.cached_input_tokens);
+          usage.outputTokens = num(u.output_tokens);
         }
-        if (info && typeof info.model_context_window === 'number') {
-          usage.contextWindow = info.model_context_window;
-        }
-      } else if (evType === 'turn.completed' && payload) {
-        totalDurationMs += num(payload.duration_ms);
+        totalDurationMs += num(event.duration_ms);
         emit({
           sourceSessionId,
           phase: 'assistant-complete',
@@ -156,13 +155,10 @@ async function spawnCodexStream(opts: SpawnOpts): Promise<SpawnResult> {
           elapsedMs: Date.now() - startedAt,
           cacheReadTokens: usage.cacheReadTokens || undefined,
         });
-      } else if (
-        (evType === 'item.completed' || evType === 'item.started') &&
-        payload
-      ) {
+      } else if (evType === 'item.completed' || evType === 'item.started') {
         const item =
-          payload.item && typeof payload.item === 'object'
-            ? (payload.item as Record<string, unknown>)
+          event.item && typeof event.item === 'object'
+            ? (event.item as Record<string, unknown>)
             : null;
         if (item && item.type === 'agent_message') {
           const text =
@@ -242,6 +238,7 @@ async function spawnCodexStream(opts: SpawnOpts): Promise<SpawnResult> {
         usage,
         durationMs: totalDurationMs,
         exitCode: code,
+        forkThreadId,
       });
     });
   });
@@ -348,9 +345,11 @@ export const codexRunner: CliRunner = {
       return {
         ...modelOutput,
         cacheInvariants: {
-          // Codex doesn't always re-emit the new thread id when --ephemeral
-          // is on; fall back to a sentinel rather than blocking persistence.
-          forkSessionId: '<codex-ephemeral>',
+          // Under --ephemeral the thread.started event still carries a
+          // freshly-minted thread id; we surface it so SummaryRecord has
+          // a stable persistent key. Falls back to a sentinel only if
+          // the CLI didn't emit thread.started for some reason.
+          forkSessionId: result.forkThreadId ?? '<codex-ephemeral>',
           sourceSessionId: ctx.sourceSessionId,
           inputTokens: result.usage.inputTokens,
           cacheReadTokens: result.usage.cacheReadTokens,

@@ -162,8 +162,16 @@ async function spawnGemini(
   sourceSessionId: string,
 ): Promise<SpawnResult> {
   return new Promise((resolve, reject) => {
-    let stdoutBuf = '';
+    let lineBuffer = '';
     let stderrBuf = '';
+    // Collect every assistant text chunk we see, in order. Gemini's
+    // stream-json appears to emit assistant content as multiple message
+    // events (each with its own delta), and previous attempts at
+    // "cumulative or delta?" guessing dropped data. Concatenating the
+    // ordered list at close-time is unambiguous regardless of which
+    // semantics the CLI uses.
+    const assistantChunks: string[] = [];
+    let runningCumulative = '';
 
     const args = [
       '-p',
@@ -180,37 +188,39 @@ async function spawnGemini(
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
-    let streamedSoFar = '';
+    const handleLine = (line: string) => {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('{')) return;
+      let event: Record<string, unknown>;
+      try {
+        event = JSON.parse(trimmed);
+      } catch {
+        return;
+      }
+      // Only treat events explicitly tagged as the assistant turn — the
+      // user echo and tool events also carry `type: 'message'` and
+      // would otherwise pollute the captured response.
+      const role = typeof event.role === 'string' ? event.role : '';
+      if (role !== 'assistant' && role !== 'model' && role !== 'gemini') {
+        return;
+      }
+      const text = messageContentToText(event.content);
+      if (!text) return;
+      assistantChunks.push(text);
+      runningCumulative += text;
+      emit({
+        sourceSessionId,
+        phase: 'assistant-streaming',
+        elapsedMs: Date.now() - startedAt,
+        textDelta: text,
+      });
+    };
 
     child.stdout?.on('data', (chunk: Buffer) => {
-      stdoutBuf += chunk.toString('utf8');
-      // Try to surface any assistant text we encounter as streaming
-      // updates. Gemini's stream-json emits one event per line; we walk
-      // them looking for text content.
-      const lines = stdoutBuf.split('\n');
-      stdoutBuf = lines.pop() ?? '';
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith('{')) continue;
-        let event: Record<string, unknown>;
-        try {
-          event = JSON.parse(trimmed);
-        } catch {
-          continue;
-        }
-        if (event.role === 'assistant' || event.type === 'message') {
-          const text = messageContentToText(event.content);
-          if (text && text !== streamedSoFar) {
-            streamedSoFar = text;
-            emit({
-              sourceSessionId,
-              phase: 'assistant-streaming',
-              elapsedMs: Date.now() - startedAt,
-              textDelta: text,
-            });
-          }
-        }
-      }
+      lineBuffer += chunk.toString('utf8');
+      const lines = lineBuffer.split('\n');
+      lineBuffer = lines.pop() ?? '';
+      for (const line of lines) handleLine(line);
     });
 
     child.stderr?.on('data', (chunk: Buffer) => {
@@ -222,19 +232,19 @@ async function spawnGemini(
     });
 
     child.on('close', (code) => {
-      if (code !== 0 && !streamedSoFar && !stdoutBuf) {
-        reject(
-          new Error(
-            `gemini exited with code ${code}; stderr=${stderrBuf.slice(0, 800)}`,
-          ),
-        );
+      if (lineBuffer.trim()) handleLine(lineBuffer);
+
+      if (assistantChunks.length === 0) {
+        // No assistant text recovered. Surface whatever stderr told us
+        // (rate limits, auth failures) so the caller has something to
+        // act on instead of a generic "no JSON".
+        const detail = stderrBuf.trim() || `exit ${code}`;
+        reject(new Error(`gemini produced no assistant output: ${detail.slice(0, 800)}`));
         return;
       }
-      // Use the most complete assistant text we observed; if Gemini
-      // didn't emit a recognisable assistant chunk, fall back to the
-      // raw remaining stdout buffer.
+
       resolve({
-        finalText: streamedSoFar || stdoutBuf,
+        finalText: runningCumulative,
         exitCode: code,
       });
     });
