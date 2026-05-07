@@ -25,7 +25,9 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "cli": "tsx src/cli/index.ts",
-    "cli-runner": "node packages/cli-runner/dist/cli.mjs"
+    "cli-runner": "node packages/cli-runner/dist/cli.mjs",
+    "install-cli": "npm run build --workspace=packages/cli-runner && node packages/cli-runner/scripts/install-bin.mjs",
+    "uninstall-cli": "node packages/cli-runner/scripts/install-bin.mjs --uninstall"
   },
   "keywords": [],
   "author": {

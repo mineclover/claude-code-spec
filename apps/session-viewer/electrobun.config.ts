@@ -32,6 +32,13 @@ const config: ElectrobunConfig = {
     copy: {
       'dist/index.html': 'views/mainview/index.html',
       'dist/assets': 'views/mainview/assets',
+      // TODO(prod-packaging): bundle the cli-runner CLI inside the .app
+      // (e.g. tsup --no-splitting --format=esm to produce a single self-
+      // contained file under packages/cli-runner/dist/cli-bundle.mjs)
+      // and copy it here as `tools/cli-runner.mjs`. Then add an
+      // "Install CLI" button to the renderer that RPCs the bun host to
+      // symlink that path into ~/.local/bin. For dev today, the same
+      // outcome is achieved by `npm run install-cli` from the repo root.
     },
     // HMR drives the renderer via the Vite dev server, so we don't want
     // electrobun's --watch mode to rebuild on dist changes.

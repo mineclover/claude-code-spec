@@ -21,7 +21,9 @@
     "dev": "tsup src/index.ts src/cli.ts --format cjs,esm --dts --splitting --watch",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "install-bin": "node scripts/install-bin.mjs",
+    "uninstall-bin": "node scripts/install-bin.mjs --uninstall"
   },
   "keywords": [
     "claude",
