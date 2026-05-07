@@ -28,6 +28,29 @@ import type { CliSessionReader, ProjectScan } from './types';
 const TOOL_ID = 'claude' as const;
 const ROOT = join(homedir(), '.claude', 'projects');
 
+/** Encode `/Users/jun/foo bar` as `-Users-jun-foo-bar`, matching the */
+/** layout convention Claude CLI uses for project subdirectories.    */
+export function dashEncodeCwd(cwd: string): string {
+  return cwd.replace(/\//g, '-').replace(/\s+/g, '-');
+}
+
+/**
+ * Load the raw JSONL contents of one Claude session. Returns null if
+ * the file isn't there (the caller can fall back to a fresh fork or
+ * surface a "session not found" error).
+ */
+export async function readClaudeSessionRaw(
+  sourceSessionId: string,
+  cwd: string,
+): Promise<string | null> {
+  const path = join(ROOT, dashEncodeCwd(cwd), `${sourceSessionId}.jsonl`);
+  try {
+    return await readFile(path, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
 async function safeStat(path: string): Promise<{ mtimeMs: number } | null> {
   try {
     return await stat(path);

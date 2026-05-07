@@ -35,12 +35,17 @@
       "types": "./dist/server-summary-store.d.ts",
       "import": "./dist/server-summary-store.mjs",
       "require": "./dist/server-summary-store.js"
+    },
+    "./outline": {
+      "types": "./dist/outline.d.ts",
+      "import": "./dist/outline.mjs",
+      "require": "./dist/outline.js"
     }
   },
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts src/summary.ts src/server-readers.ts src/server-summary-store.ts --format cjs,esm --dts --splitting",
-    "dev": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts src/summary.ts src/server-readers.ts src/server-summary-store.ts --format cjs,esm --dts --splitting --watch",
+    "build": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts src/summary.ts src/server-readers.ts src/server-summary-store.ts src/outline.ts --format cjs,esm --dts --splitting",
+    "dev": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts src/summary.ts src/server-readers.ts src/server-summary-store.ts src/outline.ts --format cjs,esm --dts --splitting --watch",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

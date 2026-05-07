@@ -6,7 +6,11 @@
  * stays browser-clean.
  */
 
-export { claudeReader } from './server/readers/claudeReader';
+export {
+  claudeReader,
+  dashEncodeCwd,
+  readClaudeSessionRaw,
+} from './server/readers/claudeReader';
 export { codexReader } from './server/readers/codexReader';
 export { geminiReader } from './server/readers/geminiReader';
 export type { CliSessionReader, ProjectScan } from './server/readers/types';

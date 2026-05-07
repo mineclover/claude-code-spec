@@ -20,6 +20,7 @@ import {
   invalidateCache,
   listProjects,
   listSessions as readListSessions,
+  readClaudeSessionRaw,
   resolveSession,
 } from '@context-action/session-core/server/readers';
 import {
@@ -28,6 +29,8 @@ import {
   listSummaries,
   saveSummary,
 } from '@context-action/session-core/server/summary-store';
+import { extractClaudeOutline } from '@context-action/session-core/outline';
+import type { SessionOutline } from '@context-action/session-core/outline';
 import type {
   ListSummariesFilter,
   SummaryRecord,
@@ -57,6 +60,8 @@ Usage
   cli-runner projects [--toolId claude|codex|gemini] [--json]
   cli-runner sessions <projectId> [--json]
   cli-runner branch <toolId> <sessionId> [options]
+  cli-runner outline <toolId> <sessionId> [--cwd PATH] [--json]
+                                          [--segments-only]
   cli-runner summaries list   [--source <sessionId>] [--toolId X]
                               [--since 24h|7d|30d|all]
                               [--sort newest|oldest|cacheHit]
@@ -275,6 +280,106 @@ async function cmdSessions(parsed: ParsedArgs): Promise<number> {
   return 0;
 }
 
+async function cmdOutline(parsed: ParsedArgs): Promise<number> {
+  const [toolIdRaw, sessionId] = parsed.positional;
+  if (!toolIdRaw || !sessionId) {
+    printUsage();
+    return 2;
+  }
+  if (!isToolId(toolIdRaw)) {
+    process.stderr.write(`Unknown toolId: ${toolIdRaw}\n`);
+    return 2;
+  }
+  if (toolIdRaw !== 'claude') {
+    process.stderr.write(
+      `outline: only the claude extractor is implemented in v1; codex and gemini outlines are TBD.\n`,
+    );
+    return 2;
+  }
+
+  let cwd: string;
+  if (typeof parsed.flags.cwd === 'string') {
+    cwd = parsed.flags.cwd;
+  } else {
+    const resolved = await resolveSession(sessionId);
+    if (!resolved) {
+      process.stderr.write(
+        `outline: session ${sessionId} not in cache. Pass --cwd or --refresh.\n`,
+      );
+      return 2;
+    }
+    cwd = resolved.cwd;
+  }
+
+  const raw = await readClaudeSessionRaw(sessionId, cwd);
+  if (raw === null) {
+    process.stderr.write(
+      `outline: source JSONL not found at ~/.claude/projects/<dash>/${sessionId}.jsonl (cwd=${cwd})\n`,
+    );
+    return 2;
+  }
+
+  const outline = extractClaudeOutline({
+    raw,
+    sourceSessionId: sessionId,
+    cwd,
+  });
+
+  if (parsed.flags.json === true) {
+    process.stdout.write(`${JSON.stringify(outline, null, 2)}\n`);
+    return 0;
+  }
+
+  const segmentsOnly = parsed.flags['segments-only'] === true;
+  process.stdout.write(formatOutline(outline, { segmentsOnly }));
+  return 0;
+}
+
+function formatOutline(
+  outline: SessionOutline,
+  opts: { segmentsOnly?: boolean } = {},
+): string {
+  const lines: string[] = [];
+  lines.push(
+    `# outline ${outline.toolId}:${outline.sourceSessionId} · ${outline.cwd}` +
+      (outline.model ? ` · ${outline.model}` : ''),
+  );
+  lines.push(`steps: ${outline.steps.length} · segments: ${outline.segments.length}`);
+
+  for (const seg of outline.segments) {
+    const head =
+      seg.openedByStep === null
+        ? '[opening]'
+        : `[#${seg.openedByStep} user] ${truncate(seg.userInstructionExcerpt, 120)}`;
+    lines.push('');
+    lines.push(head);
+    if (opts.segmentsOnly) {
+      // Aggregate counts only.
+      const tally: Record<string, number> = {};
+      for (const s of seg.steps) tally[s.kind] = (tally[s.kind] ?? 0) + 1;
+      const summary = Object.entries(tally)
+        .map(([k, n]) => `${k}=${n}`)
+        .join(', ');
+      lines.push(`  ${summary || '(empty)'}`);
+      continue;
+    }
+    if (seg.steps.length === 0) {
+      lines.push('  (no steps)');
+      continue;
+    }
+    for (const s of seg.steps) {
+      const head2 = `  #${s.index} [${s.kind}${s.toolName ? `:${s.toolName}` : ''}]`;
+      lines.push(`${head2} ${truncate(s.excerpt, 120)}`);
+    }
+  }
+  return `${lines.join('\n')}\n`;
+}
+
+function truncate(text: string, n: number): string {
+  if (text.length <= n) return text;
+  return `${text.slice(0, n)}…`;
+}
+
 async function cmdSummariesList(parsed: ParsedArgs): Promise<number> {
   const filter: ListSummariesFilter = {};
   if (typeof parsed.flags.source === 'string') {
@@ -392,6 +497,8 @@ async function main(): Promise<number> {
       return cmdProjects(parsed);
     case 'sessions':
       return cmdSessions(parsed);
+    case 'outline':
+      return cmdOutline(parsed);
     case 'summaries':
       return cmdSummaries(parsed);
     case '':
