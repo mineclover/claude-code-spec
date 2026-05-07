@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { SummaryRecord } from '../../shared/dataSource';
 
 interface Props {
@@ -33,8 +34,9 @@ export function SummaryHistory({
   onSelect,
   onDelete,
 }: Props) {
+  const { t } = useTranslation();
   if (records.length === 0) {
-    return <p className="empty mono">no past summaries for this session.</p>;
+    return <p className="empty mono">{t('summary.noPast')}</p>;
   }
   return (
     <ul className="summary-history" role="list">
@@ -64,7 +66,7 @@ export function SummaryHistory({
             <button
               type="button"
               className="summary-history-delete"
-              title="delete"
+              title={t('summary.delete')}
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(r);

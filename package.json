@@ -24,7 +24,8 @@
     "test:skills": "vitest run src/pages/CliMaintenancePage.test.tsx src/lib/maintenanceRegistryValidation.test.ts src/lib/jsonAstPathLocator.test.ts",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "cli": "tsx src/cli/index.ts"
+    "cli": "tsx src/cli/index.ts",
+    "cli-runner": "node packages/cli-runner/dist/cli.mjs"
   },
   "keywords": [],
   "author": {

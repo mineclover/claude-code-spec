@@ -103,6 +103,34 @@ button {
   flex: 1;
 }
 
+.view-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 16px;
+}
+
+.view-tabs button {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  background: transparent;
+}
+
+.view-tabs button:hover {
+  color: var(--ink-2);
+  background: var(--bg-2);
+}
+
+.view-tabs button.on {
+  color: var(--ink);
+  background: var(--bg-3);
+  border-color: var(--line-2);
+}
+
 .lang-toggle {
   display: inline-flex;
   border: 1px solid var(--line-2);
@@ -165,12 +193,50 @@ button {
   overflow: hidden;
 }
 
-.project-sidebar {
+.project-sidebar,
+.summaries-sidebar {
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--line);
   background: var(--bg-1);
   overflow: hidden;
+}
+
+.grid-summaries {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) 1fr;
+  gap: 0;
+  overflow: hidden;
+}
+
+.summaries-detail-pane {
+  padding: 18px 22px;
+  overflow: auto;
+}
+
+.summaries-toolfilter {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.summaries-toolfilter button {
+  padding: 3px 10px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: transparent;
+}
+
+.summaries-toolfilter button.on {
+  background: var(--bg-3);
+  color: var(--ink);
+  border-color: var(--ink-3);
 }
 
 .sidebar-search {

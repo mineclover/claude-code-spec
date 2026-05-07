@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ProjectListItem } from '../../shared/dataSource';
 
 interface Props {
@@ -49,6 +50,7 @@ function fmtRelativeMs(ms: number | undefined): string {
  * did at ~50 entries.
  */
 export function ProjectSidebar({ projects, activeProjectId, onSelect }: Props) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {
@@ -78,8 +80,8 @@ export function ProjectSidebar({ projects, activeProjectId, onSelect }: Props) {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="filter cwd…"
-          aria-label="filter projects by cwd"
+          placeholder={t('sidebar.filterPlaceholder')}
+          aria-label={t('sidebar.filterPlaceholder')}
         />
         <span className="dim mono">{filtered.length}</span>
       </div>

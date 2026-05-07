@@ -8,6 +8,8 @@
  */
 
 export { claudeRunner } from './claudeRunner';
+export { codexRunner } from './codexRunner';
+export { geminiRunner } from './geminiRunner';
 export { buildSummarizePrompt, SUMMARIZE_PROMPT_TEMPLATE } from './prompts';
 export { parseModelOutput } from './parseModelOutput';
 export type {
@@ -26,11 +28,13 @@ export {
 
 import type { CliRunner, ForkContext } from './types';
 import { claudeRunner } from './claudeRunner';
+import { codexRunner } from './codexRunner';
+import { geminiRunner } from './geminiRunner';
 
 const REGISTRY: Record<ForkContext['toolId'], CliRunner | null> = {
   claude: claudeRunner,
-  codex: null, // upcoming
-  gemini: null, // upcoming
+  codex: codexRunner,
+  gemini: geminiRunner,
 };
 
 /**

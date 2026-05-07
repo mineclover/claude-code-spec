@@ -1,0 +1,61 @@
+{
+  "app": {
+    "brand": "session-viewer",
+    "tag": "/ poc"
+  },
+  "topbar": {
+    "lang": "Output language for Branch & Summarize",
+    "adapter": "adapter"
+  },
+  "sidebar": {
+    "filterPlaceholder": "filter cwd…"
+  },
+  "panes": {
+    "sessions": "Sessions",
+    "cacheInvariants": "Cache invariants",
+    "branchedSummary": "Branched summary",
+    "pastSummaries": "Past summaries",
+    "projectRollup": "Project rollup",
+    "selectSession": "Select a session."
+  },
+  "branch": {
+    "trigger": "Branch & Summarize",
+    "running": "forking…",
+    "tooltip": "Fork the prefix into a sidecar thread and ask the CLI for a structured summary",
+    "phases": {
+      "starting": "starting fork…",
+      "started": "preparing fork…",
+      "cli-spawned": "spawning CLI…",
+      "system-init": "fork session initialized",
+      "assistant-streaming": "model is writing…",
+      "assistant-complete": "model turn finished",
+      "parsed": "JSON validated"
+    },
+    "failed": "branch failed"
+  },
+  "summary": {
+    "prefixPreserved": "prefix preserved",
+    "noPast": "no past summaries for this session.",
+    "running": "running branch eval…",
+    "delete": "delete",
+    "copy": "copy"
+  },
+  "fields": {
+    "cacheRead": "cache_read",
+    "cacheCreation": "cache_creation",
+    "inputUncached": "input (uncached)",
+    "forkCost": "fork cost",
+    "keyDecisions": "Key decisions",
+    "references": "References",
+    "openItems": "Open items",
+    "nextActions": "Next actions",
+    "generated": "generated"
+  },
+  "stats": {
+    "sessions": "sessions",
+    "prefixGroups": "prefix groups",
+    "avgCacheHit": "avg cache hit",
+    "totalCost": "total cost",
+    "scope": "scope"
+  }
+}

@@ -1,4 +1,5 @@
 import type { SummaryResult } from '@context-action/session-core';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   summary: SummaryResult | null;
@@ -13,15 +14,6 @@ interface Props {
   onCopyPrompt: (prompt: string) => void;
 }
 
-const PHASE_LABEL: Record<string, string> = {
-  starting: 'starting fork…',
-  started: 'preparing fork…',
-  'cli-spawned': 'spawning CLI…',
-  'system-init': 'fork session initialized',
-  'assistant-streaming': 'model is writing…',
-  'assistant-complete': 'model turn finished',
-  parsed: 'JSON validated',
-};
 
 function fmtPct(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
@@ -47,11 +39,11 @@ export function SummaryPanel({
   streamingText,
   onCopyPrompt,
 }: Props) {
+  const { t } = useTranslation();
   if (loading) {
-    const label =
-      (progressPhase && PHASE_LABEL[progressPhase]) ??
-      progressMessage ??
-      'running branch eval…';
+    const label = progressPhase
+      ? t(`branch.phases.${progressPhase}`, { defaultValue: progressPhase })
+      : (progressMessage ?? t('summary.running'));
     return (
       <div className="summary-panel">
         <header className="summary-header">
@@ -70,7 +62,7 @@ export function SummaryPanel({
   if (error) {
     return (
       <div className="summary-panel">
-        <h3 className="pane-subhead">branch failed</h3>
+        <h3 className="pane-subhead">{t('branch.failed')}</h3>
         <pre className="summary-error">{error}</pre>
       </div>
     );
@@ -95,7 +87,7 @@ export function SummaryPanel({
             }`}
             title={`fork ${ci.forkSessionId.slice(0, 8)}… · cache_read=${ci.cacheReadTokens} · cache_creation=${ci.cacheCreationTokens} · input=${ci.inputTokens}`}
           >
-            prefix preserved {fmtPct(ci.prefixPreservedRatio)}
+            {t('summary.prefixPreserved')} {fmtPct(ci.prefixPreservedRatio)}
           </span>
         )}
       </header>
@@ -105,20 +97,20 @@ export function SummaryPanel({
       {ci && (
         <dl className="summary-invariants">
           <div className="kv-row">
-            <dt>cache_read</dt>
+            <dt>{t('fields.cacheRead')}</dt>
             <dd>{fmtTokens(ci.cacheReadTokens)}</dd>
           </div>
           <div className="kv-row">
-            <dt>cache_creation</dt>
+            <dt>{t('fields.cacheCreation')}</dt>
             <dd>{fmtTokens(ci.cacheCreationTokens)}</dd>
           </div>
           <div className="kv-row">
-            <dt>input (uncached)</dt>
+            <dt>{t('fields.inputUncached')}</dt>
             <dd>{fmtTokens(ci.inputTokens)}</dd>
           </div>
           {ci.costUsd != null && (
             <div className="kv-row">
-              <dt>fork cost</dt>
+              <dt>{t('fields.forkCost')}</dt>
               <dd>${ci.costUsd.toFixed(4)}</dd>
             </div>
           )}
@@ -127,7 +119,7 @@ export function SummaryPanel({
 
       {summary.keyDecisions.length > 0 && (
         <section className="summary-section">
-          <h4 className="pane-subhead">Key decisions</h4>
+          <h4 className="pane-subhead">{t('fields.keyDecisions')}</h4>
           <ul className="summary-list">
             {summary.keyDecisions.map((d, i) => (
               <li key={i} className={`summary-item status-${d.status ?? 'open'}`}>
@@ -143,7 +135,7 @@ export function SummaryPanel({
 
       {summary.references.length > 0 && (
         <section className="summary-section">
-          <h4 className="pane-subhead">References</h4>
+          <h4 className="pane-subhead">{t('fields.references')}</h4>
           <ul className="summary-list">
             {summary.references.map((r, i) => (
               <li key={i} className="summary-item">
@@ -160,7 +152,7 @@ export function SummaryPanel({
 
       {summary.openItems.length > 0 && (
         <section className="summary-section">
-          <h4 className="pane-subhead">Open items</h4>
+          <h4 className="pane-subhead">{t('fields.openItems')}</h4>
           <ul className="summary-list">
             {summary.openItems.map((o, i) => (
               <li key={i} className="summary-item">
@@ -176,7 +168,7 @@ export function SummaryPanel({
 
       {summary.nextActions.length > 0 && (
         <section className="summary-section">
-          <h4 className="pane-subhead">Next actions</h4>
+          <h4 className="pane-subhead">{t('fields.nextActions')}</h4>
           <ul className="summary-list">
             {summary.nextActions.map((n, i) => (
               <li key={i} className="summary-item next-action">
@@ -187,7 +179,7 @@ export function SummaryPanel({
                   className="copy-button"
                   onClick={() => onCopyPrompt(n.prompt)}
                 >
-                  copy
+                  {t('summary.copy')}
                 </button>
               </li>
             ))}
@@ -196,7 +188,7 @@ export function SummaryPanel({
       )}
 
       <footer className="summary-footer dim mono">
-        generated {new Date(summary.generatedAt).toLocaleString()}
+        {t('fields.generated')} {new Date(summary.generatedAt).toLocaleString()}
       </footer>
     </div>
   );

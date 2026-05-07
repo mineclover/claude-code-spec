@@ -4,13 +4,16 @@ import {
   type SummaryResult,
 } from '@context-action/session-core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AggregateStats } from './components/AggregateStats';
 import { CacheGauge } from './components/CacheGauge';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { SessionDetail } from './components/SessionDetail';
 import { SessionList } from './components/SessionList';
+import { SummariesView } from './components/SummariesView';
 import { SummaryHistory } from './components/SummaryHistory';
 import { SummaryPanel } from './components/SummaryPanel';
+import { setRendererLanguage } from './i18n';
 import {
   BranchUnsupportedError,
   type ProjectListItem,
@@ -35,7 +38,11 @@ interface AppProps {
   dataSource: SessionDataSource;
 }
 
+type View = 'sessions' | 'summaries';
+
 export function App({ dataSource }: AppProps) {
+  const { t } = useTranslation();
+  const [view, setView] = useState<View>('sessions');
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionMetaView[]>([]);
@@ -110,12 +117,20 @@ export function App({ dataSource }: AppProps) {
 
   const setSummaryLanguage = useCallback((lang: SummaryLanguage) => {
     setSummaryLanguageState(lang);
+    setRendererLanguage(lang);
     try {
       localStorage.setItem(LANG_STORAGE_KEY, lang);
     } catch {
       /* no-op */
     }
   }, []);
+
+  // Sync the renderer's i18n locale to the toggle on first mount and any
+  // change after that. The toggle is the single source of truth for both
+  // the surface chrome language and the model's output language.
+  useEffect(() => {
+    setRendererLanguage(summaryLanguage);
+  }, [summaryLanguage]);
 
   const refreshHistory = useCallback(async () => {
     if (!activeSessionId) {
@@ -231,15 +246,30 @@ export function App({ dataSource }: AppProps) {
       <header className="topbar">
         <div className="brand">
           <span className="logo">SV</span>
-          <b>session-viewer</b>
-          <span className="dim">/ poc</span>
+          <b>{t('app.brand')}</b>
+          <span className="dim">{t('app.tag')}</span>
         </div>
+        <nav className="view-tabs" aria-label="view">
+          {(['sessions', 'summaries'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-current={view === v ? 'page' : undefined}
+              className={view === v ? 'on' : ''}
+              onClick={() => setView(v)}
+            >
+              {v === 'sessions'
+                ? t('panes.sessions')
+                : t('panes.pastSummaries')}
+            </button>
+          ))}
+        </nav>
         <div className="spacer" />
         <div
           className="lang-toggle"
           role="radiogroup"
-          aria-label="Summary output language"
-          title="Output language for Branch & Summarize"
+          aria-label={t('topbar.lang')}
+          title={t('topbar.lang')}
         >
           {(['en', 'ko'] as const).map((code) => (
             <button
@@ -254,14 +284,17 @@ export function App({ dataSource }: AppProps) {
             </button>
           ))}
         </div>
-        <span className="adapter-pill" title="Active data source adapter">
-          adapter: <b>{adapter.adapter}</b>
+        <span className="adapter-pill" title={t('topbar.adapter')}>
+          {t('topbar.adapter')}: <b>{adapter.adapter}</b>
           {adapter.readonly ? ' · readonly' : ''}
         </span>
       </header>
 
       {error && <div className="banner error">{error}</div>}
 
+      {view === 'summaries' ? (
+        <SummariesView dataSource={dataSource} />
+      ) : (
       <main className="grid-3">
         <ProjectSidebar
           projects={projects}
@@ -274,7 +307,7 @@ export function App({ dataSource }: AppProps) {
 
         <section className="pane sessions-pane">
           <header className="pane-header">
-            <h2 className="pane-title">Sessions</h2>
+            <h2 className="pane-title">{t('panes.sessions')}</h2>
             {activeProject && (
               <span className="pane-subtitle mono dim">
                 {activeProject.toolId ? `${activeProject.toolId} · ` : ''}
@@ -291,16 +324,16 @@ export function App({ dataSource }: AppProps) {
 
         <section className="pane detail-pane">
           <header className="pane-header">
-            <h2 className="pane-title">Cache invariants</h2>
+            <h2 className="pane-title">{t('panes.cacheInvariants')}</h2>
             {activeSession && (
               <button
                 type="button"
                 className="branch-button"
                 onClick={runBranch}
                 disabled={summaryLoading}
-                title="Fork the prefix into a sidecar thread and ask the CLI for a structured summary"
+                title={t('branch.tooltip')}
               >
-                {summaryLoading ? 'forking…' : 'Branch & Summarize'}
+                {summaryLoading ? t('branch.running') : t('branch.trigger')}
               </button>
             )}
           </header>
@@ -310,7 +343,7 @@ export function App({ dataSource }: AppProps) {
               <SessionDetail session={activeSession} />
               {(summary || summaryLoading || summaryError) && (
                 <>
-                  <h3 className="pane-subhead">Branched summary</h3>
+                  <h3 className="pane-subhead">{t('panes.branchedSummary')}</h3>
                   <SummaryPanel
                     summary={summary}
                     loading={summaryLoading}
@@ -322,24 +355,25 @@ export function App({ dataSource }: AppProps) {
                   />
                 </>
               )}
-              <h3 className="pane-subhead">Past summaries</h3>
+              <h3 className="pane-subhead">{t('panes.pastSummaries')}</h3>
               <SummaryHistory
                 records={history}
                 activeId={activeSummaryId}
                 onSelect={onSelectHistory}
                 onDelete={onDeleteHistory}
               />
-              <h3 className="pane-subhead">Project rollup</h3>
+              <h3 className="pane-subhead">{t('panes.projectRollup')}</h3>
               <AggregateStats
                 aggregate={aggregate}
                 scope={activeProject?.toolId}
               />
             </>
           ) : (
-            <p className="empty">Select a session.</p>
+            <p className="empty">{t('panes.selectSession')}</p>
           )}
         </section>
       </main>
+      )}
     </div>
   );
 }

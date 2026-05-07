@@ -8,6 +8,7 @@ import {
 import { MockSessionDataSource } from './data/mockDataSource';
 import type { SessionDataSource } from '../shared/dataSource';
 import type { SessionViewerRPC } from '../shared/rpc-schema';
+import './i18n';
 import './index.css';
 
 /**

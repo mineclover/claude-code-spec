@@ -19,8 +19,10 @@
     "@context-action/cli-runner": "*",
     "@context-action/code-api": "*",
     "@context-action/session-core": "*",
+    "i18next": "^26.0.9",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "react-i18next": "^17.0.6"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

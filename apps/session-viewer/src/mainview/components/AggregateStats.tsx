@@ -1,4 +1,5 @@
 import type { ProjectAggregate } from '@context-action/session-core';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   aggregate: ProjectAggregate;
@@ -16,28 +17,29 @@ function fmtPct(value: number): string {
  * prefix-group count) without leaving the focused view.
  */
 export function AggregateStats({ aggregate, scope }: Props) {
+  const { t } = useTranslation();
   return (
     <div className="agg-stats inline">
       {scope && (
         <div className="agg-cell">
-          <div className="agg-lbl">scope</div>
+          <div className="agg-lbl">{t('stats.scope')}</div>
           <div className="agg-val">{scope}</div>
         </div>
       )}
       <div className="agg-cell">
-        <div className="agg-lbl">sessions</div>
+        <div className="agg-lbl">{t('stats.sessions')}</div>
         <div className="agg-val">{aggregate.sessionCount}</div>
       </div>
       <div className="agg-cell">
-        <div className="agg-lbl">prefix groups</div>
+        <div className="agg-lbl">{t('stats.prefixGroups')}</div>
         <div className="agg-val">{aggregate.groupCount}</div>
       </div>
       <div className="agg-cell">
-        <div className="agg-lbl">avg cache hit</div>
+        <div className="agg-lbl">{t('stats.avgCacheHit')}</div>
         <div className="agg-val accent">{fmtPct(aggregate.avgCacheHitRatio)}</div>
       </div>
       <div className="agg-cell">
-        <div className="agg-lbl">total cost</div>
+        <div className="agg-lbl">{t('stats.totalCost')}</div>
         <div className="agg-val">${aggregate.totalCostUsd.toFixed(3)}</div>
       </div>
     </div>
