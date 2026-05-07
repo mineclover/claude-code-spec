@@ -7,8 +7,8 @@
  * subsequent calls reload from disk (wired to SIGUSR1 in src/bun/index.ts).
  */
 
-import type { SessionMetaView } from '@context-action/session-core';
-import type { ProjectListItem } from '../shared/dataSource';
+import type { SessionMetaView } from '../types/prefix-fingerprint';
+import type { ProjectListItem } from '../types/portable';
 import { claudeReader } from './readers/claudeReader';
 import { codexReader } from './readers/codexReader';
 import { geminiReader } from './readers/geminiReader';

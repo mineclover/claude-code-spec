@@ -85,6 +85,13 @@ export type {
   SummaryResult,
 } from './summary/types';
 
+// Portable types shared between server-side modules and renderer adapters.
+export type {
+  ListSummariesFilter,
+  ProjectListItem,
+  SummaryRecord,
+} from './types/portable';
+
 // Interpreter registry (Claude / Codex / Gemini stream parsers)
 export { ClaudeInterpreter } from './interpreters/ClaudeInterpreter';
 export { CodexInterpreter } from './interpreters/CodexInterpreter';

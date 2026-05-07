@@ -25,12 +25,22 @@
       "types": "./dist/summary.d.ts",
       "import": "./dist/summary.mjs",
       "require": "./dist/summary.js"
+    },
+    "./server/readers": {
+      "types": "./dist/server-readers.d.ts",
+      "import": "./dist/server-readers.mjs",
+      "require": "./dist/server-readers.js"
+    },
+    "./server/summary-store": {
+      "types": "./dist/server-summary-store.d.ts",
+      "import": "./dist/server-summary-store.mjs",
+      "require": "./dist/server-summary-store.js"
     }
   },
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts src/summary.ts --format cjs,esm --dts --splitting",
-    "dev": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts src/summary.ts --format cjs,esm --dts --splitting --watch",
+    "build": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts src/summary.ts src/server-readers.ts src/server-summary-store.ts --format cjs,esm --dts --splitting",
+    "dev": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts src/summary.ts src/server-readers.ts src/server-summary-store.ts --format cjs,esm --dts --splitting --watch",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

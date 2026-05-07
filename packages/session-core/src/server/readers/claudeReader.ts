@@ -17,8 +17,8 @@ import {
   inferProjectPathFromDashDirName,
   updateCacheMetrics,
   type SessionMetaView,
-} from '@context-action/session-core';
-import { sha256OfCanonicalJson } from '@context-action/session-core/hash';
+} from '../../index';
+import { sha256OfCanonicalJson } from '../../prefixHashing';
 import type { StreamEvent } from '@context-action/code-api';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';

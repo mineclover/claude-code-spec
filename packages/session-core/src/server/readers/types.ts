@@ -7,7 +7,7 @@
  * readers and exposes the result through the data-source RPC handlers.
  */
 
-import type { SessionMetaView } from '@context-action/session-core';
+import type { SessionMetaView } from '../../types/prefix-fingerprint';
 
 export interface ProjectScan {
   /** Stable, globally-unique id of the form `${toolId}:${nativeId}`. */

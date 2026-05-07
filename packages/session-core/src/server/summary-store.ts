@@ -25,7 +25,7 @@ import { join } from 'node:path';
 import type {
   ListSummariesFilter,
   SummaryRecord,
-} from '../shared/dataSource';
+} from '../types/portable';
 
 const STORE_DIR = join(homedir(), '.session-viewer', 'summaries');
 

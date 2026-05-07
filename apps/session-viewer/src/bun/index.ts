@@ -21,13 +21,13 @@ import {
   listProjects,
   listSessions,
   resolveSession,
-} from './sessionReader';
+} from '@context-action/session-core/server/readers';
 import {
   deleteSummary as deleteSummaryFromStore,
   getSummary as getSummaryFromStore,
   listSummaries as listSummariesFromStore,
   saveSummary,
-} from './summaryStore';
+} from '@context-action/session-core/server/summary-store';
 import { randomUUID } from 'node:crypto';
 import type { SessionViewerRPC } from '../shared/rpc-schema';
 import {

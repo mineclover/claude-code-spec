@@ -1,21 +1,39 @@
 #!/usr/bin/env node
 /**
- * Standalone CLI for the cli-runner package.
+ * Standalone CLI — full feature parity with the Electrobun GUI host.
  *
- * Same fork-and-summarize machinery as the Electrobun bun host, but
- * callable directly from the terminal so we can test runners without
- * standing up the GUI:
+ * Subcommands
+ *   runners                              List registered runners + capability
+ *   capability <toolId>                  Capability JSON for one runner
+ *   projects [--toolId X] [--json]       Multi-CLI project list
+ *   sessions <projectId> [--json]        Per-project session list
+ *   branch   <toolId> <sessionId> ...    Fork + summarize (auto-saves to ~/.session-viewer/summaries/)
+ *   summaries list   [filters] [--json]  List persisted summaries
+ *   summaries get    <id> [--json]       Fetch one
+ *   summaries delete <id>                Delete one
  *
- *   cli-runner branch claude <SESSION_ID> --cwd /path/to/project
- *   cli-runner branch codex  <SESSION_ID> --language ko
- *   cli-runner branch gemini <SESSION_ID> --json
- *   cli-runner capability claude
- *   cli-runner runners
- *
- * Progress events are streamed to stderr; the final SummaryResult goes
- * to stdout — pretty by default, raw JSON with `--json`.
+ * Progress + log lines stream to stderr; stdout stays parseable.
  */
 
+import { randomUUID } from 'node:crypto';
+import {
+  invalidateCache,
+  listProjects,
+  listSessions as readListSessions,
+  resolveSession,
+} from '@context-action/session-core/server/readers';
+import {
+  deleteSummary,
+  getSummary,
+  listSummaries,
+  saveSummary,
+} from '@context-action/session-core/server/summary-store';
+import type {
+  ListSummariesFilter,
+  ProjectListItem,
+  SessionMetaView,
+  SummaryRecord,
+} from '@context-action/session-core';
 import { getRunner } from './index';
 import type { ForkContext, ForkProgress, SummaryLanguage } from './types';
 
@@ -57,21 +75,35 @@ function printUsage(): void {
 cli-runner — fork-and-summarize for Claude / Codex / Gemini sessions.
 
 Usage
-  cli-runner branch <toolId> <sessionId> [options]
-  cli-runner capability <toolId>
   cli-runner runners
+  cli-runner capability <toolId>
+  cli-runner projects [--toolId claude|codex|gemini] [--json]
+  cli-runner sessions <projectId> [--json]
+  cli-runner branch <toolId> <sessionId> [options]
+  cli-runner summaries list   [--source <sessionId>] [--toolId X]
+                              [--since 24h|7d|30d|all]
+                              [--sort newest|oldest|cacheHit]
+                              [--search <text>] [--json]
+  cli-runner summaries get    <id> [--json]
+  cli-runner summaries delete <id>
 
 branch options
-  --cwd <path>          Source session's cwd (defaults to process.cwd())
+  --cwd <path>          Source session's cwd (auto-detected from session
+                        cache when omitted; falls back to process.cwd())
   --language <en|ko>    Output language for the model narrative (default: en)
   --prompt <text>       Operator prompt appended to the canonical template
   --json                Emit the SummaryResult as raw JSON
   --no-progress         Suppress progress events on stderr
+  --no-save             Skip persisting the result to the summary store
+  --refresh             Bust the session-reader cache before resolving cwd
 
 Examples
   cli-runner runners
-  cli-runner capability claude
-  cli-runner branch claude 7f4e1a... --cwd ~/work/repo --language ko
+  cli-runner projects --toolId claude
+  cli-runner sessions claude:-Users-jun-work-repo
+  cli-runner branch claude 7f4e1a... --language ko
+  cli-runner summaries list --since 7d --sort cacheHit --json
+  cli-runner summaries get 5fbcd104-... --json
 `);
 }
 
@@ -139,8 +171,30 @@ async function cmdBranch(parsed: ParsedArgs): Promise<number> {
     return 2;
   }
 
-  const cwd =
-    typeof parsed.flags.cwd === 'string' ? parsed.flags.cwd : process.cwd();
+  if (parsed.flags.refresh === true) {
+    await invalidateCache();
+  }
+
+  // Auto-resolve cwd from the session reader cache when --cwd isn't given.
+  // Saves the operator from having to remember the project path; falls back
+  // to process.cwd() if the session isn't in the multi-CLI cache.
+  let cwd: string;
+  if (typeof parsed.flags.cwd === 'string') {
+    cwd = parsed.flags.cwd;
+  } else {
+    const resolved = await resolveSession(sessionId);
+    if (resolved) {
+      if (resolved.toolId !== toolIdRaw) {
+        process.stderr.write(
+          `Warning: session ${sessionId} resolved as ${resolved.toolId}, but you asked for ${toolIdRaw}\n`,
+        );
+      }
+      cwd = resolved.cwd;
+    } else {
+      cwd = process.cwd();
+    }
+  }
+
   const lang = parsed.flags.language;
   if (lang !== undefined && !isLanguage(lang)) {
     process.stderr.write(`Invalid --language (en|ko): ${String(lang)}\n`);
@@ -150,6 +204,7 @@ async function cmdBranch(parsed: ParsedArgs): Promise<number> {
     typeof parsed.flags.prompt === 'string' ? parsed.flags.prompt : undefined;
   const showProgress = parsed.flags['no-progress'] !== true;
   const json = parsed.flags.json === true;
+  const noSave = parsed.flags['no-save'] === true;
 
   const onProgress = showProgress
     ? (e: ForkProgress) => {
@@ -175,6 +230,32 @@ async function cmdBranch(parsed: ParsedArgs): Promise<number> {
       promptOverride,
       onProgress,
     });
+
+    // Persist by default — matches the GUI flow so `cli-runner summaries
+    // list` immediately reflects whatever was just produced.
+    if (!noSave) {
+      const record: SummaryRecord = {
+        id: summary.cacheInvariants?.forkSessionId ?? randomUUID(),
+        sourceSessionId: sessionId,
+        toolId: toolIdRaw,
+        cwd,
+        createdAt: summary.generatedAt,
+        promptOverride,
+        language: lang as SummaryLanguage | undefined,
+        summary,
+      };
+      try {
+        await saveSummary(record);
+        if (showProgress) {
+          process.stderr.write(`[saved] ~/.session-viewer/summaries/${record.id}.json\n`);
+        }
+      } catch (err) {
+        process.stderr.write(
+          `warning: failed to persist summary: ${err instanceof Error ? err.message : String(err)}\n`,
+        );
+      }
+    }
+
     if (json) {
       process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
     } else {
@@ -186,6 +267,234 @@ async function cmdBranch(parsed: ParsedArgs): Promise<number> {
       `branch failed: ${err instanceof Error ? err.message : String(err)}\n`,
     );
     return 1;
+  }
+}
+
+async function cmdProjects(parsed: ParsedArgs): Promise<number> {
+  if (parsed.flags.refresh === true) {
+    await invalidateCache();
+  }
+  const all = await listProjects();
+  const tool = parsed.flags.toolId;
+  const filtered =
+    typeof tool === 'string' && tool !== 'all'
+      ? all.filter((p) => p.toolId === tool)
+      : all;
+  if (parsed.flags.json === true) {
+    process.stdout.write(`${JSON.stringify(filtered, null, 2)}\n`);
+  } else {
+    process.stdout.write(formatProjects(filtered));
+  }
+  return 0;
+}
+
+function formatProjects(projects: readonly ProjectListItem[]): string {
+  if (projects.length === 0) return '(no projects)\n';
+  const rows = projects.map((p) => {
+    const last = p.lastSeenAt
+      ? new Date(p.lastSeenAt).toISOString().slice(0, 19).replace('T', ' ')
+      : '            ';
+    return `${p.toolId ?? '?  '.padEnd(6)}\t${p.sessionCount.toString().padStart(4)}\t${last}\t${p.id}\t${p.path}`;
+  });
+  return `${[
+    'TOOL\t   N\tLAST_SEEN          \tID\tPATH',
+    ...rows,
+  ].join('\n')}\n`;
+}
+
+async function cmdSessions(parsed: ParsedArgs): Promise<number> {
+  const [projectId] = parsed.positional;
+  if (!projectId) {
+    printUsage();
+    return 2;
+  }
+  if (parsed.flags.refresh === true) {
+    await invalidateCache();
+  }
+  const sessions = await readListSessions(projectId);
+  if (parsed.flags.json === true) {
+    process.stdout.write(`${JSON.stringify(sessions, null, 2)}\n`);
+  } else {
+    process.stdout.write(formatSessions(sessions));
+  }
+  return 0;
+}
+
+function formatSessions(sessions: readonly SessionMetaView[]): string {
+  if (sessions.length === 0) return '(no sessions)\n';
+  const rows = sessions.map((s) => {
+    const m = s.metrics;
+    const ratio = `${(m.cacheHitRatio * 100).toFixed(1).padStart(5)}%`;
+    const last = s.lastModifiedMs
+      ? new Date(s.lastModifiedMs).toISOString().slice(0, 19).replace('T', ' ')
+      : '                   ';
+    return `${(s.toolId ?? '?').padEnd(6)}\t${ratio}\t${(m.turns ?? 0)
+      .toString()
+      .padStart(4)}\t${last}\t${s.sessionId}`;
+  });
+  return `${[
+    'TOOL  \t HIT %\tTURNS\tLAST_SEEN          \tSESSION_ID',
+    ...rows,
+  ].join('\n')}\n`;
+}
+
+function parseSinceFlag(raw: unknown): number | null {
+  if (typeof raw !== 'string' || raw === 'all' || raw === '') return null;
+  const m = raw.match(/^(\d+)(s|m|h|d)$/);
+  if (m) {
+    const n = Number.parseInt(m[1]!, 10);
+    const unit = m[2]!;
+    const ms =
+      unit === 's' ? 1000 : unit === 'm' ? 60_000 : unit === 'h' ? 3_600_000 : 86_400_000;
+    return Date.now() - n * ms;
+  }
+  // Convenience aliases
+  if (raw === 'today') return Date.now() - 86_400_000;
+  if (raw === 'week') return Date.now() - 7 * 86_400_000;
+  if (raw === 'month') return Date.now() - 30 * 86_400_000;
+  return null;
+}
+
+async function cmdSummariesList(parsed: ParsedArgs): Promise<number> {
+  const filter: ListSummariesFilter = {};
+  if (typeof parsed.flags.source === 'string') {
+    filter.sourceSessionId = parsed.flags.source;
+  }
+  let records = await listSummaries(filter);
+
+  const tool = parsed.flags.toolId;
+  if (typeof tool === 'string' && tool !== 'all') {
+    records = records.filter((r) => r.toolId === tool);
+  }
+
+  const sinceCutoff = parseSinceFlag(parsed.flags.since);
+  if (sinceCutoff !== null) {
+    records = records.filter(
+      (r) => new Date(r.createdAt).getTime() >= sinceCutoff,
+    );
+  }
+
+  const search = parsed.flags.search;
+  if (typeof search === 'string' && search.trim()) {
+    const q = search.trim().toLowerCase();
+    records = records.filter((r) => buildSearchHaystack(r).includes(q));
+  }
+
+  const sortMode = parsed.flags.sort;
+  if (sortMode === 'oldest') {
+    records.sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+  } else if (sortMode === 'cacheHit') {
+    records.sort((a, b) => {
+      const ar = a.summary.cacheInvariants?.prefixPreservedRatio ?? -1;
+      const br = b.summary.cacheInvariants?.prefixPreservedRatio ?? -1;
+      if (br !== ar) return br - ar;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  } else {
+    records.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }
+
+  if (parsed.flags.json === true) {
+    process.stdout.write(`${JSON.stringify(records, null, 2)}\n`);
+  } else {
+    process.stdout.write(formatSummaryRows(records));
+  }
+  return 0;
+}
+
+function buildSearchHaystack(r: SummaryRecord): string {
+  const parts: string[] = [
+    r.summary.oneLiner,
+    r.summary.narrative,
+    r.cwd,
+    r.toolId,
+  ];
+  for (const d of r.summary.keyDecisions) {
+    parts.push(d.title);
+    if (d.rationale) parts.push(d.rationale);
+  }
+  for (const ref of r.summary.references) {
+    parts.push(ref.target);
+    if (ref.note) parts.push(ref.note);
+  }
+  for (const o of r.summary.openItems) parts.push(o.question);
+  for (const n of r.summary.nextActions) {
+    if (n.label) parts.push(n.label);
+    parts.push(n.prompt);
+  }
+  return parts.join(' \n ').toLowerCase();
+}
+
+function formatSummaryRows(records: readonly SummaryRecord[]): string {
+  if (records.length === 0) return '(no summaries)\n';
+  const rows = records.map((r) => {
+    const ts = new Date(r.createdAt).toISOString().slice(0, 19).replace('T', ' ');
+    const ratio = r.summary.cacheInvariants?.prefixPreservedRatio;
+    const ratioStr =
+      ratio == null ? '   - ' : `${(ratio * 100).toFixed(1).padStart(5)}%`;
+    const lang = r.language ?? '  ';
+    return `${ts}\t${r.toolId.padEnd(6)}\t${lang.padEnd(2)}\t${ratioStr}\t${r.id}\t${r.summary.oneLiner}`;
+  });
+  return `${[
+    'CREATED            \tTOOL  \tLNG\t HIT %\tID                                  \tONE_LINER',
+    ...rows,
+  ].join('\n')}\n`;
+}
+
+async function cmdSummariesGet(parsed: ParsedArgs): Promise<number> {
+  const [, id] = parsed.positional;
+  if (!id) {
+    printUsage();
+    return 2;
+  }
+  const record = await getSummary(id);
+  if (!record) {
+    process.stderr.write(`No summary with id: ${id}\n`);
+    return 1;
+  }
+  if (parsed.flags.json === true) {
+    process.stdout.write(`${JSON.stringify(record, null, 2)}\n`);
+  } else {
+    const ts = new Date(record.createdAt).toLocaleString();
+    process.stdout.write(
+      `# ${record.summary.oneLiner}\n` +
+        `${ts} · ${record.toolId} · ${record.cwd}\n\n` +
+        `${prettyPrint(record.summary)}\n`,
+    );
+  }
+  return 0;
+}
+
+async function cmdSummariesDelete(parsed: ParsedArgs): Promise<number> {
+  const [, id] = parsed.positional;
+  if (!id) {
+    printUsage();
+    return 2;
+  }
+  await deleteSummary(id);
+  process.stdout.write(`deleted ${id}\n`);
+  return 0;
+}
+
+async function cmdSummaries(parsed: ParsedArgs): Promise<number> {
+  const sub = parsed.positional[0];
+  switch (sub) {
+    case undefined:
+    case 'list':
+      return cmdSummariesList(parsed);
+    case 'get':
+      return cmdSummariesGet(parsed);
+    case 'delete':
+    case 'rm':
+      return cmdSummariesDelete(parsed);
+    default:
+      process.stderr.write(`Unknown summaries subcommand: ${sub}\n`);
+      printUsage();
+      return 2;
   }
 }
 
@@ -244,6 +553,12 @@ async function main(): Promise<number> {
       return cmdCapability(parsed.positional[0] ?? '');
     case 'runners':
       return cmdRunners();
+    case 'projects':
+      return cmdProjects(parsed);
+    case 'sessions':
+      return cmdSessions(parsed);
+    case 'summaries':
+      return cmdSummaries(parsed);
     case '':
     case 'help':
     case '--help':

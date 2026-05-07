@@ -14,30 +14,22 @@
  */
 
 import type {
+  ListSummariesFilter,
+  ProjectListItem,
   SessionMetaView,
   SummaryLanguage,
+  SummaryRecord,
   SummaryResult,
 } from '@context-action/session-core';
 import type { BranchProgressEvent } from './rpc-schema';
 
-export type { SummaryLanguage };
-
-export type { BranchProgressEvent };
-
-/**
- * One project = one cwd that contains many sessions. Adapters group sessions
- * by their resolved project path and surface a stable `id` for navigation.
- */
-export interface ProjectListItem {
-  id: string;
-  /** Display path (cwd or its abbreviation). */
-  path: string;
-  sessionCount: number;
-  /** Most recent session timestamp, ms. Optional for adapters that don't track. */
-  lastSeenAt?: number;
-  /** CLI that owns this project, e.g. 'claude' | 'codex' | 'gemini'. */
-  toolId?: string;
-}
+export type {
+  BranchProgressEvent,
+  ListSummariesFilter,
+  ProjectListItem,
+  SummaryLanguage,
+  SummaryRecord,
+};
 
 /**
  * Cache-preserving "branch" candidate for a session. Carrying the parent's
@@ -74,35 +66,6 @@ export interface BranchRequest {
  * branch kinds will return discriminated variants.
  */
 export type BranchResult = SummaryResult;
-
-/**
- * Persisted record of a past branch evaluation. The host writes one of these
- * to disk after a successful `branch` resolves; the renderer fetches them
- * back through `listSummaries` / `getSummary` to show history per session.
- */
-export interface SummaryRecord {
-  /** Stable id — matches `summary.cacheInvariants.forkSessionId` when set. */
-  id: string;
-  /** Source session this branch was produced from. */
-  sourceSessionId: string;
-  /** Which CLI ran the fork. */
-  toolId: string;
-  /** cwd of the source session at fork time. */
-  cwd: string;
-  /** ISO timestamp of when the host materialised the record. */
-  createdAt: string;
-  /** Optional operator-supplied prompt override (if any). */
-  promptOverride?: string;
-  /** Language the model wrote the summary in (best-effort label). */
-  language?: SummaryLanguage;
-  /** The full structured summary as returned by the runner. */
-  summary: SummaryResult;
-}
-
-export interface ListSummariesFilter {
-  /** Restrict to summaries forked from this source session. */
-  sourceSessionId?: string;
-}
 
 export interface SessionDataSource {
   /**

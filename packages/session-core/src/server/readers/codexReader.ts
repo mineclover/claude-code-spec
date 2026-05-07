@@ -13,8 +13,9 @@
  *       Phase A goal is just to surface sessions and their cwd grouping
  */
 
-import { emptyCacheMetrics, type SessionMetaView } from '@context-action/session-core';
-import { sha256OfCanonicalJson } from '@context-action/session-core/hash';
+import { emptyCacheMetrics } from '../../cacheMetrics';
+import type { SessionMetaView } from '../../types/prefix-fingerprint';
+import { sha256OfCanonicalJson } from '../../prefixHashing';
 import { open, readdir, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
