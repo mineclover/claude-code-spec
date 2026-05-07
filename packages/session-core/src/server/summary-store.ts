@@ -27,17 +27,27 @@ import type {
   SummaryRecord,
 } from '../types/portable';
 
-const STORE_DIR = join(homedir(), '.session-viewer', 'summaries');
+/**
+ * Resolved lazily so tests can override the location through
+ * `SESSION_VIEWER_STORE_DIR`. Production callers see the same default
+ * `~/.session-viewer/summaries/` they always have.
+ */
+function storeDir(): string {
+  return (
+    process.env.SESSION_VIEWER_STORE_DIR ??
+    join(homedir(), '.session-viewer', 'summaries')
+  );
+}
 
 async function ensureDir(): Promise<void> {
-  await mkdir(STORE_DIR, { recursive: true });
+  await mkdir(storeDir(), { recursive: true });
 }
 
 function fileFor(id: string): string {
   // Sanitize defensively: ids come from the CLI so they should already be
   // UUIDs, but a hostile JSONL or a malformed adapter could produce slashes.
   const safe = id.replace(/[^A-Za-z0-9._-]/g, '_');
-  return join(STORE_DIR, `${safe}.json`);
+  return join(storeDir(), `${safe}.json`);
 }
 
 export async function saveSummary(record: SummaryRecord): Promise<void> {
@@ -62,14 +72,14 @@ export async function listSummaries(
   await ensureDir();
   let entries: string[];
   try {
-    entries = await readdir(STORE_DIR);
+    entries = await readdir(storeDir());
   } catch {
     return [];
   }
   const records: SummaryRecord[] = [];
   for (const name of entries) {
     if (!name.endsWith('.json')) continue;
-    const rec = await readRecord(join(STORE_DIR, name));
+    const rec = await readRecord(join(storeDir(), name));
     if (!rec) continue;
     if (
       filter?.sourceSessionId &&
