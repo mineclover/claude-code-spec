@@ -29,8 +29,15 @@ import {
   listSummaries,
   saveSummary,
 } from '@context-action/session-core/server/summary-store';
+import {
+  deleteOutline,
+  getOutline,
+  listOutlines,
+  saveOutline,
+} from '@context-action/session-core/server/outline-store';
 import { extractClaudeOutline } from '@context-action/session-core/outline';
 import type { SessionOutline } from '@context-action/session-core/outline';
+import { annotateOutline } from './annotateRunner';
 import type {
   ListSummariesFilter,
   SummaryRecord,
@@ -62,6 +69,12 @@ Usage
   cli-runner branch <toolId> <sessionId> [options]
   cli-runner outline <toolId> <sessionId> [--cwd PATH] [--json]
                                           [--segments-only]
+  cli-runner annotate <toolId> <sessionId> [--cwd PATH] [--language en|ko]
+                                           [--batch-size N] [--max-attempts N]
+                                           [--no-save] [--json]
+  cli-runner outlines list   [--toolId X] [--annotated] [--json]
+  cli-runner outlines get    <sessionId> [--json]
+  cli-runner outlines delete <sessionId>
   cli-runner summaries list   [--source <sessionId>] [--toolId X]
                               [--since 24h|7d|30d|all]
                               [--sort newest|oldest|cacheHit]
@@ -380,6 +393,223 @@ function truncate(text: string, n: number): string {
   return `${text.slice(0, n)}…`;
 }
 
+async function cmdAnnotate(parsed: ParsedArgs): Promise<number> {
+  const [toolIdRaw, sessionId] = parsed.positional;
+  if (!toolIdRaw || !sessionId) {
+    printUsage();
+    return 2;
+  }
+  if (!isToolId(toolIdRaw)) {
+    process.stderr.write(`Unknown toolId: ${toolIdRaw}\n`);
+    return 2;
+  }
+  if (toolIdRaw !== 'claude') {
+    process.stderr.write(
+      `annotate: only the claude annotator is implemented in v1.\n`,
+    );
+    return 2;
+  }
+
+  const runner = getRunner('claude');
+  if (!runner) {
+    process.stderr.write('No runner registered for claude\n');
+    return 2;
+  }
+  const cap = await runner.capability();
+  if (!cap.available) {
+    process.stderr.write(
+      `claude runner unavailable: ${cap.unavailableReason ?? 'unknown'}\n`,
+    );
+    return 2;
+  }
+
+  let cwd: string;
+  if (typeof parsed.flags.cwd === 'string') {
+    cwd = parsed.flags.cwd;
+  } else {
+    const resolved = await resolveSession(sessionId);
+    if (!resolved) {
+      process.stderr.write(
+        `annotate: session ${sessionId} not in cache. Pass --cwd or --refresh.\n`,
+      );
+      return 2;
+    }
+    cwd = resolved.cwd;
+  }
+
+  const raw = await readClaudeSessionRaw(sessionId, cwd);
+  if (raw === null) {
+    process.stderr.write(
+      `annotate: source JSONL not found at ~/.claude/projects/<dash>/${sessionId}.jsonl (cwd=${cwd})\n`,
+    );
+    return 2;
+  }
+
+  const lang = parsed.flags.language;
+  if (lang !== undefined && !isLanguage(lang)) {
+    process.stderr.write(`Invalid --language (en|ko): ${String(lang)}\n`);
+    return 2;
+  }
+
+  const batchSizeRaw = parsed.flags['batch-size'];
+  const batchSize =
+    typeof batchSizeRaw === 'string'
+      ? Number.parseInt(batchSizeRaw, 10)
+      : undefined;
+  const maxAttemptsRaw = parsed.flags['max-attempts'];
+  const maxAttempts =
+    typeof maxAttemptsRaw === 'string'
+      ? Number.parseInt(maxAttemptsRaw, 10)
+      : undefined;
+  if (batchSize !== undefined && !Number.isFinite(batchSize)) {
+    process.stderr.write(`Invalid --batch-size: ${String(batchSizeRaw)}\n`);
+    return 2;
+  }
+  if (maxAttempts !== undefined && !Number.isFinite(maxAttempts)) {
+    process.stderr.write(`Invalid --max-attempts: ${String(maxAttemptsRaw)}\n`);
+    return 2;
+  }
+
+  const showProgress = parsed.flags['no-progress'] !== true;
+  const onProgress = showProgress
+    ? (e: ForkProgress) => {
+        const line =
+          e.phase === 'assistant-streaming'
+            ? `[${e.elapsedMs}ms] ${e.phase}${
+                e.textDelta ? ` (+${e.textDelta.length} chars)` : ''
+              }`
+            : `[${e.elapsedMs}ms] ${e.phase}${e.message ? ` — ${e.message}` : ''}${
+                e.error ? ` :: ${e.error}` : ''
+              }`;
+        process.stderr.write(`${line}\n`);
+      }
+    : undefined;
+
+  const baseOutline = extractClaudeOutline({
+    raw,
+    sourceSessionId: sessionId,
+    cwd,
+    language: lang as 'en' | 'ko' | undefined,
+  });
+
+  try {
+    const { outline } = await annotateOutline(baseOutline, cwd, {
+      batchSize,
+      maxAttempts,
+      language: lang as 'en' | 'ko' | undefined,
+      onProgress,
+    });
+
+    const noSave = parsed.flags['no-save'] === true;
+    if (!noSave) {
+      try {
+        await saveOutline(outline);
+        if (showProgress) {
+          process.stderr.write(
+            `[saved] ~/.session-viewer/outlines/${outline.sourceSessionId}.json\n`,
+          );
+        }
+      } catch (err) {
+        process.stderr.write(
+          `warning: failed to persist outline: ${
+            err instanceof Error ? err.message : String(err)
+          }\n`,
+        );
+      }
+    }
+
+    if (parsed.flags.json === true) {
+      process.stdout.write(`${JSON.stringify(outline, null, 2)}\n`);
+    } else {
+      process.stdout.write(formatOutline(outline));
+      const tagged = outline.steps.filter((s) => !!s.description).length;
+      const total = outline.steps.length;
+      process.stdout.write(
+        `\nannotated ${tagged}/${total} steps across ${outline.annotation?.forks.length ?? 0} forks (${outline.annotation?.remainingUntagged ?? 0} remaining)\n`,
+      );
+    }
+    return 0;
+  } catch (err) {
+    process.stderr.write(
+      `annotate failed: ${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    return 1;
+  }
+}
+
+async function cmdOutlinesList(parsed: ParsedArgs): Promise<number> {
+  const tool = parsed.flags.toolId;
+  const annotatedOnly = parsed.flags.annotated === true;
+  const records = await listOutlines({
+    toolId:
+      typeof tool === 'string' && isToolId(tool) ? tool : undefined,
+    annotatedOnly,
+  });
+  if (parsed.flags.json === true) {
+    process.stdout.write(`${JSON.stringify(records, null, 2)}\n`);
+    return 0;
+  }
+  if (records.length === 0) {
+    process.stdout.write('(no outlines persisted yet)\n');
+    return 0;
+  }
+  for (const r of records) {
+    const tagged = r.steps.filter((s) => !!s.description).length;
+    process.stdout.write(
+      `${r.toolId}\t${r.sourceSessionId}\t${r.steps.length}st\t${r.segments.length}seg\t${tagged}/${r.steps.length} tagged\t${r.cwd}\n`,
+    );
+  }
+  return 0;
+}
+
+async function cmdOutlinesGet(parsed: ParsedArgs): Promise<number> {
+  const [, sessionId] = parsed.positional;
+  if (!sessionId) {
+    printUsage();
+    return 2;
+  }
+  const r = await getOutline(sessionId);
+  if (!r) {
+    process.stderr.write(`No outline persisted for session: ${sessionId}\n`);
+    return 1;
+  }
+  if (parsed.flags.json === true) {
+    process.stdout.write(`${JSON.stringify(r, null, 2)}\n`);
+  } else {
+    process.stdout.write(formatOutline(r));
+  }
+  return 0;
+}
+
+async function cmdOutlinesDelete(parsed: ParsedArgs): Promise<number> {
+  const [, sessionId] = parsed.positional;
+  if (!sessionId) {
+    printUsage();
+    return 2;
+  }
+  await deleteOutline(sessionId);
+  process.stdout.write(`deleted outline for ${sessionId}\n`);
+  return 0;
+}
+
+async function cmdOutlines(parsed: ParsedArgs): Promise<number> {
+  const sub = parsed.positional[0];
+  switch (sub) {
+    case undefined:
+    case 'list':
+      return cmdOutlinesList(parsed);
+    case 'get':
+      return cmdOutlinesGet(parsed);
+    case 'delete':
+    case 'rm':
+      return cmdOutlinesDelete(parsed);
+    default:
+      process.stderr.write(`Unknown outlines subcommand: ${sub}\n`);
+      printUsage();
+      return 2;
+  }
+}
+
 async function cmdSummariesList(parsed: ParsedArgs): Promise<number> {
   const filter: ListSummariesFilter = {};
   if (typeof parsed.flags.source === 'string') {
@@ -499,6 +729,10 @@ async function main(): Promise<number> {
       return cmdSessions(parsed);
     case 'outline':
       return cmdOutline(parsed);
+    case 'annotate':
+      return cmdAnnotate(parsed);
+    case 'outlines':
+      return cmdOutlines(parsed);
     case 'summaries':
       return cmdSummaries(parsed);
     case '':

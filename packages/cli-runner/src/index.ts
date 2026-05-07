@@ -12,6 +12,9 @@ export { codexRunner } from './codexRunner';
 export { geminiRunner } from './geminiRunner';
 export { buildSummarizePrompt, SUMMARIZE_PROMPT_TEMPLATE } from './prompts';
 export { parseModelOutput } from './parseModelOutput';
+export { parseAnnotateBatch } from './parseAnnotateBatch';
+export { annotateOutline } from './annotateRunner';
+export type { AnnotateOutlineOptions } from './annotateRunner';
 export type {
   CliRunner,
   ForkContext,

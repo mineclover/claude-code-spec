@@ -94,4 +94,29 @@ export interface SessionOutline {
   generatedAt: string;
   /** Operator-supplied or default annotator language, surfaced for UI. */
   language?: 'en' | 'ko';
+  /**
+   * Set when the annotator has populated `description` on (most) steps.
+   * Carries a trail of forks so the UI can show how many cache-preserving
+   * fork attempts were stitched together to fill descriptions.
+   */
+  annotation?: SessionOutlineAnnotation;
+}
+
+export interface AnnotationFork {
+  forkSessionId: string | null;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  inputTokens: number;
+  durationMs?: number;
+  costUsd?: number;
+  /** Step indexes that received a description from this fork. */
+  describedStepIndexes: number[];
+}
+
+export interface SessionOutlineAnnotation {
+  forks: AnnotationFork[];
+  /** Number of describable steps that still lack a description. */
+  remainingUntagged: number;
+  /** ISO timestamp of when annotation finished. */
+  annotatedAt: string;
 }

@@ -8,7 +8,9 @@
  */
 
 export type {
+  AnnotationFork,
   SessionOutline,
+  SessionOutlineAnnotation,
   SessionSegment,
   SessionStep,
   SessionStepKind,
@@ -18,3 +20,12 @@ export {
   extractClaudeOutline,
   groupIntoSegments,
 } from './outline/extract';
+export {
+  AnnotateBatchSchema,
+  ANNOTATE_PROMPT_HEADER,
+  buildAnnotatePrompt,
+} from './outline/annotate-schema';
+export type {
+  AnnotateBatchOutput,
+  BuildAnnotatePromptOptions,
+} from './outline/annotate-schema';

@@ -55,14 +55,14 @@ async function isClaudeOnPath(): Promise<boolean> {
   });
 }
 
-interface SpawnResult {
+export interface ClaudeSpawnResult {
   events: StreamEvent[];
   resultText: string;
   forkSessionId: string | null;
   exitCode: number | null;
 }
 
-interface SpawnOpts {
+export interface ClaudeSpawnOpts {
   sourceSessionId: string;
   cwd: string;
   prompt: string;
@@ -71,7 +71,9 @@ interface SpawnOpts {
   emit: (e: ForkProgress) => void;
 }
 
-async function spawnClaudeStream(opts: SpawnOpts): Promise<SpawnResult> {
+export async function spawnClaudeStream(
+  opts: ClaudeSpawnOpts,
+): Promise<ClaudeSpawnResult> {
   const { sourceSessionId, cwd, prompt, emptyMcpConfigPath, startedAt, emit } =
     opts;
   return new Promise((resolve, reject) => {
@@ -246,7 +248,7 @@ async function spawnClaudeStream(opts: SpawnOpts): Promise<SpawnResult> {
   });
 }
 
-interface FirstTurnUsage {
+export interface FirstTurnUsage {
   inputTokens: number;
   cacheReadTokens: number;
   cacheCreationTokens: number;
@@ -254,7 +256,7 @@ interface FirstTurnUsage {
   costUsd: number;
 }
 
-function extractFirstTurnUsage(events: StreamEvent[]): FirstTurnUsage {
+export function extractFirstTurnUsage(events: StreamEvent[]): FirstTurnUsage {
   for (const event of events) {
     if ((event as { type?: string }).type !== 'assistant') continue;
     const message = (event as { message?: { usage?: Record<string, number> } })
@@ -282,7 +284,7 @@ function extractFirstTurnUsage(events: StreamEvent[]): FirstTurnUsage {
   };
 }
 
-async function withTempEmptyMcpConfig<T>(
+export async function withTempEmptyMcpConfig<T>(
   task: (path: string) => Promise<T>,
 ): Promise<T> {
   const dir = await mkdtemp(join(tmpdir(), 'session-viewer-mcp-'));
