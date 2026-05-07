@@ -27,7 +27,9 @@ async function refreshCache(): Promise<ProjectScan[]> {
       const t0 = Date.now();
       try {
         const scans = await r.scanAll();
-        console.log(
+        // stderr — keeps stdout clean for `--json` consumers; the GUI
+        // host's launcher routes both streams to its log file anyway.
+        console.error(
           `[sessionReader] ${r.toolId} → ${scans.length} project(s) in ${Date.now() - t0}ms`,
         );
         return scans;
@@ -40,7 +42,7 @@ async function refreshCache(): Promise<ProjectScan[]> {
   const all = buckets.flat();
   all.sort((a, b) => b.lastSeenAt - a.lastSeenAt);
   cache = all;
-  console.log(
+  console.error(
     `[sessionReader] total ${all.length} project(s) in ${Date.now() - start}ms`,
   );
   return all;
