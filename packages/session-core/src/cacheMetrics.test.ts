@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { aggregateCacheMetrics, emptyCacheMetrics, updateCacheMetrics } from './cacheMetrics';
-import type { AssistantEvent, ResultEvent, StreamEvent } from '../types/stream-events';
+import type { AssistantEvent, ResultEvent, StreamEvent } from '@context-action/code-api';
 
 function assistant(usage: AssistantEvent['message']['usage']): AssistantEvent {
   return {

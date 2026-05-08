@@ -121,7 +121,7 @@ describe('outline-store round-trip', () => {
     );
     const got = await getOutline('x');
     expect(got!.steps).toHaveLength(2);
-    expect(got!.steps[0].kind).toBe('thinking');
+    expect(got!.steps[0]!.kind).toBe('thinking');
   });
 
   it('deleteOutline removes the file; subsequent get returns null', async () => {

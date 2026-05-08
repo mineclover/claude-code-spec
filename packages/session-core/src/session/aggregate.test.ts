@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CacheMetrics, SessionMetaView } from '../../types/prefix-fingerprint';
+import type { CacheMetrics, SessionMetaView } from '../types/prefix-fingerprint';
 import {
   aggregateSessionMetas,
   compareMcpOverrides,
@@ -143,10 +143,10 @@ describe('trendByTime', () => {
       2,
     );
     expect(points).toHaveLength(2);
-    expect(points[0].count).toBe(2);
-    expect(points[0].value).toBeCloseTo(0.5, 6);
-    expect(points[1].count).toBe(1);
-    expect(points[1].value).toBeCloseTo(0.5, 6);
+    expect(points[0]!.count).toBe(2);
+    expect(points[0]!.value).toBeCloseTo(0.5, 6);
+    expect(points[1]!.count).toBe(1);
+    expect(points[1]!.value).toBeCloseTo(0.5, 6);
   });
 
   it('reports cost as a per-bucket mean when metric=costUsd', () => {
@@ -159,7 +159,7 @@ describe('trendByTime', () => {
       'costUsd',
     );
     expect(points).toHaveLength(1);
-    expect(points[0].value).toBeCloseTo(0.2, 6);
+    expect(points[0]!.value).toBeCloseTo(0.2, 6);
   });
 });
 
@@ -239,8 +239,8 @@ describe('compareMcpOverrides', () => {
     expect(aBaseline?.avgCacheHitRatio).toBeCloseTo(0.4, 6);
 
     expect(b?.overrides).toHaveLength(1);
-    expect(b?.overrides[0].count).toBe(1);
-    expect(b?.overrides[0].avgCacheHitRatio).toBeCloseTo(0.3, 6);
+    expect(b?.overrides[0]!.count).toBe(1);
+    expect(b?.overrides[0]!.avgCacheHitRatio).toBeCloseTo(0.3, 6);
   });
 
   it('treats baselines as set-equal regardless of original ordering', () => {
@@ -269,7 +269,7 @@ describe('compareMcpOverrides', () => {
       }),
     ]);
     expect(result).toHaveLength(1);
-    expect(result[0].overrides).toHaveLength(1);
-    expect(result[0].overrides[0].count).toBe(2);
+    expect(result[0]!.overrides).toHaveLength(1);
+    expect(result[0]!.overrides[0]!.count).toBe(2);
   });
 });

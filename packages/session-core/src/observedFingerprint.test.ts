@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { detectDrift, extractObservedFingerprint } from './observedFingerprint';
-import type { SystemInitEvent } from '../types/stream-events';
-import type { StaticFingerprint } from '../types/prefix-fingerprint';
+import type { SystemInitEvent } from '@context-action/code-api';
+import type { StaticFingerprint } from './types/prefix-fingerprint';
 
 function init(overrides: Partial<SystemInitEvent> = {}): SystemInitEvent {
   return {
