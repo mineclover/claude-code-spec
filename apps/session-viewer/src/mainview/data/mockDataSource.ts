@@ -11,11 +11,13 @@ import {
   emptyCacheMetrics,
   type SessionMetaView,
 } from '@context-action/session-core';
+import type { SessionOutline } from '@context-action/session-core/outline';
 import {
   BranchUnsupportedError,
   type BranchProgressEvent,
   type BranchRequest,
   type BranchResult,
+  type OutlineProgressEvent,
   type ProjectListItem,
   type SessionDataSource,
 } from '../../shared/dataSource';
@@ -168,6 +170,139 @@ export class MockSessionDataSource implements SessionDataSource {
   }
 
   async deleteSummary() {
+    /* no-op */
+  }
+
+  async getOutline(sessionId: string): Promise<SessionOutline | null> {
+    // Synthetic outline so the mock viewer can demo the Outline tab
+    // without a real session backing it. Two segments, mixed kinds.
+    const generatedAt = new Date().toISOString();
+    return {
+      toolId: 'claude',
+      sourceSessionId: sessionId,
+      cwd: '/mock/project',
+      generatedAt,
+      steps: [
+        {
+          index: 0,
+          kind: 'meta',
+          turnIndex: 0,
+          blockIndex: 0,
+          excerpt: 'system_init (mock)',
+        },
+        {
+          index: 1,
+          kind: 'user-instruction',
+          turnIndex: 1,
+          blockIndex: 0,
+          excerpt: 'List the files in src',
+        },
+        {
+          index: 2,
+          kind: 'thinking',
+          turnIndex: 1,
+          blockIndex: 1,
+          excerpt: 'plan: rg -l "src"',
+          description: 'plans a recursive listing',
+        },
+        {
+          index: 3,
+          kind: 'tool-call',
+          turnIndex: 1,
+          blockIndex: 2,
+          toolName: 'Bash',
+          excerpt: '{"command":"ls src"}',
+          description: 'lists src/ directory',
+        },
+        {
+          index: 4,
+          kind: 'tool-result',
+          turnIndex: 1,
+          blockIndex: 3,
+          toolName: 'Bash',
+          excerpt: 'a.ts\nb.ts\nc.ts',
+          description: 'finds three files',
+        },
+        {
+          index: 5,
+          kind: 'assistant-text',
+          turnIndex: 1,
+          blockIndex: 4,
+          excerpt: 'There are three files in src.',
+          description: 'reports the count',
+        },
+      ],
+      segments: [
+        {
+          openedByStep: null,
+          closedByStep: 1,
+          userInstructionExcerpt: '',
+          steps: [
+            {
+              index: 0,
+              kind: 'meta',
+              turnIndex: 0,
+              blockIndex: 0,
+              excerpt: 'system_init (mock)',
+            },
+          ],
+        },
+        {
+          openedByStep: 1,
+          closedByStep: null,
+          userInstructionExcerpt: 'List the files in src',
+          steps: [
+            {
+              index: 2,
+              kind: 'thinking',
+              turnIndex: 1,
+              blockIndex: 1,
+              excerpt: 'plan: rg -l "src"',
+              description: 'plans a recursive listing',
+            },
+            {
+              index: 3,
+              kind: 'tool-call',
+              turnIndex: 1,
+              blockIndex: 2,
+              toolName: 'Bash',
+              excerpt: '{"command":"ls src"}',
+              description: 'lists src/ directory',
+            },
+            {
+              index: 4,
+              kind: 'tool-result',
+              turnIndex: 1,
+              blockIndex: 3,
+              toolName: 'Bash',
+              excerpt: 'a.ts\nb.ts\nc.ts',
+              description: 'finds three files',
+            },
+            {
+              index: 5,
+              kind: 'assistant-text',
+              turnIndex: 1,
+              blockIndex: 4,
+              excerpt: 'There are three files in src.',
+              description: 'reports the count',
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  async annotateOutline(_sessionId: string): Promise<SessionOutline> {
+    throw new BranchUnsupportedError(ADAPTER_NAME);
+  }
+
+  subscribeOutlineProgress(
+    _listener: (event: OutlineProgressEvent) => void,
+  ): () => void {
+    return () => undefined;
+  }
+
+  async deleteOutline(): Promise<void> {
     /* no-op */
   }
 }

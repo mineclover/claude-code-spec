@@ -56,4 +56,27 @@ describe('MockSessionDataSource', () => {
       ds.branch({ sessionId: 'whatever' }),
     ).rejects.toBeInstanceOf(BranchUnsupportedError);
   });
+
+  it('returns a non-null mock outline for any sessionId', async () => {
+    const o = await ds.getOutline('S-anything');
+    expect(o).not.toBeNull();
+    expect(o!.steps.length).toBeGreaterThan(0);
+    expect(o!.segments.length).toBeGreaterThan(0);
+    // The mock seeds descriptions on most steps so the renderer can
+    // demo the description tag rail without a real fork.
+    const tagged = o!.steps.filter((s) => !!s.description);
+    expect(tagged.length).toBeGreaterThan(0);
+  });
+
+  it('throws BranchUnsupportedError on annotateOutline()', async () => {
+    await expect(ds.annotateOutline('S-1')).rejects.toBeInstanceOf(
+      BranchUnsupportedError,
+    );
+  });
+
+  it('subscribeOutlineProgress returns a no-op unsubscribe', () => {
+    const unsubscribe = ds.subscribeOutlineProgress(() => undefined);
+    expect(typeof unsubscribe).toBe('function');
+    expect(() => unsubscribe()).not.toThrow();
+  });
 });

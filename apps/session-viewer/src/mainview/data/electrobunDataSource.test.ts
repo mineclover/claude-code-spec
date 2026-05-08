@@ -36,6 +36,11 @@ function makeRpc(overrides: Partial<ElectrobunRpcClient['request']> = {}): {
   const listSummaries = vi.fn(async () => []);
   const getSummary = vi.fn(async () => null);
   const deleteSummary = vi.fn(async () => undefined);
+  const getOutline = vi.fn(async () => null);
+  const annotateOutline = vi.fn(async () => {
+    throw new Error('annotateOutline: not implemented in test stub');
+  });
+  const deleteOutline = vi.fn(async () => undefined);
   const rpc: ElectrobunRpcClient = {
     request: {
       describeAdapter,
@@ -45,6 +50,9 @@ function makeRpc(overrides: Partial<ElectrobunRpcClient['request']> = {}): {
       listSummaries,
       getSummary,
       deleteSummary,
+      getOutline,
+      annotateOutline,
+      deleteOutline,
       ...overrides,
     },
     send: { logToBun: vi.fn() },
@@ -94,5 +102,48 @@ describe('ElectrobunSessionDataSource', () => {
     await expect(
       ds.branch({ sessionId: 'S-1' }),
     ).rejects.toThrow('socket disconnected');
+  });
+
+  it('forwards getOutline + annotateOutline + deleteOutline calls', async () => {
+    const getOutline = vi.fn(async () => null);
+    const annotateOutline = vi.fn(async () => {
+      throw new Error('not in cache');
+    });
+    const deleteOutline = vi.fn(async () => undefined);
+    const { rpc } = makeRpc({
+      getOutline,
+      annotateOutline,
+      deleteOutline,
+    });
+    const ds = new ElectrobunSessionDataSource(rpc);
+    await ds.getOutline('S-1');
+    expect(getOutline).toHaveBeenCalledWith({ sessionId: 'S-1' });
+    await expect(ds.annotateOutline('S-1', 'ko')).rejects.toBeInstanceOf(
+      BranchUnsupportedError,
+    );
+    expect(annotateOutline).toHaveBeenCalledWith({
+      sessionId: 'S-1',
+      language: 'ko',
+    });
+    await ds.deleteOutline('S-1');
+    expect(deleteOutline).toHaveBeenCalledWith({ sessionId: 'S-1' });
+  });
+
+  it('dispatches outline-progress events to subscribers', () => {
+    const { rpc } = makeRpc();
+    const ds = new ElectrobunSessionDataSource(rpc);
+    const listener = vi.fn();
+    const unsubscribe = ds.subscribeOutlineProgress(listener);
+    const event = {
+      sourceSessionId: 'S-1',
+      phase: 'parsed' as const,
+      elapsedMs: 1234,
+      message: 'attempt 1: filled 5/10',
+    };
+    ds.dispatchOutlineProgress(event);
+    expect(listener).toHaveBeenCalledWith(event);
+    unsubscribe();
+    ds.dispatchOutlineProgress(event);
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 });

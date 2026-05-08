@@ -934,3 +934,229 @@ button {
   color: var(--ink);
   word-break: break-all;
 }
+
+/* === Outline view ============================================== */
+
+.outline-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.outline-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--ink-3);
+}
+.outline-empty.error {
+  color: var(--warn);
+}
+
+.outline-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+.outline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: baseline;
+}
+.outline-tool {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  background: var(--bg-3);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+}
+.outline-id {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.outline-model {
+  font-size: 12px;
+}
+.outline-stats {
+  font-size: 12px;
+}
+
+.outline-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.outline-button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+.outline-button.secondary {
+  background: var(--bg-2);
+  color: var(--ink);
+  border-color: var(--line-2);
+}
+.outline-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.outline-progress {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.outline-progress .phase {
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+.outline-tally {
+  font-size: 11px;
+  font-family: var(--mono);
+  padding: 0 4px;
+}
+
+.outline-segments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.outline-segment {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-1);
+  overflow: hidden;
+}
+
+.segment-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-2);
+  border: none;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink);
+  font-size: 13px;
+}
+.segment-header:hover {
+  background: var(--bg-3);
+}
+.segment-toggle {
+  width: 14px;
+  flex-shrink: 0;
+}
+.segment-index {
+  width: 36px;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+.segment-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.segment-count {
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.outline-step-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.outline-step {
+  display: grid;
+  grid-template-columns: 18px 40px 110px 1fr;
+  align-items: start;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.outline-step:last-child {
+  border-bottom: none;
+}
+.outline-step.empty {
+  display: block;
+  padding: 12px;
+  text-align: center;
+}
+
+.step-icon {
+  text-align: center;
+  font-size: 11px;
+}
+.step-index {
+  font-size: 11px;
+}
+.step-kind {
+  font-size: 11px;
+  font-family: var(--mono);
+  text-transform: lowercase;
+  color: var(--ink-2);
+}
+.step-excerpt {
+  font-size: 11.5px;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  grid-column: 4;
+}
+.step-description {
+  grid-column: 2 / -1;
+  margin-top: 2px;
+  padding: 4px 8px;
+  background: var(--bg-2);
+  border-left: 2px solid var(--accent-2);
+  border-radius: 0 4px 4px 0;
+  font-size: 11.5px;
+  color: var(--ink);
+}
+
+.outline-step.kind-user-instruction .step-kind {
+  color: var(--accent);
+}
+.outline-step.kind-thinking .step-kind {
+  color: var(--accent-2);
+}
+.outline-step.kind-tool-call .step-kind {
+  color: var(--warn);
+}
+.outline-step.kind-tool-result .step-kind {
+  color: var(--ink-2);
+}
+.outline-step.kind-assistant-text .step-kind {
+  color: var(--ink);
+}
+.outline-step.kind-meta .step-kind {
+  color: var(--ink-3);
+}

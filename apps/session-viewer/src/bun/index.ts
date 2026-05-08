@@ -11,6 +11,7 @@
  */
 
 import {
+  annotateOutline as runAnnotateOutline,
   getRunner,
   RunnerUnavailableError,
   type ForkProgress,
@@ -20,6 +21,9 @@ import {
   invalidateCache,
   listProjects,
   listSessions,
+  readClaudeSessionRaw,
+  readCodexSessionRaw,
+  readGeminiSessionRaw,
   resolveSession,
 } from '@context-action/session-core/server/readers';
 import {
@@ -28,6 +32,17 @@ import {
   listSummaries as listSummariesFromStore,
   saveSummary,
 } from '@context-action/session-core/server/summary-store';
+import {
+  deleteOutline as deleteOutlineFromStore,
+  getOutline as getOutlineFromStore,
+  saveOutline,
+} from '@context-action/session-core/server/outline-store';
+import {
+  extractClaudeOutline,
+  extractCodexOutline,
+  extractGeminiOutline,
+  type SessionOutline,
+} from '@context-action/session-core/outline';
 import { randomUUID } from 'node:crypto';
 import type { SessionViewerRPC } from '../shared/rpc-schema';
 import {
@@ -52,6 +67,36 @@ async function resolveMainViewUrl(): Promise<string> {
     );
     return PROD_URL;
   }
+}
+
+/**
+ * Read the source session's raw bytes via the per-CLI reader and run
+ * the matching outline extractor. Returns `null` when the source can't
+ * be located (file missing, sessionId unknown to the cache, etc.). The
+ * GUI surfaces null as a "no outline available" empty state.
+ */
+async function loadFreshOutline(
+  sessionId: string,
+): Promise<SessionOutline | null> {
+  const resolved = await resolveSession(sessionId);
+  if (!resolved) return null;
+  const { toolId, cwd } = resolved;
+  if (toolId === 'claude') {
+    const raw = await readClaudeSessionRaw(sessionId, cwd);
+    if (raw === null) return null;
+    return extractClaudeOutline({ raw, sourceSessionId: sessionId, cwd });
+  }
+  if (toolId === 'codex') {
+    const raw = await readCodexSessionRaw(sessionId, cwd);
+    if (raw === null) return null;
+    return extractCodexOutline({ raw, sourceSessionId: sessionId, cwd });
+  }
+  if (toolId === 'gemini') {
+    const raw = await readGeminiSessionRaw(sessionId, cwd);
+    if (raw === null) return null;
+    return extractGeminiOutline({ raw, sourceSessionId: sessionId, cwd });
+  }
+  return null;
 }
 
 // Forward reference so the branch handler can call rpc.send.branchProgress
@@ -151,6 +196,84 @@ const rpc = BrowserView.defineRPC<SessionViewerRPC>({
       getSummary: async ({ id }) => getSummaryFromStore(id),
       deleteSummary: async ({ id }) => {
         await deleteSummaryFromStore(id);
+      },
+      getOutline: async ({ sessionId }) => {
+        // Persisted (annotated) outline always wins — that's the one the
+        // operator already paid the fork cost for. If none exists, fall
+        // through to a fresh extraction so the renderer can still show
+        // the structure tree before annotation runs.
+        const persisted = await getOutlineFromStore(sessionId);
+        if (persisted) return persisted;
+        return loadFreshOutline(sessionId);
+      },
+      annotateOutline: async ({ sessionId, language }) => {
+        const resolved = await resolveSession(sessionId);
+        if (!resolved) {
+          throw new BranchUnsupportedError(
+            `electrobun (sessionId ${sessionId} not in cache)`,
+          );
+        }
+        if (resolved.toolId !== 'claude') {
+          throw new BranchUnsupportedError(
+            `outline-annotate is currently claude-only; got ${resolved.toolId}`,
+          );
+        }
+        const runner = getRunner('claude');
+        if (!runner) {
+          throw new BranchUnsupportedError(
+            'electrobun (no runner registered for claude)',
+          );
+        }
+        const cap = await runner.capability();
+        if (!cap.available) {
+          throw new RunnerUnavailableError(
+            'claude',
+            cap.unavailableReason ?? 'unknown',
+          );
+        }
+        const baseOutline = await loadFreshOutline(sessionId);
+        if (!baseOutline) {
+          throw new BranchUnsupportedError(
+            `outline source not found for session ${sessionId}`,
+          );
+        }
+        console.log(
+          `[bun] annotateOutline → ${resolved.toolId} session ${sessionId} (${baseOutline.steps.length} steps)`,
+        );
+        const onProgress = (e: ForkProgress) => {
+          try {
+            rpcRef?.send.outlineProgress({
+              sourceSessionId: e.sourceSessionId,
+              phase: e.phase,
+              message: e.message,
+              elapsedMs: e.elapsedMs,
+              forkSessionId: e.forkSessionId,
+              textDelta: e.textDelta,
+              cacheReadTokens: e.cacheReadTokens,
+              error: e.error,
+            });
+          } catch (err) {
+            console.error('[bun] outlineProgress send failed', err);
+          }
+        };
+        const { outline } = await runAnnotateOutline(
+          baseOutline,
+          resolved.cwd,
+          { language, onProgress },
+        );
+        try {
+          await saveOutline(outline);
+        } catch (err) {
+          console.error('[bun] saveOutline failed', err);
+        }
+        const tagged = outline.steps.filter((s) => !!s.description).length;
+        console.log(
+          `[bun] annotateOutline ← ${tagged}/${outline.steps.length} tagged across ${outline.annotation?.forks.length ?? 0} forks`,
+        );
+        return outline;
+      },
+      deleteOutline: async ({ sessionId }) => {
+        await deleteOutlineFromStore(sessionId);
       },
     },
     messages: {

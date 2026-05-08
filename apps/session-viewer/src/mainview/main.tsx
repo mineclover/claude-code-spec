@@ -56,6 +56,9 @@ async function pickDataSource(): Promise<SessionDataSource> {
           branchProgress: (event) => {
             dataSourceRef?.dispatchProgress(event);
           },
+          outlineProgress: (event) => {
+            dataSourceRef?.dispatchOutlineProgress(event);
+          },
         },
       },
     });

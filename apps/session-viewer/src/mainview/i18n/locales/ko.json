@@ -12,11 +12,30 @@
   },
   "panes": {
     "sessions": "세션",
+    "outline": "아웃라인",
     "cacheInvariants": "캐시 불변성",
     "branchedSummary": "분기 요약",
     "pastSummaries": "지난 요약",
     "projectRollup": "프로젝트 통계",
     "selectSession": "세션을 선택하세요."
+  },
+  "outline": {
+    "loading": "아웃라인 불러오는 중…",
+    "noOutline": "이 세션의 아웃라인이 없습니다.",
+    "annotate": "태그 생성",
+    "annotating": "태깅 중…",
+    "annotateTooltip": "세션을 반복적으로 분기해서 각 단계에 1줄 설명을 붙입니다",
+    "annotateUnsupported": "태그 생성은 현재 claude 만 지원합니다",
+    "delete": "주석된 아웃라인 삭제",
+    "deleteShort": "삭제",
+    "tagged": "태그 완료",
+    "segments": "세그먼트",
+    "stepsShort": "단계",
+    "emptySegment": "(단계 없음)",
+    "openingSegment": "(서두 — 사용자 지시 이전)",
+    "unnamedSegment": "(이름 없는 사용자 턴)",
+    "expandAll": "모든 세그먼트 펼치기",
+    "collapseAll": "모든 세그먼트 접기"
   },
   "branch": {
     "trigger": "분기 + 요약",

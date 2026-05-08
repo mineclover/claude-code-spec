@@ -21,12 +21,18 @@ import type {
   SummaryRecord,
   SummaryResult,
 } from '@context-action/session-core';
-import type { BranchProgressEvent } from './rpc-schema';
+import type { SessionOutline } from '@context-action/session-core/outline';
+import type {
+  BranchProgressEvent,
+  OutlineProgressEvent,
+} from './rpc-schema';
 
 export type {
   BranchProgressEvent,
   ListSummariesFilter,
+  OutlineProgressEvent,
   ProjectListItem,
+  SessionOutline,
   SummaryLanguage,
   SummaryRecord,
 };
@@ -104,6 +110,35 @@ export interface SessionDataSource {
 
   /** Remove a persisted summary. Idempotent — missing ids are silently OK. */
   deleteSummary(id: string): Promise<void>;
+
+  /**
+   * Fetch the outline for a session. Returns either the annotated outline
+   * (when previously persisted) or a freshly extracted one.
+   */
+  getOutline(sessionId: string): Promise<SessionOutline | null>;
+
+  /**
+   * Run the iterative annotator. Annotates the source session's outline
+   * via cache-preserving forks and persists the result. Returns the
+   * annotated outline. Adapters that don't support live execution
+   * should throw a `BranchUnsupportedError`.
+   */
+  annotateOutline(
+    sessionId: string,
+    language?: SummaryLanguage,
+  ): Promise<SessionOutline>;
+
+  /**
+   * Subscribe to annotator progress. Same shape family as
+   * `subscribeProgress` for branch — fork-by-fork updates as the
+   * annotator iterates. Returns an unsubscribe function.
+   */
+  subscribeOutlineProgress(
+    listener: (event: OutlineProgressEvent) => void,
+  ): () => void;
+
+  /** Remove a persisted outline. Idempotent. */
+  deleteOutline(sessionId: string): Promise<void>;
 }
 
 export class BranchUnsupportedError extends Error {

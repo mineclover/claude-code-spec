@@ -12,11 +12,30 @@
   },
   "panes": {
     "sessions": "Sessions",
+    "outline": "Outline",
     "cacheInvariants": "Cache invariants",
     "branchedSummary": "Branched summary",
     "pastSummaries": "Past summaries",
     "projectRollup": "Project rollup",
     "selectSession": "Select a session."
+  },
+  "outline": {
+    "loading": "Loading outline…",
+    "noOutline": "No outline available for this session yet.",
+    "annotate": "Annotate",
+    "annotating": "annotating…",
+    "annotateTooltip": "Iteratively fork the session and tag each step with a 1-line description",
+    "annotateUnsupported": "Annotation is currently claude-only",
+    "delete": "Delete annotated outline",
+    "deleteShort": "del",
+    "tagged": "tagged",
+    "segments": "segments",
+    "stepsShort": "steps",
+    "emptySegment": "(no steps)",
+    "openingSegment": "(opening — pre-user-instruction)",
+    "unnamedSegment": "(unnamed user turn)",
+    "expandAll": "Expand all segments",
+    "collapseAll": "Collapse all segments"
   },
   "branch": {
     "trigger": "Branch & Summarize",

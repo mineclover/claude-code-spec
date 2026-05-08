@@ -11,13 +11,16 @@
  */
 
 import type { SessionMetaView } from '@context-action/session-core';
+import type { SessionOutline } from '@context-action/session-core/outline';
 import {
   BranchUnsupportedError,
   type BranchProgressEvent,
   type BranchRequest,
   type BranchResult,
+  type OutlineProgressEvent,
   type ProjectListItem,
   type SessionDataSource,
+  type SummaryLanguage,
 } from '../../shared/dataSource';
 import type { SessionViewerRPC } from '../../shared/rpc-schema';
 
@@ -42,6 +45,12 @@ export interface ElectrobunRpcClient {
       id: string;
     }): Promise<import('../../shared/dataSource').SummaryRecord | null>;
     deleteSummary(params: { id: string }): Promise<void>;
+    getOutline(params: { sessionId: string }): Promise<SessionOutline | null>;
+    annotateOutline(params: {
+      sessionId: string;
+      language?: SummaryLanguage;
+    }): Promise<SessionOutline>;
+    deleteOutline(params: { sessionId: string }): Promise<void>;
   };
   send: {
     logToBun(payload: SessionViewerRPC['bun']['messages']['logToBun']): void;
@@ -51,6 +60,9 @@ export interface ElectrobunRpcClient {
 export class ElectrobunSessionDataSource implements SessionDataSource {
   private cachedDescription: { adapter: string; readonly: boolean } | null = null;
   private readonly progressListeners = new Set<(e: BranchProgressEvent) => void>();
+  private readonly outlineProgressListeners = new Set<
+    (e: OutlineProgressEvent) => void
+  >();
 
   constructor(private readonly rpc: ElectrobunRpcClient) {}
 
@@ -83,6 +95,52 @@ export class ElectrobunSessionDataSource implements SessionDataSource {
     return () => {
       this.progressListeners.delete(listener);
     };
+  }
+
+  /** Mirror of `dispatchProgress` for outline-annotate progress events. */
+  dispatchOutlineProgress(event: OutlineProgressEvent): void {
+    for (const fn of this.outlineProgressListeners) {
+      try {
+        fn(event);
+      } catch (err) {
+        console.error(
+          '[electrobunDataSource] outline progress listener threw',
+          err,
+        );
+      }
+    }
+  }
+
+  subscribeOutlineProgress(
+    listener: (event: OutlineProgressEvent) => void,
+  ): () => void {
+    this.outlineProgressListeners.add(listener);
+    return () => {
+      this.outlineProgressListeners.delete(listener);
+    };
+  }
+
+  getOutline(sessionId: string) {
+    return this.rpc.request.getOutline({ sessionId });
+  }
+
+  async annotateOutline(
+    sessionId: string,
+    language?: SummaryLanguage,
+  ): Promise<SessionOutline> {
+    try {
+      return await this.rpc.request.annotateOutline({ sessionId, language });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/not implemented|unsupported|not in cache/i.test(msg)) {
+        throw new BranchUnsupportedError('electrobun');
+      }
+      throw err;
+    }
+  }
+
+  async deleteOutline(sessionId: string): Promise<void> {
+    await this.rpc.request.deleteOutline({ sessionId });
   }
 
   listSummaries(

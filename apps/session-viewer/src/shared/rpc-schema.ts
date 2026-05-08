@@ -8,12 +8,14 @@
  */
 
 import type { SessionMetaView } from '@context-action/session-core';
+import type { SessionOutline } from '@context-action/session-core/outline';
 import type { RPCSchema } from 'electrobun/view';
 import type {
   BranchRequest,
   BranchResult,
   ListSummariesFilter,
   ProjectListItem,
+  SummaryLanguage,
   SummaryRecord,
 } from './dataSource';
 
@@ -31,6 +33,30 @@ export interface AdapterDescription {
  * `@context-action/cli-runner` — bun forwards each runner event verbatim
  * through this DTO. Adding a field here means adding it there too.
  */
+/**
+ * Progress event for an in-flight outline annotation. Same wire shape
+ * family as `BranchProgressEvent` — the bun side runs the iterative
+ * annotator and forwards each `ForkProgress` through this DTO so the
+ * UI can render per-batch progress (attempt 2/5, filled 12/20, etc.).
+ */
+export interface OutlineProgressEvent {
+  sourceSessionId: string;
+  phase:
+    | 'started'
+    | 'cli-spawned'
+    | 'system-init'
+    | 'assistant-streaming'
+    | 'assistant-complete'
+    | 'parsed'
+    | 'failed';
+  message?: string;
+  elapsedMs: number;
+  forkSessionId?: string;
+  textDelta?: string;
+  cacheReadTokens?: number;
+  error?: string;
+}
+
 export interface BranchProgressEvent {
   /** Source session whose fork is being run. */
   sourceSessionId: string;
@@ -80,6 +106,27 @@ export type SessionViewerRPC = {
         response: SummaryRecord | null;
       };
       deleteSummary: { params: { id: string }; response: void };
+      /**
+       * Fetch the outline for a session. Returns the persisted (annotated)
+       * outline if one exists in `~/.session-viewer/outlines/`; otherwise
+       * extracts a fresh outline from the source session and returns it
+       * without annotations.
+       */
+      getOutline: {
+        params: { sessionId: string };
+        response: SessionOutline | null;
+      };
+      /**
+       * Run the iterative annotator. Bun loads the outline, iterates fork
+       * attempts via the cli-runner annotateOutline API, persists the
+       * annotated outline, and returns it. Progress events stream over
+       * the `outlineProgress` push channel during the request.
+       */
+      annotateOutline: {
+        params: { sessionId: string; language?: SummaryLanguage };
+        response: SessionOutline;
+      };
+      deleteOutline: { params: { sessionId: string }; response: void };
     };
     messages: {
       // Reserved: e.g. log lines from the renderer to the bun process.
@@ -93,6 +140,8 @@ export type SessionViewerRPC = {
       sessionsChanged: { projectId: string };
       // Live progress for an in-flight Branch & Summarize request.
       branchProgress: BranchProgressEvent;
+      // Live progress for an in-flight outline-annotate request.
+      outlineProgress: OutlineProgressEvent;
     };
   }>;
 };

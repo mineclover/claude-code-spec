@@ -3,10 +3,12 @@ import {
   type SessionMetaView,
   type SummaryResult,
 } from '@context-action/session-core';
+import type { SessionOutline } from '@context-action/session-core/outline';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AggregateStats } from './components/AggregateStats';
 import { CacheGauge } from './components/CacheGauge';
+import { OutlineView } from './components/OutlineView';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { SessionDetail } from './components/SessionDetail';
 import { SessionList } from './components/SessionList';
@@ -38,7 +40,7 @@ interface AppProps {
   dataSource: SessionDataSource;
 }
 
-type View = 'sessions' | 'summaries';
+type View = 'sessions' | 'outline' | 'summaries';
 
 export function App({ dataSource }: AppProps) {
   const { t } = useTranslation();
@@ -241,6 +243,121 @@ export function App({ dataSource }: AppProps) {
     navigator.clipboard?.writeText(prompt).catch(() => undefined);
   }, []);
 
+  // Outline view state — independent of summary state but keyed off
+  // the same activeSession. Loads (or refreshes) whenever the user
+  // switches into the Outline tab or selects a different session.
+  const [outline, setOutline] = useState<SessionOutline | null>(null);
+  const [outlineLoading, setOutlineLoading] = useState(false);
+  const [outlineError, setOutlineError] = useState<string | null>(null);
+  const [annotating, setAnnotating] = useState(false);
+  const [outlineProgress, setOutlineProgress] = useState<{
+    phase: string;
+    message?: string;
+    elapsedMs: number;
+  } | null>(null);
+
+  // Reload outline when active session changes OR when we enter the
+  // outline view tab (so a stale outline from a different session
+  // never lingers visible).
+  useEffect(() => {
+    if (view !== 'outline' || !activeSessionId) {
+      // Clear outline state when leaving / no session — avoids
+      // showing the wrong session's outline after a project switch.
+      if (view !== 'outline') {
+        setOutline(null);
+        setOutlineError(null);
+        setOutlineProgress(null);
+      }
+      return;
+    }
+    let cancelled = false;
+    setOutlineLoading(true);
+    setOutlineError(null);
+    setOutlineProgress(null);
+    dataSource
+      .getOutline(activeSessionId)
+      .then((result) => {
+        if (cancelled) return;
+        setOutline(result);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : String(err);
+        setOutlineError(msg);
+      })
+      .finally(() => {
+        if (!cancelled) setOutlineLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dataSource, activeSessionId, view]);
+
+  // Stream annotator progress to the same panel that renders the
+  // outline. We filter by sourceSessionId so a background annotation
+  // for a different session can't mutate the active view.
+  useEffect(() => {
+    const unsubscribe = dataSource.subscribeOutlineProgress((event) => {
+      if (event.sourceSessionId !== activeSessionId) return;
+      setOutlineProgress({
+        phase: event.phase,
+        message: event.message,
+        elapsedMs: event.elapsedMs,
+      });
+      if (event.phase === 'failed' && event.error) {
+        setOutlineError(event.error);
+      }
+    });
+    return unsubscribe;
+  }, [dataSource, activeSessionId]);
+
+  const runAnnotate = useCallback(async () => {
+    if (!activeSessionId || !activeSession) return;
+    setAnnotating(true);
+    setOutlineError(null);
+    setOutlineProgress({
+      phase: 'starting',
+      elapsedMs: 0,
+    });
+    try {
+      const result = await dataSource.annotateOutline(
+        activeSessionId,
+        summaryLanguage,
+      );
+      setOutline(result);
+    } catch (err) {
+      const msg =
+        err instanceof BranchUnsupportedError
+          ? `Annotation not supported: ${err.message}`
+          : err instanceof Error
+            ? err.message
+            : String(err);
+      setOutlineError(msg);
+    } finally {
+      setAnnotating(false);
+    }
+  }, [dataSource, activeSession, activeSessionId, summaryLanguage]);
+
+  const onDeleteOutline = useCallback(async () => {
+    if (!activeSessionId) return;
+    try {
+      await dataSource.deleteOutline(activeSessionId);
+      // After delete, fall back to a fresh extraction so the view
+      // shows the un-annotated structure rather than a stale tagged
+      // copy.
+      const fresh = await dataSource.getOutline(activeSessionId);
+      setOutline(fresh);
+    } catch (err) {
+      console.error('[App] deleteOutline failed', err);
+    }
+  }, [dataSource, activeSessionId]);
+
+  const canAnnotate = useMemo(() => {
+    if (!activeSession) return false;
+    // Annotator is currently claude-only at the bun layer.
+    return activeSession.toolId === 'claude' && !adapter.readonly;
+  }, [activeSession, adapter.readonly]);
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -250,7 +367,7 @@ export function App({ dataSource }: AppProps) {
           <span className="dim">{t('app.tag')}</span>
         </div>
         <nav className="view-tabs" aria-label="view">
-          {(['sessions', 'summaries'] as const).map((v) => (
+          {(['sessions', 'outline', 'summaries'] as const).map((v) => (
             <button
               key={v}
               type="button"
@@ -260,7 +377,9 @@ export function App({ dataSource }: AppProps) {
             >
               {v === 'sessions'
                 ? t('panes.sessions')
-                : t('panes.pastSummaries')}
+                : v === 'outline'
+                  ? t('panes.outline')
+                  : t('panes.pastSummaries')}
             </button>
           ))}
         </nav>
@@ -294,6 +413,54 @@ export function App({ dataSource }: AppProps) {
 
       {view === 'summaries' ? (
         <SummariesView dataSource={dataSource} />
+      ) : view === 'outline' ? (
+      <main className="grid-3">
+        <ProjectSidebar
+          projects={projects}
+          activeProjectId={activeProjectId}
+          onSelect={(id) => {
+            setActiveProjectId(id);
+            setActiveSessionId(null);
+          }}
+        />
+
+        <section className="pane sessions-pane">
+          <header className="pane-header">
+            <h2 className="pane-title">{t('panes.sessions')}</h2>
+            {activeProject && (
+              <span className="pane-subtitle mono dim">
+                {activeProject.toolId ? `${activeProject.toolId} · ` : ''}
+                {activeProject.path}
+              </span>
+            )}
+          </header>
+          <SessionList
+            sessions={sessions}
+            activeSessionId={activeSessionId}
+            onSelect={setActiveSessionId}
+          />
+        </section>
+
+        <section className="pane detail-pane">
+          <header className="pane-header">
+            <h2 className="pane-title">{t('panes.outline')}</h2>
+          </header>
+          {activeSession ? (
+            <OutlineView
+              outline={outline}
+              loading={outlineLoading}
+              error={outlineError}
+              canAnnotate={canAnnotate}
+              annotating={annotating}
+              progress={outlineProgress}
+              onAnnotate={runAnnotate}
+              onDelete={outline?.annotation ? onDeleteOutline : undefined}
+            />
+          ) : (
+            <p className="empty">{t('panes.selectSession')}</p>
+          )}
+        </section>
+      </main>
       ) : (
       <main className="grid-3">
         <ProjectSidebar
