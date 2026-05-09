@@ -53,6 +53,18 @@ npm run start
 27. **문서 탐색**: Claude Code 및 컨트롤러 문서 통합 뷰어
 28. **설정 관리**: 애플리케이션 설정 및 프로젝트 경로 관리
 
+### Session Viewer (apps/session-viewer)
+별도 Electrobun 앱. Claude / Codex / Gemini 세션을 캐시-보존 방식으로
+포크하고 분석. 자세한 내용은 [`apps/session-viewer/README.md`](./apps/session-viewer/README.md).
+
+29. **Branch & Summarize**: 세션을 fork-don't-poke 방식으로 분기해 구조화된 요약 생성
+30. **Outline 추출**: 세션을 user-instruction 경계로 segment 분할, kind별 step 분류 (claude/codex/gemini)
+31. **반복 Annotator**: cache-preserving fork 를 반복해서 각 step 에 1줄 설명 태그 추가 (claude/codex)
+32. **Codex app-server 통합**: JSON-RPC 채널로 `thread/fork --ephemeral` + `turn/start --outputSchema` 사용
+33. **다국어**: EN/KR 토글 하나가 UI 언어 + 모델 출력 언어를 모두 제어
+
+상세 아키텍처: [`docs/session-viewer-outline-annotator.md`](./docs/session-viewer-outline-annotator.md)
+
 ## 예정 기능
 
 ### 컨텍스트 제어

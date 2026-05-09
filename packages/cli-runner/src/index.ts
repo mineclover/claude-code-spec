@@ -15,6 +15,23 @@ export { parseModelOutput } from './parseModelOutput';
 export { parseAnnotateBatch } from './parseAnnotateBatch';
 export { annotateOutline } from './annotateRunner';
 export type { AnnotateOutlineOptions } from './annotateRunner';
+export {
+  makeAnnotatorPrimitive,
+  ANNOTATE_BATCH_JSON_SCHEMA,
+} from './annotatorPrimitive';
+export type {
+  AnnotatorPrimitive,
+  AnnotateBatchInput,
+  AnnotateBatchResult,
+} from './annotatorPrimitive';
+export { CodexAppServerClient } from './codexAppServer';
+export type {
+  CodexAppServerOptions,
+  CodexThreadItem,
+  CodexTokenUsage,
+  RunTurnOptions,
+  RunTurnResult,
+} from './codexAppServer';
 export type {
   CliRunner,
   ForkContext,

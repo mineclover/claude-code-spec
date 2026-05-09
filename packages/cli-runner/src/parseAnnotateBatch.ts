@@ -12,46 +12,8 @@ import {
   AnnotateBatchSchema,
   type AnnotateBatchOutput,
 } from '@context-action/session-core/outline';
+import { extractJsonBlock } from './jsonBlockExtractor';
 import { ModelOutputParseError } from './types';
-
-/**
- * Find the first balanced JSON object in `raw`. Identical strategy to
- * `parseModelOutput.extractJsonBlock` — duplicated rather than shared
- * to keep parseModelOutput's blast radius small while we iterate on
- * the annotator's prompt.
- */
-function extractJsonBlock(raw: string): string | null {
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = fenced?.[1] ?? raw;
-
-  const start = candidate.indexOf('{');
-  if (start === -1) return null;
-  let depth = 0;
-  let inString = false;
-  let escape = false;
-  for (let i = start; i < candidate.length; i++) {
-    const c = candidate[i];
-    if (escape) {
-      escape = false;
-      continue;
-    }
-    if (c === '\\') {
-      escape = true;
-      continue;
-    }
-    if (c === '"') {
-      inString = !inString;
-      continue;
-    }
-    if (inString) continue;
-    if (c === '{') depth++;
-    else if (c === '}') {
-      depth--;
-      if (depth === 0) return candidate.slice(start, i + 1);
-    }
-  }
-  return null;
-}
 
 export function parseAnnotateBatch(raw: string): AnnotateBatchOutput {
   const block = extractJsonBlock(raw);
