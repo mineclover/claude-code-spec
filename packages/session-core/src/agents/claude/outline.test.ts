@@ -10,8 +10,6 @@
 
 import { describe, expect, it } from 'vitest';
 import { extractClaudeOutline } from './outline';
-import { groupIntoSegments } from '../../outline/grouping';
-import type { SessionStep } from '../../outline/types';
 
 function lines(...rows: object[]): string {
   return rows.map((r) => JSON.stringify(r)).join('\n');
@@ -199,52 +197,6 @@ describe('extractClaudeOutline — flat steps', () => {
   });
 });
 
-describe('groupIntoSegments', () => {
-  function step(kind: SessionStep['kind'], index: number, excerpt = ''): SessionStep {
-    return { index, kind, turnIndex: 0, blockIndex: 0, excerpt };
-  }
-
-  it('splits the flat list at every user-instruction boundary', () => {
-    const steps: SessionStep[] = [
-      step('meta', 0),
-      step('user-instruction', 1, 'first'),
-      step('thinking', 2),
-      step('tool-call', 3),
-      step('user-instruction', 4, 'second'),
-      step('assistant-text', 5),
-    ];
-    const segments = groupIntoSegments(steps);
-    expect(segments).toHaveLength(3);
-    expect(segments[0]!.openedByStep).toBeNull();
-    expect(segments[0]!.closedByStep).toBe(1);
-    expect(segments[0]!.steps.map((s) => s.index)).toEqual([0]);
-    expect(segments[1]!.openedByStep).toBe(1);
-    expect(segments[1]!.closedByStep).toBe(4);
-    expect(segments[1]!.userInstructionExcerpt).toBe('first');
-    expect(segments[1]!.steps.map((s) => s.index)).toEqual([2, 3]);
-    expect(segments[2]!.openedByStep).toBe(4);
-    expect(segments[2]!.closedByStep).toBeNull();
-    expect(segments[2]!.steps.map((s) => s.index)).toEqual([5]);
-  });
-
-  it('produces a single empty segment when no user-instruction is present', () => {
-    const steps = [step('meta', 0)];
-    const segments = groupIntoSegments(steps);
-    expect(segments).toHaveLength(1);
-    expect(segments[0]!.openedByStep).toBeNull();
-    expect(segments[0]!.closedByStep).toBeNull();
-    expect(segments[0]!.steps).toHaveLength(1);
-  });
-
-  it('produces an empty trailing segment when the last step is a user-instruction', () => {
-    const steps: SessionStep[] = [
-      step('user-instruction', 0, 'q'),
-    ];
-    const segments = groupIntoSegments(steps);
-    // Opening segment (0 steps), trailing segment opened by index 0 with no steps.
-    expect(segments).toHaveLength(2);
-    expect(segments[1]!.openedByStep).toBe(0);
-    expect(segments[1]!.closedByStep).toBeNull();
-    expect(segments[1]!.steps).toEqual([]);
-  });
-});
+// `groupIntoSegments` is now agent-agnostic and tested in
+// `outline/grouping.test.ts`. Claude-specific outline tests stay
+// here.
