@@ -447,24 +447,23 @@ async function cmdAnnotate(parsed: ParsedArgs): Promise<number> {
     process.stderr.write(`Unknown toolId: ${toolIdRaw}\n`);
     return 2;
   }
-  if (toolIdRaw !== 'claude') {
+  if (toolIdRaw === 'gemini') {
     process.stderr.write(
-      `annotate: cache-preserving fork annotation is currently claude-only.\n` +
-        `(codex / gemini outlines are extractable via \`cli-runner outline\`,\n` +
-        ` but their fork mechanisms don't preserve prefix bytes the same way.)\n`,
+      `annotate: gemini fork loses prefix bytes by construction; iterative cache-preserving annotation is not viable.\n` +
+        `(claude and codex are supported; gemini outlines remain extractable via \`cli-runner outline\`.)\n`,
     );
     return 2;
   }
 
-  const runner = getRunner('claude');
+  const runner = getRunner(toolIdRaw);
   if (!runner) {
-    process.stderr.write('No runner registered for claude\n');
+    process.stderr.write(`No runner registered for ${toolIdRaw}\n`);
     return 2;
   }
   const cap = await runner.capability();
   if (!cap.available) {
     process.stderr.write(
-      `claude runner unavailable: ${cap.unavailableReason ?? 'unknown'}\n`,
+      `${toolIdRaw} runner unavailable: ${cap.unavailableReason ?? 'unknown'}\n`,
     );
     return 2;
   }

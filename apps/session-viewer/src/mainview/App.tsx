@@ -354,8 +354,11 @@ export function App({ dataSource }: AppProps) {
 
   const canAnnotate = useMemo(() => {
     if (!activeSession) return false;
-    // Annotator is currently claude-only at the bun layer.
-    return activeSession.toolId === 'claude' && !adapter.readonly;
+    // Gemini's prompt-serialize fork loses cache prefix, so iterative
+    // annotation isn't worth running. Claude (--fork-session) and
+    // Codex (app-server thread/fork) both preserve prefix bytes.
+    if (activeSession.toolId === 'gemini') return false;
+    return !adapter.readonly;
   }, [activeSession, adapter.readonly]);
 
   return (

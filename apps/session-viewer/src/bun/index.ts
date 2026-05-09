@@ -213,21 +213,21 @@ const rpc = BrowserView.defineRPC<SessionViewerRPC>({
             `electrobun (sessionId ${sessionId} not in cache)`,
           );
         }
-        if (resolved.toolId !== 'claude') {
+        if (resolved.toolId === 'gemini') {
           throw new BranchUnsupportedError(
-            `outline-annotate is currently claude-only; got ${resolved.toolId}`,
+            'outline-annotate is not viable for gemini (prompt-serialize forks lose prefix bytes)',
           );
         }
-        const runner = getRunner('claude');
+        const runner = getRunner(resolved.toolId);
         if (!runner) {
           throw new BranchUnsupportedError(
-            'electrobun (no runner registered for claude)',
+            `electrobun (no runner registered for ${resolved.toolId})`,
           );
         }
         const cap = await runner.capability();
         if (!cap.available) {
           throw new RunnerUnavailableError(
-            'claude',
+            resolved.toolId,
             cap.unavailableReason ?? 'unknown',
           );
         }

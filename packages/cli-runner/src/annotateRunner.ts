@@ -8,10 +8,8 @@
  *   2. While unfilled steps remain and we're under `maxAttempts`:
  *      a. Take the next batch of unfilled steps (size capped by
  *         `batchSize`).
- *      b. Cache-preservingly fork the source session — the prefix is
- *         the same Claude bytes the source has, so server-side cache
- *         applies. We add `--tools "" --mcp-config <empty> --max-turns
- *         1` so the fork can only emit one assistant turn of JSON.
+ *      b. Cache-preservingly fork the source session (mechanic per
+ *         CLI — see `annotatorPrimitive.ts`).
  *      c. Send the annotator prompt with that batch + the descriptions
  *         we've already collected (so the model stays consistent in
  *         tone but doesn't rewrite them).
@@ -37,10 +35,10 @@ import {
 } from '@context-action/session-core/outline';
 import { parseAnnotateBatch } from './parseAnnotateBatch';
 import {
-  spawnClaudeStream,
-  withTempEmptyMcpConfig,
-  extractFirstTurnUsage,
-} from './claudeRunner';
+  makeAnnotatorPrimitive,
+  ANNOTATE_BATCH_JSON_SCHEMA,
+  type AnnotatorPrimitive,
+} from './annotatorPrimitive';
 import {
   ModelOutputParseError,
   type ForkProgress,
@@ -66,6 +64,12 @@ export interface AnnotateOutlineOptions {
   language?: SummaryLanguage;
   /** Progress sink — same shape as the summarize runner uses. */
   onProgress?: (event: ForkProgress) => void;
+  /**
+   * Override the primitive — primarily for tests that want to drive a
+   * deterministic stub. Production callers leave this undefined and
+   * dispatch by `outline.toolId`.
+   */
+  primitive?: AnnotatorPrimitive;
 }
 
 interface AnnotateOutcome {
@@ -112,7 +116,16 @@ export async function annotateOutline(
 
   const forks: AnnotationFork[] = [];
 
-  await withTempEmptyMcpConfig(async (mcpConfigPath) => {
+  const primitive =
+    options.primitive ??
+    makeAnnotatorPrimitive({
+      toolId: outline.toolId,
+      sourceSessionId: outline.sourceSessionId,
+      cwd,
+    });
+
+  await primitive.prepare();
+  try {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const unfilled = steps.filter((s) => isDescribable(s) && !s.description);
       if (unfilled.length === 0) break;
@@ -143,14 +156,11 @@ export async function annotateOutline(
         elapsedMs: Date.now() - startedAt,
       });
 
-      let spawnResult;
+      let batchResult;
       try {
-        spawnResult = await spawnClaudeStream({
-          sourceSessionId: outline.sourceSessionId,
-          cwd,
+        batchResult = await primitive.forkAndAnnotate({
           prompt,
-          emptyMcpConfigPath: mcpConfigPath,
-          startedAt,
+          outputSchema: ANNOTATE_BATCH_JSON_SCHEMA,
           emit,
         });
       } catch (err) {
@@ -163,11 +173,9 @@ export async function annotateOutline(
         throw err;
       }
 
-      const usage = extractFirstTurnUsage(spawnResult.events);
-
-      let described: number[] = [];
+      const described: number[] = [];
       try {
-        const parsed = parseAnnotateBatch(spawnResult.resultText);
+        const parsed = parseAnnotateBatch(batchResult.rawText);
         for (const [keyRaw, descRaw] of Object.entries(parsed.descriptions)) {
           const key = Number.parseInt(keyRaw, 10);
           if (!Number.isFinite(key)) continue;
@@ -198,12 +206,12 @@ export async function annotateOutline(
       }
 
       forks.push({
-        forkSessionId: spawnResult.forkSessionId,
-        cacheReadTokens: usage.cacheReadTokens,
-        cacheCreationTokens: usage.cacheCreationTokens,
-        inputTokens: usage.inputTokens,
-        durationMs: usage.durationMs > 0 ? usage.durationMs : undefined,
-        costUsd: usage.costUsd > 0 ? usage.costUsd : undefined,
+        forkSessionId: batchResult.forkSessionId,
+        cacheReadTokens: batchResult.cacheReadTokens,
+        cacheCreationTokens: batchResult.cacheCreationTokens,
+        inputTokens: batchResult.inputTokens,
+        durationMs: batchResult.durationMs,
+        costUsd: batchResult.costUsd,
         describedStepIndexes: described,
       });
 
@@ -212,8 +220,8 @@ export async function annotateOutline(
         phase: 'parsed',
         message: `attempt ${attempt + 1}: filled ${described.length}/${batch.length}`,
         elapsedMs: Date.now() - startedAt,
-        forkSessionId: spawnResult.forkSessionId ?? undefined,
-        cacheReadTokens: usage.cacheReadTokens || undefined,
+        forkSessionId: batchResult.forkSessionId ?? undefined,
+        cacheReadTokens: batchResult.cacheReadTokens || undefined,
       });
 
       // Safety: if a batch returned zero descriptions, abandon further
@@ -221,7 +229,9 @@ export async function annotateOutline(
       // steps just stay untagged in the persisted outline.
       if (described.length === 0) break;
     }
-  });
+  } finally {
+    await primitive.shutdown().catch(() => undefined);
+  }
 
   const remainingUntagged = steps.filter(
     (s) => isDescribable(s) && !s.description,
