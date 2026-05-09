@@ -9,9 +9,9 @@
 
 import type { SessionMetaView } from '../types/prefix-fingerprint';
 import type { ProjectListItem } from '../types/portable';
-import { claudeReader } from './readers/claudeReader';
-import { codexReader } from './readers/codexReader';
-import { geminiReader } from './readers/geminiReader';
+import { claudeReader } from '../agents/claude/reader';
+import { codexReader } from '../agents/codex/reader';
+import { geminiReader } from '../agents/gemini/reader';
 import type { CliSessionReader, ProjectScan } from './readers/types';
 
 const READERS: CliSessionReader[] = [claudeReader, codexReader, geminiReader];

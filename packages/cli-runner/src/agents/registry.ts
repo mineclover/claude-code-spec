@@ -18,15 +18,13 @@
  */
 
 import type { AgentId } from '@context-action/session-core/agents';
-import { claudeRunner } from './claudeRunner';
-import { codexRunner } from './codexRunner';
-import { geminiRunner } from './geminiRunner';
-import {
-  ClaudePrimitive,
-  CodexPrimitive,
-  type AnnotatorPrimitive,
-} from './annotatorPrimitive';
-import type { CliRunner } from './types';
+import { claudeRunner } from './claude/runner';
+import { codexRunner } from './codex/runner';
+import { geminiRunner } from './gemini/runner';
+import { ClaudePrimitive } from './claude/annotator';
+import { CodexPrimitive } from './codex/annotator';
+import type { AnnotatorPrimitive } from './types';
+import type { CliRunner } from '../types';
 
 /**
  * Creates a per-batch annotator primitive for one source session.

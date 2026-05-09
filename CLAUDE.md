@@ -64,6 +64,7 @@ npm run start
 33. **다국어**: EN/KR 토글 하나가 UI 언어 + 모델 출력 언어를 모두 제어
 
 상세 아키텍처: [`docs/session-viewer-outline-annotator.md`](./docs/session-viewer-outline-annotator.md)
+새 agent 추가 가이드: [`docs/agent-development-guide.md`](./docs/agent-development-guide.md)
 
 ## 예정 기능
 

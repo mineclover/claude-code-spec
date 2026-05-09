@@ -21,10 +21,10 @@
 import {
   MAX_EXCERPT_CHARS,
   type SessionOutline,
-  type SessionSegment,
   type SessionStep,
   type SessionStepKind,
-} from './types';
+} from '../../outline/types';
+import { groupIntoSegments } from '../../outline/grouping';
 
 interface RawClaudeEvent {
   type?: string;
@@ -250,45 +250,3 @@ export function extractClaudeOutline(args: {
   };
 }
 
-/**
- * Walk the flat step list and split it into segments bounded by
- * user-instruction steps.
- *
- * Layout
- *   - First segment (`openedByStep === null`) holds anything before
- *     the first user instruction (typically `meta` rows). Empty
- *     segments are kept so the outline still reflects original order.
- *   - Each subsequent segment opens at the user-instruction it's named
- *     after and ends at the next one (or the end of the session for
- *     the trailing segment).
- *   - The user-instruction step itself is NOT inside `segment.steps`
- *     — it bounds the segment, not lives inside it. This makes
- *     rendering "user said X, then 4 things happened" trivial.
- */
-export function groupIntoSegments(
-  steps: readonly SessionStep[],
-): SessionSegment[] {
-  const segments: SessionSegment[] = [];
-  let current: SessionSegment = {
-    openedByStep: null,
-    closedByStep: null,
-    userInstructionExcerpt: '',
-    steps: [],
-  };
-  for (const s of steps) {
-    if (s.kind === 'user-instruction') {
-      current.closedByStep = s.index;
-      segments.push(current);
-      current = {
-        openedByStep: s.index,
-        closedByStep: null,
-        userInstructionExcerpt: s.excerpt,
-        steps: [],
-      };
-      continue;
-    }
-    current.steps.push(s);
-  }
-  segments.push(current);
-  return segments;
-}

@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { extractGeminiOutline } from './extract-gemini';
+import { extractGeminiOutline } from './outline';
 
 function geminiSession(messages: object[]): string {
   return JSON.stringify({

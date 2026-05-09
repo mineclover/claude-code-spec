@@ -7,20 +7,20 @@
  * narrative and the proof that the fork shared its source's prefix.
  */
 
-export { claudeRunner } from './claudeRunner';
-export { codexRunner } from './codexRunner';
-export { geminiRunner } from './geminiRunner';
+export { claudeRunner } from './agents/claude/runner';
+export { codexRunner } from './agents/codex/runner';
+export { geminiRunner } from './agents/gemini/runner';
 export { buildSummarizePrompt, SUMMARIZE_PROMPT_TEMPLATE } from './prompts';
 export { parseModelOutput } from './parseModelOutput';
 export { parseAnnotateBatch } from './parseAnnotateBatch';
 export { annotateOutline } from './annotateRunner';
 export type { AnnotateOutlineOptions } from './annotateRunner';
-export { ANNOTATE_BATCH_JSON_SCHEMA } from './annotatorPrimitive';
+export { ANNOTATE_BATCH_JSON_SCHEMA } from './agents/types';
 export type {
   AnnotatorPrimitive,
   AnnotateBatchInput,
   AnnotateBatchResult,
-} from './annotatorPrimitive';
+} from './agents/types';
 // Agent registry — single dispatch table for runner + annotator
 // per agent. `getRunner` and `makeAnnotatorPrimitive` are kept as
 // the canonical public API; both delegate to this registry.
@@ -29,19 +29,19 @@ export {
   getRunnerAgent,
   getSummarizeRunner,
   makeAnnotatorPrimitive,
-} from './agents';
+} from './agents/registry';
 export type {
   RunnerAgentDefinition,
   AnnotatorFactory,
-} from './agents';
-export { CodexAppServerClient } from './codexAppServer';
+} from './agents/registry';
+export { CodexAppServerClient } from './agents/codex/appServer';
 export type {
   CodexAppServerOptions,
   CodexThreadItem,
   CodexTokenUsage,
   RunTurnOptions,
   RunTurnResult,
-} from './codexAppServer';
+} from './agents/codex/appServer';
 export type {
   CliRunner,
   ForkContext,
@@ -57,7 +57,7 @@ export {
 } from './types';
 
 import type { CliRunner, ForkContext } from './types';
-import { getSummarizeRunner } from './agents';
+import { getSummarizeRunner } from './agents/registry';
 
 /**
  * Resolve a runner for the given CLI. Returns `null` (rather than

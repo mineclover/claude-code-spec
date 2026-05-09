@@ -22,6 +22,35 @@ Pick the smallest entry that fits the consumer to keep bundles tight:
 | `.../server/summary-store`            | `~/.session-viewer/summaries/` JSON I/O  | yes            |
 | `.../server/outline-store`            | `~/.session-viewer/outlines/` JSON I/O   | yes            |
 
+## Layout — common vs per-agent
+
+```
+src/
+  agents/
+    types.ts            ← AgentId, AgentReader, AgentOutlineExtractor
+    registry.ts         ← AGENTS table + loadOutlineForSession
+    claude/
+      reader.ts         ← scanAll + readClaudeSessionRaw
+      outline.ts        ← extractClaudeOutline
+    codex/
+      reader.ts         ← scanAll + readCodexSessionRaw
+      outline.ts        ← extractCodexOutline
+    gemini/
+      reader.ts         ← scanAll + readGeminiSessionRaw
+      outline.ts        ← extractGeminiOutline
+  outline/
+    types.ts            ← SessionOutline / SessionStep / SessionSegment
+    grouping.ts         ← groupIntoSegments (agent-agnostic)
+    annotate-schema.ts  ← prompt builder + Zod schema (agent-agnostic)
+  server/
+    readers/types.ts    ← CliSessionReader interface
+    session-reader.ts   ← multi-agent project aggregator
+    summary-store.ts
+    outline-store.ts
+```
+
+To add a new agent see [`docs/agent-development-guide.md`](../../docs/agent-development-guide.md).
+
 ## Agent registry
 
 Per-CLI dispatch goes through a single registry rather than a switch

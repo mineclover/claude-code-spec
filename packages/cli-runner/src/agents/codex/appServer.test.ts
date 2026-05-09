@@ -11,10 +11,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { CodexAppServerClient } from './codexAppServer';
+import { CodexAppServerClient } from './appServer';
 
 const FIXTURE_PATH = join(
   dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
   '..',
   'test-fixtures',
   'fake-codex-app-server.mjs',

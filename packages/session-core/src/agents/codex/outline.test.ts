@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { extractCodexOutline } from './extract-codex';
+import { extractCodexOutline } from './outline';
 
 function jsonl(...rows: object[]): string {
   return rows.map((r) => JSON.stringify(r)).join('\n');

@@ -27,8 +27,8 @@ import { spawn } from 'node:child_process';
 import { readdir, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { parseModelOutput } from './parseModelOutput';
-import { buildSummarizePrompt } from './prompts';
+import { parseModelOutput } from '../../parseModelOutput';
+import { buildSummarizePrompt } from '../../prompts';
 import {
   ForkPrerequisiteError,
   RunnerUnavailableError,
@@ -36,7 +36,7 @@ import {
   type ForkContext,
   type ForkProgress,
   type RunnerCapability,
-} from './types';
+} from '../../types';
 
 const TOOL_ID = 'gemini' as const;
 const TMP_ROOT = join(homedir(), '.gemini', 'tmp');

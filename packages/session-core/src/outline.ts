@@ -16,12 +16,10 @@ export type {
   SessionStepKind,
 } from './outline/types';
 export { MAX_EXCERPT_CHARS } from './outline/types';
-export {
-  extractClaudeOutline,
-  groupIntoSegments,
-} from './outline/extract';
-export { extractCodexOutline } from './outline/extract-codex';
-export { extractGeminiOutline } from './outline/extract-gemini';
+export { groupIntoSegments } from './outline/grouping';
+export { extractClaudeOutline } from './agents/claude/outline';
+export { extractCodexOutline } from './agents/codex/outline';
+export { extractGeminiOutline } from './agents/gemini/outline';
 export {
   AnnotateBatchSchema,
   ANNOTATE_PROMPT_HEADER,

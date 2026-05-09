@@ -26,8 +26,8 @@ import {
   type SessionOutline,
   type SessionStep,
   type SessionStepKind,
-} from './types';
-import { groupIntoSegments } from './extract';
+} from '../../outline/types';
+import { groupIntoSegments } from '../../outline/grouping';
 
 interface RawCodexEnvelope {
   type?: string;

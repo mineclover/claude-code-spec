@@ -10,15 +10,15 @@ export {
   claudeReader,
   dashEncodeCwd,
   readClaudeSessionRaw,
-} from './server/readers/claudeReader';
+} from './agents/claude/reader';
 export {
   codexReader,
   readCodexSessionRaw,
-} from './server/readers/codexReader';
+} from './agents/codex/reader';
 export {
   geminiReader,
   readGeminiSessionRaw,
-} from './server/readers/geminiReader';
+} from './agents/gemini/reader';
 export type { CliSessionReader, ProjectScan } from './server/readers/types';
 export {
   invalidateCache,

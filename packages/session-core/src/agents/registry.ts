@@ -13,12 +13,12 @@
  * the standalone CLI and the bun handler need.
  */
 
-import { extractClaudeOutline } from '../outline/extract';
-import { extractCodexOutline } from '../outline/extract-codex';
-import { extractGeminiOutline } from '../outline/extract-gemini';
-import { readClaudeSessionRaw } from '../server/readers/claudeReader';
-import { readCodexSessionRaw } from '../server/readers/codexReader';
-import { readGeminiSessionRaw } from '../server/readers/geminiReader';
+import { extractClaudeOutline } from './claude/outline';
+import { extractCodexOutline } from './codex/outline';
+import { extractGeminiOutline } from './gemini/outline';
+import { readClaudeSessionRaw } from './claude/reader';
+import { readCodexSessionRaw } from './codex/reader';
+import { readGeminiSessionRaw } from './gemini/reader';
 import type { SessionOutline } from '../outline/types';
 import type { AgentDefinition, AgentId } from './types';
 

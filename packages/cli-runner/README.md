@@ -42,12 +42,36 @@ import {
 } from '@context-action/cli-runner';
 ```
 
-## Agent registry
+## Layout — common vs per-agent
 
-`agents.ts` is the single source of truth for per-CLI runner +
-annotator-primitive wiring. Mirrors the shape of session-core's
-agent registry but operates at the runtime layer (live CLI
-interaction, fork mechanics):
+Per-agent code lives under `src/agents/<id>/`; agent-agnostic code
+lives in the package root.
+
+```
+src/
+  agents/
+    types.ts        ← AnnotatorPrimitive interface, batch I/O, JSON Schema
+    registry.ts     ← RUNNER_AGENTS table (runner + annotator factory)
+    claude/
+      runner.ts     ← claudeRunner (CliRunner) + spawn helpers
+      annotator.ts  ← ClaudePrimitive
+    codex/
+      runner.ts     ← codexRunner (CliRunner)
+      annotator.ts  ← CodexPrimitive
+      appServer.ts  ← CodexAppServerClient (JSON-RPC stdio)
+    gemini/
+      runner.ts     ← geminiRunner — no annotator (prompt-serialize
+                       loses prefix bytes)
+  annotateRunner.ts ← outer iterative loop (agent-agnostic)
+  prompts.ts        ← summarize prompt template
+  parseModelOutput.ts
+  parseAnnotateBatch.ts
+  jsonBlockExtractor.ts
+  types.ts          ← CliRunner / ForkContext / errors (agent-agnostic)
+  cli.ts
+```
+
+`agents/registry.ts` is the single dispatch table:
 
 ```ts
 const claudeRunnerAgent: RunnerAgentDefinition = {
@@ -62,6 +86,8 @@ gemini's prompt-serialize fork can't preserve cache prefix bytes,
 so iterative annotation isn't viable. `makeAnnotatorPrimitive` turns
 that null into a descriptive error so callers don't have to special-
 case gemini at every dispatch site.
+
+To add a new agent see [`docs/agent-development-guide.md`](../../docs/agent-development-guide.md).
 
 ## Two cache-preserving fork shapes
 

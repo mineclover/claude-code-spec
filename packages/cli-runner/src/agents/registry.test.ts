@@ -14,8 +14,9 @@ import {
   getRunnerAgent,
   getSummarizeRunner,
   makeAnnotatorPrimitive,
-} from './agents';
-import { ClaudePrimitive, CodexPrimitive } from './annotatorPrimitive';
+} from './registry';
+import { ClaudePrimitive } from './claude/annotator';
+import { CodexPrimitive } from './codex/annotator';
 import { AGENT_IDS } from '@context-action/session-core/agents';
 
 describe('cli-runner agent registry', () => {
@@ -24,7 +25,7 @@ describe('cli-runner agent registry', () => {
       const agent = RUNNER_AGENTS[id];
       expect(agent).toBeDefined();
       expect(agent.id).toBe(id);
-      expect(agent.summarizeRunner.toolId === id || agent.summarizeRunner).toBeTruthy();
+      expect(agent.summarizeRunner).toBeDefined();
       expect(typeof agent.annotator.create).toBe('function');
     }
   });

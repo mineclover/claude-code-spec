@@ -34,11 +34,11 @@ import {
   type AnnotationFork,
 } from '@context-action/session-core/outline';
 import { parseAnnotateBatch } from './parseAnnotateBatch';
-import { makeAnnotatorPrimitive } from './agents';
+import { makeAnnotatorPrimitive } from './agents/registry';
 import {
   ANNOTATE_BATCH_JSON_SCHEMA,
   type AnnotatorPrimitive,
-} from './annotatorPrimitive';
+} from './agents/types';
 import {
   ModelOutputParseError,
   type ForkProgress,

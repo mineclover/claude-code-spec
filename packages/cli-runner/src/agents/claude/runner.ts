@@ -26,15 +26,15 @@ import { spawn } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseModelOutput } from './parseModelOutput';
-import { buildSummarizePrompt } from './prompts';
+import { parseModelOutput } from '../../parseModelOutput';
+import { buildSummarizePrompt } from '../../prompts';
 import {
   RunnerUnavailableError,
   type CliRunner,
   type ForkContext,
   type ForkProgress,
   type RunnerCapability,
-} from './types';
+} from '../../types';
 
 const TOOL_ID = 'claude' as const;
 

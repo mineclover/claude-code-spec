@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { annotateOutline } from './annotateRunner';
-import type { AnnotatorPrimitive } from './annotatorPrimitive';
+import type { AnnotatorPrimitive } from './agents/types';
 import type {
   SessionOutline,
   SessionStep,

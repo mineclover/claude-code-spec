@@ -9,8 +9,9 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { extractClaudeOutline, groupIntoSegments } from './extract';
-import type { SessionStep } from './types';
+import { extractClaudeOutline } from './outline';
+import { groupIntoSegments } from '../../outline/grouping';
+import type { SessionStep } from '../../outline/types';
 
 function lines(...rows: object[]): string {
   return rows.map((r) => JSON.stringify(r)).join('\n');
