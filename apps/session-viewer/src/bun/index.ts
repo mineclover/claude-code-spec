@@ -21,11 +21,9 @@ import {
   invalidateCache,
   listProjects,
   listSessions,
-  readClaudeSessionRaw,
-  readCodexSessionRaw,
-  readGeminiSessionRaw,
   resolveSession,
 } from '@context-action/session-core/server/readers';
+import { loadOutlineForSession } from '@context-action/session-core/server/agents';
 import {
   deleteSummary as deleteSummaryFromStore,
   getSummary as getSummaryFromStore,
@@ -37,12 +35,7 @@ import {
   getOutline as getOutlineFromStore,
   saveOutline,
 } from '@context-action/session-core/server/outline-store';
-import {
-  extractClaudeOutline,
-  extractCodexOutline,
-  extractGeminiOutline,
-  type SessionOutline,
-} from '@context-action/session-core/outline';
+import { type SessionOutline } from '@context-action/session-core/outline';
 import { randomUUID } from 'node:crypto';
 import type { SessionViewerRPC } from '../shared/rpc-schema';
 import {
@@ -70,33 +63,22 @@ async function resolveMainViewUrl(): Promise<string> {
 }
 
 /**
- * Read the source session's raw bytes via the per-CLI reader and run
- * the matching outline extractor. Returns `null` when the source can't
- * be located (file missing, sessionId unknown to the cache, etc.). The
- * GUI surfaces null as a "no outline available" empty state.
+ * Read the source session's raw bytes via the agent registry and run
+ * the matching outline extractor. Returns `null` when the source
+ * session isn't in the multi-CLI cache (no toolId / no cwd) or its
+ * raw bytes can't be located. The GUI surfaces null as a "no outline
+ * available" empty state.
  */
 async function loadFreshOutline(
   sessionId: string,
 ): Promise<SessionOutline | null> {
   const resolved = await resolveSession(sessionId);
   if (!resolved) return null;
-  const { toolId, cwd } = resolved;
-  if (toolId === 'claude') {
-    const raw = await readClaudeSessionRaw(sessionId, cwd);
-    if (raw === null) return null;
-    return extractClaudeOutline({ raw, sourceSessionId: sessionId, cwd });
-  }
-  if (toolId === 'codex') {
-    const raw = await readCodexSessionRaw(sessionId, cwd);
-    if (raw === null) return null;
-    return extractCodexOutline({ raw, sourceSessionId: sessionId, cwd });
-  }
-  if (toolId === 'gemini') {
-    const raw = await readGeminiSessionRaw(sessionId, cwd);
-    if (raw === null) return null;
-    return extractGeminiOutline({ raw, sourceSessionId: sessionId, cwd });
-  }
-  return null;
+  return loadOutlineForSession({
+    agentId: resolved.toolId,
+    sessionId,
+    cwd: resolved.cwd,
+  });
 }
 
 // Forward reference so the branch handler can call rpc.send.branchProgress

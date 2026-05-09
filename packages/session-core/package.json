@@ -45,12 +45,22 @@
       "types": "./dist/outline.d.ts",
       "import": "./dist/outline.mjs",
       "require": "./dist/outline.js"
+    },
+    "./agents": {
+      "types": "./dist/agents.d.ts",
+      "import": "./dist/agents.mjs",
+      "require": "./dist/agents.js"
+    },
+    "./server/agents": {
+      "types": "./dist/server-agents.d.ts",
+      "import": "./dist/server-agents.mjs",
+      "require": "./dist/server-agents.js"
     }
   },
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts src/summary.ts src/server-readers.ts src/server-summary-store.ts src/outline.ts src/server-outline-store.ts --format cjs,esm --dts --splitting",
-    "dev": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts src/summary.ts src/server-readers.ts src/server-summary-store.ts src/outline.ts src/server-outline-store.ts --format cjs,esm --dts --splitting --watch",
+    "build": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts src/summary.ts src/server-readers.ts src/server-summary-store.ts src/outline.ts src/server-outline-store.ts src/agents.ts src/server-agents.ts --format cjs,esm --dts --splitting",
+    "dev": "tsup src/index.ts src/prefixHashing.ts src/observedFingerprint.ts src/summary.ts src/server-readers.ts src/server-summary-store.ts src/outline.ts src/server-outline-store.ts src/agents.ts src/server-agents.ts --format cjs,esm --dts --splitting --watch",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

@@ -15,19 +15,25 @@ Used by:
 
 ```ts
 import {
+  // Agent registry — single dispatch table
+  RUNNER_AGENTS,
+  getRunnerAgent,         // entry by AgentId
+  getSummarizeRunner,     // alias for `getRunner` legacy callers
+  makeAnnotatorPrimitive, // factory; throws for non-viable agents
+
   // Summarize runners — produce a SummaryResult
   claudeRunner,
   codexRunner,
   geminiRunner,
-  getRunner,           // dispatch by toolId
+  getRunner,              // legacy alias of getSummarizeRunner
 
   // Outline annotator — fills 1-line description tags
-  annotateOutline,     // outer iterative loop
+  annotateOutline,        // outer iterative loop
 
   // Prompts / parsers
   buildSummarizePrompt,
-  parseModelOutput,    // SummaryResult JSON
-  parseAnnotateBatch,  // {descriptions: {[idx]: tag}}
+  parseModelOutput,       // SummaryResult JSON
+  parseAnnotateBatch,     // {descriptions: {[idx]: tag}}
 
   // Errors
   RunnerUnavailableError,
@@ -35,6 +41,27 @@ import {
   ModelOutputParseError,
 } from '@context-action/cli-runner';
 ```
+
+## Agent registry
+
+`agents.ts` is the single source of truth for per-CLI runner +
+annotator-primitive wiring. Mirrors the shape of session-core's
+agent registry but operates at the runtime layer (live CLI
+interaction, fork mechanics):
+
+```ts
+const claudeRunnerAgent: RunnerAgentDefinition = {
+  id: 'claude',
+  summarizeRunner: claudeRunner,
+  annotator: { create: ({sourceSessionId, cwd}) => new ClaudePrimitive(...) },
+};
+```
+
+`gemini.annotator.create` returns `null` — explicit signal that
+gemini's prompt-serialize fork can't preserve cache prefix bytes,
+so iterative annotation isn't viable. `makeAnnotatorPrimitive` turns
+that null into a descriptive error so callers don't have to special-
+case gemini at every dispatch site.
 
 ## Two cache-preserving fork shapes
 

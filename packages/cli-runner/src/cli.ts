@@ -20,11 +20,9 @@ import {
   invalidateCache,
   listProjects,
   listSessions as readListSessions,
-  readClaudeSessionRaw,
-  readCodexSessionRaw,
-  readGeminiSessionRaw,
   resolveSession,
 } from '@context-action/session-core/server/readers';
+import { loadOutlineForSession } from '@context-action/session-core/server/agents';
 import {
   deleteSummary,
   getSummary,
@@ -37,11 +35,6 @@ import {
   listOutlines,
   saveOutline,
 } from '@context-action/session-core/server/outline-store';
-import {
-  extractClaudeOutline,
-  extractCodexOutline,
-  extractGeminiOutline,
-} from '@context-action/session-core/outline';
 import type { SessionOutline } from '@context-action/session-core/outline';
 import { annotateOutline } from './annotateRunner';
 import type {
@@ -300,51 +293,42 @@ async function cmdSessions(parsed: ParsedArgs): Promise<number> {
 }
 
 /**
- * Resolve a session's outline by dispatching to the per-CLI raw reader
- * + extractor. Returns either the outline or a structured error so the
- * caller (cmdOutline, cmdAnnotate) can emit a useful exit message.
+ * Resolve a session's outline through the agent registry. Wraps
+ * `loadOutlineForSession` (which returns `null` on miss) with an
+ * agent-specific error message so the CLI can exit with a useful
+ * hint instead of a generic "not found".
  */
-async function loadOutlineForSession(opts: {
+async function loadOutlineWithMessage(opts: {
   toolId: ForkContext['toolId'];
   sessionId: string;
   cwd: string;
   language?: 'en' | 'ko';
 }): Promise<{ outline: SessionOutline } | { error: string }> {
   const { toolId, sessionId, cwd, language } = opts;
-  if (toolId === 'claude') {
-    const raw = await readClaudeSessionRaw(sessionId, cwd);
-    if (raw === null) {
+  const outline = await loadOutlineForSession({
+    agentId: toolId,
+    sessionId,
+    cwd,
+    language,
+  });
+  if (outline) return { outline };
+  // Agent-specific hints for the "raw bytes missing" case.
+  switch (toolId) {
+    case 'claude':
       return {
         error: `claude JSONL not found at ~/.claude/projects/<dash>/${sessionId}.jsonl (cwd=${cwd})`,
       };
-    }
-    return {
-      outline: extractClaudeOutline({ raw, sourceSessionId: sessionId, cwd, language }),
-    };
-  }
-  if (toolId === 'codex') {
-    const raw = await readCodexSessionRaw(sessionId, cwd);
-    if (raw === null) {
+    case 'codex':
       return {
         error: `codex rollout not found for ${sessionId} within recent partitions (set SESSION_VIEWER_CODEX_DAYS to widen)`,
       };
-    }
-    return {
-      outline: extractCodexOutline({ raw, sourceSessionId: sessionId, cwd, language }),
-    };
-  }
-  if (toolId === 'gemini') {
-    const raw = await readGeminiSessionRaw(sessionId, cwd);
-    if (raw === null) {
+    case 'gemini':
       return {
         error: `gemini session.json not found for ${sessionId} (cwd=${cwd})`,
       };
-    }
-    return {
-      outline: extractGeminiOutline({ raw, sourceSessionId: sessionId, cwd, language }),
-    };
+    default:
+      return { error: `Unsupported toolId: ${toolId as string}` };
   }
-  return { error: `Unsupported toolId: ${toolId as string}` };
 }
 
 async function cmdOutline(parsed: ParsedArgs): Promise<number> {
@@ -372,7 +356,7 @@ async function cmdOutline(parsed: ParsedArgs): Promise<number> {
     cwd = resolved.cwd;
   }
 
-  const result = await loadOutlineForSession({
+  const result = await loadOutlineWithMessage({
     toolId: toolIdRaw,
     sessionId,
     cwd,
@@ -522,7 +506,7 @@ async function cmdAnnotate(parsed: ParsedArgs): Promise<number> {
       }
     : undefined;
 
-  const baseResult = await loadOutlineForSession({
+  const baseResult = await loadOutlineWithMessage({
     toolId: toolIdRaw,
     sessionId,
     cwd,

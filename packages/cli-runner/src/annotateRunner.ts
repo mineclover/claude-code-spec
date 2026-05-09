@@ -34,8 +34,8 @@ import {
   type AnnotationFork,
 } from '@context-action/session-core/outline';
 import { parseAnnotateBatch } from './parseAnnotateBatch';
+import { makeAnnotatorPrimitive } from './agents';
 import {
-  makeAnnotatorPrimitive,
   ANNOTATE_BATCH_JSON_SCHEMA,
   type AnnotatorPrimitive,
 } from './annotatorPrimitive';

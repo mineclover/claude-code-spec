@@ -16,9 +16,37 @@ Pick the smallest entry that fits the consumer to keep bundles tight:
 | `.../fingerprint`                     | Static / observed fingerprint helpers    | no             |
 | `.../summary`                         | Branch & Summarize types + zod schema    | no             |
 | `.../outline`                         | Outline types, extractors, prompt builder, annotator schema | no |
+| `.../agents`                          | `AgentId`, `AgentDefinition` types       | no             |
+| `.../server/agents`                   | `AGENTS` registry, `loadOutlineForSession` | yes          |
 | `.../server/readers`                  | Multi-CLI session readers + raw-bytes IO | yes            |
 | `.../server/summary-store`            | `~/.session-viewer/summaries/` JSON I/O  | yes            |
 | `.../server/outline-store`            | `~/.session-viewer/outlines/` JSON I/O   | yes            |
+
+## Agent registry
+
+Per-CLI dispatch goes through a single registry rather than a switch
+statement copy-pasted at every consumer:
+
+```ts
+import { AGENTS, getAgent, loadOutlineForSession }
+  from '@context-action/session-core/server/agents';
+
+// Type-level dispatch table — keys are exhaustive over AgentId.
+AGENTS.claude.reader.readSessionRaw(sessionId, cwd);
+AGENTS.codex.outline.extract({raw, sourceSessionId, cwd});
+
+// Composed read+extract — used by both the CLI and the bun host.
+const outline = await loadOutlineForSession({
+  agentId: 'claude',
+  sessionId,
+  cwd,
+  language: 'ko',
+});
+```
+
+Each `AgentDefinition` pairs the agent's raw-bytes reader with its
+outline extractor. Adding a new agent is one new entry in
+`agents/registry.ts` once the per-CLI reader and extractor exist.
 
 `./outline` is browser-safe even though it parses JSONL — it's pure string
 manipulation, no node modules. The annotator prompt builder + Zod schema

@@ -76,7 +76,7 @@ export interface AnnotatorPrimitive {
 
 // ─── Claude ──────────────────────────────────────────────────────────
 
-class ClaudePrimitive implements AnnotatorPrimitive {
+export class ClaudePrimitive implements AnnotatorPrimitive {
   readonly toolId = 'claude' as const;
 
   private mcpConfigPath: string | null = null;
@@ -147,7 +147,7 @@ async function isCodexOnPath(): Promise<boolean> {
   });
 }
 
-class CodexPrimitive implements AnnotatorPrimitive {
+export class CodexPrimitive implements AnnotatorPrimitive {
   readonly toolId = 'codex' as const;
 
   private client: CodexAppServerClient | null = null;
@@ -264,28 +264,10 @@ class CodexPrimitive implements AnnotatorPrimitive {
   }
 }
 
-// ─── Factory ─────────────────────────────────────────────────────────
-
-export function makeAnnotatorPrimitive(opts: {
-  toolId: 'claude' | 'codex' | 'gemini';
-  sourceSessionId: string;
-  cwd: string;
-}): AnnotatorPrimitive {
-  switch (opts.toolId) {
-    case 'claude':
-      return new ClaudePrimitive(opts.sourceSessionId, opts.cwd);
-    case 'codex':
-      return new CodexPrimitive(opts.sourceSessionId, opts.cwd);
-    case 'gemini':
-      throw new Error(
-        'Gemini annotator not implemented: prompt-serialize forks lose cache prefix bytes by construction, so iterative cache-preserving annotation is not viable',
-      );
-    default: {
-      const exhaustive: never = opts.toolId;
-      throw new Error(`Unknown toolId: ${exhaustive as string}`);
-    }
-  }
-}
+// Factory + registry live in `./agents.ts` to avoid a circular
+// dependency. This file only exports the interface + concrete
+// primitive classes; consumers go through `getRunnerAgent` /
+// `makeAnnotatorPrimitive` from `./agents`.
 
 // ─── Schema helper ───────────────────────────────────────────────────
 

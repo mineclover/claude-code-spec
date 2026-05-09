@@ -15,15 +15,25 @@ export { parseModelOutput } from './parseModelOutput';
 export { parseAnnotateBatch } from './parseAnnotateBatch';
 export { annotateOutline } from './annotateRunner';
 export type { AnnotateOutlineOptions } from './annotateRunner';
-export {
-  makeAnnotatorPrimitive,
-  ANNOTATE_BATCH_JSON_SCHEMA,
-} from './annotatorPrimitive';
+export { ANNOTATE_BATCH_JSON_SCHEMA } from './annotatorPrimitive';
 export type {
   AnnotatorPrimitive,
   AnnotateBatchInput,
   AnnotateBatchResult,
 } from './annotatorPrimitive';
+// Agent registry — single dispatch table for runner + annotator
+// per agent. `getRunner` and `makeAnnotatorPrimitive` are kept as
+// the canonical public API; both delegate to this registry.
+export {
+  RUNNER_AGENTS,
+  getRunnerAgent,
+  getSummarizeRunner,
+  makeAnnotatorPrimitive,
+} from './agents';
+export type {
+  RunnerAgentDefinition,
+  AnnotatorFactory,
+} from './agents';
 export { CodexAppServerClient } from './codexAppServer';
 export type {
   CodexAppServerOptions,
@@ -47,21 +57,16 @@ export {
 } from './types';
 
 import type { CliRunner, ForkContext } from './types';
-import { claudeRunner } from './claudeRunner';
-import { codexRunner } from './codexRunner';
-import { geminiRunner } from './geminiRunner';
-
-const REGISTRY: Record<ForkContext['toolId'], CliRunner | null> = {
-  claude: claudeRunner,
-  codex: codexRunner,
-  gemini: geminiRunner,
-};
+import { getSummarizeRunner } from './agents';
 
 /**
  * Resolve a runner for the given CLI. Returns `null` (rather than
  * throwing) when no runner is registered, so the GUI can surface a
  * "branch unsupported for {toolId}" hint without an exception.
+ *
+ * Thin alias around the agent registry — keeps the legacy public
+ * API stable while the registry holds the actual table.
  */
 export function getRunner(toolId: ForkContext['toolId']): CliRunner | null {
-  return REGISTRY[toolId];
+  return getSummarizeRunner(toolId);
 }

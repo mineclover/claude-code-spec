@@ -207,6 +207,35 @@ The CLI persists annotated outlines to the same store the GUI reads, so the
 two share state. The standalone CLI is also handy for scripting / CI and for
 debugging extractors against arbitrary sessions.
 
+## Agent registries — single dispatch table
+
+Per-CLI dispatch lives in two parallel registries:
+
+| Layer       | Registry path                                       | Pairs                              |
+| ----------- | --------------------------------------------------- | ---------------------------------- |
+| Data        | `session-core/src/agents/registry.ts` (`AGENTS`)    | reader + outline extractor         |
+| Runtime     | `cli-runner/src/agents.ts` (`RUNNER_AGENTS`)        | summarize runner + annotator factory |
+
+Consumers go through registry helpers instead of inline `if toolId === ...`
+ladders:
+
+```
+                                 ┌── session-core / server / agents ──┐
+loadOutlineForSession({          │   AGENTS[id].reader → raw bytes    │
+  agentId, sessionId, cwd })  ──→│   AGENTS[id].outline → SessionOutline │
+                                 └────────────────────────────────────┘
+
+makeAnnotatorPrimitive({         ┌── cli-runner / agents ─────────────┐
+  toolId, sessionId, cwd })  ──→ │   RUNNER_AGENTS[id].annotator      │
+                                 │     .create() → AnnotatorPrimitive │
+                                 │     (null when not viable)         │
+                                 └────────────────────────────────────┘
+```
+
+Both `cli-runner/cli.ts` and the session-viewer bun handler delegate to
+these registries — there are no per-toolId switches outside `agents.ts`
+files in either tree.
+
 ## Extending
 
 To add a new CLI:
@@ -216,12 +245,20 @@ To add a new CLI:
    Re-export from `server-readers.ts`.
 2. `session-core/src/outline/extract-<name>.ts` — translate raw bytes into
    `SessionOutline`. Re-export from `outline.ts`.
-3. `cli-runner/src/annotatorPrimitive.ts` — add a per-CLI primitive class if
-   the CLI exposes a cache-preserving fork mechanism. Otherwise let
-   `makeAnnotatorPrimitive` throw and treat the CLI as extract-only.
-4. Update `apps/session-viewer/src/bun/index.ts:loadFreshOutline` to
-   dispatch the new toolId.
+3. `session-core/src/agents/types.ts` — add the new id to the `AgentId`
+   union and to `AGENT_IDS`.
+4. `session-core/src/agents/registry.ts` — register the new
+   `AgentDefinition` (reader + extractor pair).
+5. `cli-runner/src/agents.ts` — register the new `RunnerAgentDefinition`
+   (summarize runner + annotator factory). Return `null` from
+   `annotator.create` when the CLI lacks a cache-preserving fork.
+
+`apps/session-viewer/src/bun/index.ts:loadFreshOutline` now goes through
+the registry, so it picks up the new agent automatically once steps 1–4
+land. Same for `cli-runner/src/cli.ts`'s `outline` and `annotate`
+subcommands.
 
 To add a new annotator backend on an existing CLI: implement a new
 `AnnotatorPrimitive` class and pass it explicitly to `annotateOutline` via
-the `options.primitive` injection point.
+the `options.primitive` injection point — the registry handles the default
+case but doesn't preclude per-call overrides.
