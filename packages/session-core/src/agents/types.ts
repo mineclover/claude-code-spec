@@ -23,6 +23,7 @@
  */
 
 import type { SessionOutline } from '../outline/types';
+import type { SessionMetaView } from '../types/prefix-fingerprint';
 
 /**
  * Stable id of a supported CLI agent. Brand-new style would use a
@@ -71,4 +72,33 @@ export interface AgentDefinition {
   id: AgentId;
   reader: AgentReader;
   outline: AgentOutlineExtractor;
+}
+
+/**
+ * Per-project rollup an agent's `scanAll()` produces. The multi-agent
+ * project aggregator in `server/session-reader.ts` merges these from
+ * every registered agent into the unified project list the data
+ * source surfaces over RPC.
+ */
+export interface ProjectScan {
+  /** Stable, globally-unique id of the form `${toolId}:${nativeId}`. */
+  id: string;
+  toolId: AgentId;
+  /** Display path (resolved cwd, falls back to native dir name). */
+  path: string;
+  sessions: SessionMetaView[];
+  lastSeenAt: number;
+}
+
+/**
+ * Project-list-side reader contract — every agent implements this in
+ * its `agents/<id>/reader.ts`, alongside `readSessionRaw`. The split
+ * between `CliSessionReader.scanAll()` (project enumeration) and
+ * `AgentReader.readSessionRaw()` (individual session bytes) reflects
+ * the two consumers: the aggregator wants a fast survey of all
+ * sessions, the outline composer wants exact bytes for one.
+ */
+export interface CliSessionReader {
+  toolId: AgentId;
+  scanAll(): Promise<ProjectScan[]>;
 }

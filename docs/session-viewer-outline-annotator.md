@@ -39,20 +39,26 @@ GUI's Outline tab renders it as a structure tree before any annotation runs).
 ## Phase 1 — Extract
 
 ```
+session-core/src/agents/
+  types.ts                 ← AgentReader / AgentOutlineExtractor / AgentDefinition / CliSessionReader
+  registry.ts              ← AGENTS table + loadOutlineForSession
+  claude/{reader,outline}.ts
+  codex/{reader,outline}.ts
+  gemini/{reader,outline}.ts
+
 session-core/src/outline/
   types.ts                 ← SessionOutline / SessionStep / SessionSegment
-  extract.ts               ← extractClaudeOutline + groupIntoSegments
-  extract-codex.ts         ← extractCodexOutline (response_item envelope)
-  extract-gemini.ts        ← extractGeminiOutline (single JSON document)
+  grouping.ts              ← groupIntoSegments (agent-agnostic)
+  annotate-schema.ts       ← annotator prompt + Zod schema
 ```
 
-Each per-CLI extractor consumes raw bytes via the matching reader:
+Each per-CLI extractor consumes raw bytes via the matching reader,
+both colocated in the agent's directory:
 
 ```
-session-core/src/server/readers/
-  claudeReader.readClaudeSessionRaw(sessionId, cwd) → string | null
-  codexReader.readCodexSessionRaw(sessionId, cwd)  → string | null
-  geminiReader.readGeminiSessionRaw(sessionId, cwd) → string | null
+agents/claude/reader.ts: readClaudeSessionRaw(sessionId, cwd) → string | null
+agents/codex/reader.ts:  readCodexSessionRaw(sessionId, cwd)  → string | null
+agents/gemini/reader.ts: readGeminiSessionRaw(sessionId, cwd) → string | null
 ```
 
 The readers handle the storage-layout differences (claude's dash-encoded cwd
@@ -74,10 +80,15 @@ the model, so adding a new CLI is `reader + extractor` and that's it.
 
 ```
 cli-runner/src/
-  annotateRunner.ts          ← outer iterative loop (CLI-agnostic)
-  annotatorPrimitive.ts      ← per-CLI fork primitive interface + impls
+  annotateRunner.ts          ← outer iterative loop (agent-agnostic)
   parseAnnotateBatch.ts      ← {descriptions: {[idx]: string}} parser
   jsonBlockExtractor.ts      ← shared JSON-fragment locator
+  agents/
+    types.ts                 ← AnnotatorPrimitive interface, JSON Schema
+    registry.ts              ← RUNNER_AGENTS table + makeAnnotatorPrimitive
+    claude/{runner,annotator}.ts
+    codex/{runner,annotator,appServer}.ts
+    gemini/runner.ts         ← (no annotator — prompt-serialize loses prefix)
 
 session-core/src/outline/
   annotate-schema.ts         ← Zod schema + prompt builder (shared with bun)
@@ -106,7 +117,7 @@ Two safety rails: `maxAttempts` (default 5) caps total forks, and the
 "zero-progress bail-out" stops cold when a batch came back empty (the model
 is stuck — trying again won't help).
 
-### Per-CLI primitives (`annotatorPrimitive.ts`)
+### Per-CLI primitives (`agents/<id>/annotator.ts`)
 
 | CLI    | prepare()                  | forkAndAnnotate(...)                   | shutdown()           |
 | ------ | -------------------------- | -------------------------------------- | -------------------- |
@@ -120,7 +131,7 @@ per batch — much cheaper.
 
 ### Codex `app-server` client
 
-`cli-runner/src/codexAppServer.ts` is a thin TS JSON-RPC 2.0 client modeled
+`cli-runner/src/agents/codex/appServer.ts` is a thin TS JSON-RPC 2.0 client modeled
 after [openai/symphony's `app_server.ex`](https://github.com/openai/symphony/blob/main/elixir/lib/symphony_elixir/codex/app_server.ex)
 (see `references/symphony-codex-app-server.md`).
 
@@ -238,25 +249,21 @@ files in either tree.
 
 ## Extending
 
-To add a new CLI:
+The full step-by-step recipe lives in
+[`docs/agent-development-guide.md`](./agent-development-guide.md). At
+a glance, adding a new CLI agent touches:
 
-1. `session-core/src/server/readers/<name>Reader.ts` — implement `scanAll`
-   for project list + `read<Name>SessionRaw(sessionId, cwd)` for raw bytes.
-   Re-export from `server-readers.ts`.
-2. `session-core/src/outline/extract-<name>.ts` — translate raw bytes into
-   `SessionOutline`. Re-export from `outline.ts`.
-3. `session-core/src/agents/types.ts` — add the new id to the `AgentId`
-   union and to `AGENT_IDS`.
-4. `session-core/src/agents/registry.ts` — register the new
-   `AgentDefinition` (reader + extractor pair).
-5. `cli-runner/src/agents.ts` — register the new `RunnerAgentDefinition`
-   (summarize runner + annotator factory). Return `null` from
-   `annotator.create` when the CLI lacks a cache-preserving fork.
+1. `session-core/src/agents/types.ts` — extend `AgentId` + `AGENT_IDS`.
+2. `session-core/src/agents/<id>/{reader,outline}.ts` — per-CLI
+   storage layout + wire-format extractor.
+3. `session-core/src/agents/registry.ts` — add the `AgentDefinition`.
+4. `cli-runner/src/agents/<id>/{runner,annotator}.ts` — per-CLI fork
+   mechanic + summarize runner.
+5. `cli-runner/src/agents/registry.ts` — add the `RunnerAgentDefinition`.
 
-`apps/session-viewer/src/bun/index.ts:loadFreshOutline` now goes through
-the registry, so it picks up the new agent automatically once steps 1–4
-land. Same for `cli-runner/src/cli.ts`'s `outline` and `annotate`
-subcommands.
+No dispatch site outside the registries needs to change — TypeScript's
+exhaustive `Record<AgentId, …>` types force every consumer onto the
+new id automatically.
 
 To add a new annotator backend on an existing CLI: implement a new
 `AnnotatorPrimitive` class and pass it explicitly to `annotateOutline` via

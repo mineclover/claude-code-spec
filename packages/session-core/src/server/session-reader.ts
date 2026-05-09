@@ -12,7 +12,7 @@ import type { ProjectListItem } from '../types/portable';
 import { claudeReader } from '../agents/claude/reader';
 import { codexReader } from '../agents/codex/reader';
 import { geminiReader } from '../agents/gemini/reader';
-import type { CliSessionReader, ProjectScan } from './readers/types';
+import type { CliSessionReader, ProjectScan } from '../agents/types';
 
 const READERS: CliSessionReader[] = [claudeReader, codexReader, geminiReader];
 

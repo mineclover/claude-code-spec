@@ -19,7 +19,7 @@ export {
   geminiReader,
   readGeminiSessionRaw,
 } from './agents/gemini/reader';
-export type { CliSessionReader, ProjectScan } from './server/readers/types';
+export type { CliSessionReader, ProjectScan } from './agents/types';
 export {
   invalidateCache,
   listProjects,

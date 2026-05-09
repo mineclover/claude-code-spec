@@ -14,10 +14,7 @@ import { sha256Hex, sha256OfCanonicalJson } from '../../prefixHashing';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type {
-  CliSessionReader,
-  ProjectScan,
-} from '../../server/readers/types';
+import type { CliSessionReader, ProjectScan } from '../types';
 
 const TOOL_ID = 'gemini' as const;
 const TMP_ROOT = join(homedir(), '.gemini', 'tmp');

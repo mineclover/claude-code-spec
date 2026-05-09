@@ -101,7 +101,7 @@ export interface AgentDefinition {
 }
 ```
 
-Plus `CliSessionReader` (under `server/readers/types.ts`) for the
+Plus `CliSessionReader` (also in `agents/types.ts`) for the
 project-level scan that powers the multi-agent project list.
 
 ### 2. Runtime layer (`cli-runner/src/agents/types.ts`)

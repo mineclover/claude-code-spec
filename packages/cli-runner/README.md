@@ -106,7 +106,7 @@ of cache preservation.
 
 ## Codex app-server
 
-`packages/cli-runner/src/codexAppServer.ts` is a thin TypeScript JSON-RPC
+`packages/cli-runner/src/agents/codex/appServer.ts` is a thin TypeScript JSON-RPC
 client modeled after [openai/symphony's `app_server.ex`](https://github.com/openai/symphony/blob/main/elixir/lib/symphony_elixir/codex/app_server.ex)
 (see `references/symphony-codex-app-server.md`). It speaks just enough of
 the protocol to drive `initialize → thread/fork → turn/start → turn/completed`,

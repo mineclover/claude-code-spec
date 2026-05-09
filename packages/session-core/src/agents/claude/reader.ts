@@ -23,10 +23,7 @@ import type { StreamEvent } from '@context-action/code-api';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type {
-  CliSessionReader,
-  ProjectScan,
-} from '../../server/readers/types';
+import type { CliSessionReader, ProjectScan } from '../types';
 
 const TOOL_ID = 'claude' as const;
 const ROOT = join(homedir(), '.claude', 'projects');
